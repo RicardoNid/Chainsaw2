@@ -10,13 +10,14 @@ class MontMultTest extends AnyFlatSpec {
   val testCount = 1000
   val moduli = BigInt("52435875175126190479447740508185965837690552500527637822603658699938581184513", 10)
 
-  val as = BigInt(Random.nextString(lN).map(_ % 2).mkString(""), 2)
-  val bs = BigInt(Random.nextString(lN).map(_ % 2).mkString(""), 2)
+  val as = (0 until testCount).map(_ => BigInt(Random.nextString(lN).map(_ % 2).mkString(""), 2) % moduli)
+  val bs = (0 until testCount).map(_ => BigInt(Random.nextString(lN).map(_ % 2).mkString(""), 2) % moduli)
 
   "mmm algo" should "work" in {
-
-    MontMult.mmm(as, bs, moduli)
-
+    as.zip(bs).foreach { case (a, b) => MontMult.mmm(a, b, moduli, lN) }
   }
 
+  "hrmmm algo" should "work" in {
+    as.zip(bs).foreach { case (a, b) => MontMult.hrmmm(a, b, moduli, lN, 16) }
+  }
 }

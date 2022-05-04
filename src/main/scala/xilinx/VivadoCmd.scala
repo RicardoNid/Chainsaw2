@@ -7,7 +7,6 @@ object VivadoCmd {
 
   def exec(command: String) = {
     Process(s"/tools/Xilinx/Vivado/2021.1/bin/vivado -mode tcl")
-    println("here")
     Process("pwd")
   }
 
