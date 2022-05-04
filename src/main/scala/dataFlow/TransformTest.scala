@@ -31,23 +31,34 @@ object TransformTest {
 
       println(last.mkString(" "))
 
-      val record = ArrayBuffer[Seq[BigInt]]()
+      val dataRecord = ArrayBuffer[Seq[BigInt]]()
+      val lastRecord = ArrayBuffer[Boolean]()
 
       dataFlow.indices.foreach { i =>
         dataIn.fragment.zip(dataFlow(i)).foreach { case (port, bigint) => port.assignBigInt(bigint) }
         dataIn.valid #= valid(i)
         dataIn.last #= last(i)
-        record += dataOut.fragment.map(_.toBigInt)
+        dataRecord += dataOut.fragment.map(_.toBigInt)
+        lastRecord += dataOut.last.toBoolean
         clockDomain.waitSampling()
       }
 
       (0 until config.latency + 1).foreach { _ =>
-        record += dataOut.fragment.map(_.toBigInt)
+        dataRecord += dataOut.fragment.map(_.toBigInt)
+        lastRecord += dataOut.last.toBoolean
         clockDomain.waitSampling()
       }
 
-      println(record.map(_.mkString(" ")).mkString("\n"))
+      println(dataRecord.map(_.mkString(" ")).mkString("\n"))
+      val firstTime = lastRecord.indexOf(true) // first time when last appeared
+      val lastTime = lastRecord.lastIndexOf(true) // last time when last appeared
+      println(firstTime, lastTime)
 
+      val yours= dataRecord.slice(firstTime + 1, lastTime + 1)
+        .grouped(config.outputFlow.period).toSeq
+        .flatMap(config.outputFlow.toRawData)
+
+      assert(yours == golden, s"\nyours : ${yours.mkString(" ")}\ngolden: ${golden.mkString(" ")}")
     }
   }
 }
