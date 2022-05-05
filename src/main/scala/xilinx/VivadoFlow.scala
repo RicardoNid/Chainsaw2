@@ -64,7 +64,7 @@ class VivadoFlow[T <: Component](
       if (sourcePath.endsWith(".sv")) s"read_verilog -sv $sourcePath \n"
       else if (sourcePath.endsWith(".v")) s"read_verilog $sourcePath \n"
       else if (sourcePath.endsWith(".vhdl") || sourcePath.endsWith(".vhd")) s"read_vhdl $sourcePath \n"
-      else if (sourcePath.endsWith(".bin")) "\n" // TODO: how to add bin source?
+      else if (sourcePath.endsWith(".bin")) "\n"
       else throw new IllegalArgumentException(s"invalid RTL source path $sourcePath")
     }
 
@@ -142,7 +142,6 @@ class VivadoFlow[T <: Component](
   // utils for flow
 }
 
-// TODO: modify the API, name and path should be passed to the Flow, so the user can use Config and Task from the recommendation
 object VivadoFlow {
   def apply[T <: Component](
                              design: => T, taskType: VivadoTaskType,

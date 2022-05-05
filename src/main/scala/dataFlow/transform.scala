@@ -12,6 +12,8 @@ abstract class TransformConfig {
 
   def outputFlow: DataFlow
 
+  def transform(dataIn: Seq[BigInt]): Seq[BigInt]
+
 }
 
 abstract class TransformModule[TIn <: BaseType, TOut <: BaseType] extends Component {
@@ -21,6 +23,7 @@ abstract class TransformModule[TIn <: BaseType, TOut <: BaseType] extends Compon
   val dataOut: Flow[Fragment[Vec[TOut]]]
 
   def autoValid(): Unit = dataOut.valid := dataIn.valid.validAfter(config.latency)
+
   def autoLast(): Unit = dataOut.last := dataIn.last.validAfter(config.latency)
 
 }

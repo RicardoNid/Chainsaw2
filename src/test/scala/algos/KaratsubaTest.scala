@@ -11,8 +11,8 @@ class KaratsubaTest extends AnyFlatSpec {
   val width = 256
   val baseWidth = 34
 
-  val xs = (0 until testCount).map(_ => BigInt(Random.nextString(width).map(_ % 2).mkString(""), 2))
-  val ys = (0 until testCount).map(_ => BigInt(Random.nextString(width).map(_ % 2).mkString(""), 2))
+  val xs = (0 until testCount).map(_ => nextBigInt(width))
+  val ys = (0 until testCount).map(_ => nextBigInt(width))
 
   "karatsuba" should "work" in {
 

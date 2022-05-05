@@ -19,7 +19,6 @@ case class KaratsubaBigMultiplier(config: KaratsubaBigMultiplierConfig) extends 
   val Seq(x, y) = dataIn.payload
 
   def recursiveTask(width: Int, x: UInt, y: UInt): UInt = {
-    println(width)
     if (width <= baseWidth) baseMult(x, y)
     else {
       // split x,y into high & low, according to a multiple of basewidth

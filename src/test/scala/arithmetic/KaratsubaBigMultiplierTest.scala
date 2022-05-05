@@ -1,9 +1,11 @@
 package org.datenlord
 package arithmetic
 
+import org.datenlord.device.KaratsubaForXilinx
 import org.scalatest.flatspec.AnyFlatSpec
 import spinal.core._
 import spinal.core.sim.{SimConfig, _}
+
 import scala.collection.mutable.ArrayBuffer
 import scala.util.Random
 
@@ -12,8 +14,8 @@ class KaratsubaBigMultiplierTest extends AnyFlatSpec {
   val testCount = 1000
   val width = 256
 
-  val xs = (0 until testCount).map(_ => BigInt(Random.nextString(width).map(_ % 2).mkString(""), 2))
-  val ys = (0 until testCount).map(_ => BigInt(Random.nextString(width).map(_ % 2).mkString(""), 2))
+  val xs = (0 until testCount).map(_ => nextBigInt(width))
+  val ys = (0 until testCount).map(_ => nextBigInt(width))
   val goldens = xs.zip(ys).map { case (x, y) => x * y }
 
   // configuration

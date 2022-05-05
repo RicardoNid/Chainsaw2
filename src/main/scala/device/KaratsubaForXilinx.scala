@@ -1,5 +1,5 @@
 package org.datenlord
-package arithmetic
+package device
 
 import spinal.core._
 import spinal.lib._

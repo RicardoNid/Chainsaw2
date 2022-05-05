@@ -40,11 +40,12 @@ class VivadoReport(
     }
   }
 
-  /* TODO:
-  extract more attribute from doit.log
-  1.build your "XXXFind" regex according to the attribute type
-  2.build a "getXXX" method to extract your pattern safely
-  3.create a field of VivadoReport, implement the corresponding "printXXX" method
+  /*
+  TODO:
+    extract more attribute from doit.log
+    1.build your "XXXFind" regex according to the attribute type
+    2.build a "getXXX" method to extract your pattern safely
+    3.create a field of VivadoReport, implement the corresponding "printXXX" method
    */
 
   val LUT = if (deviceFamily == UltraScale) getIntAfter("CLB LUTs\\*")
