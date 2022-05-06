@@ -5,16 +5,16 @@ import spinal.core._
 import spinal.lib._
 
 // TODO: implement this by DFG
-case class BenesNetworkCore(n: Int, width: Int, stagesPerCycle: Int) extends Component {
+case class BenesNetworkCore(N: Int, bitWidth: Int, stagesPerCycle: Int) extends Component {
 
-  require(isPow2(n))
+  require(isPow2(N))
 
-  val elemType = HardType(Bits(width bits))
-  val controlType = HardType(Bits(n / 2 bits))
+  val elemType = HardType(Bits(bitWidth bits))
+  val controlType = HardType(Bits(N / 2 bits))
 
-  val dataIn = in Vec(elemType, n)
-  val dataOut = out Vec(elemType, n)
-  val controlIn = in Vec(controlType, 2 * log2Up(n) - 1)
+  val dataIn = in Vec(elemType, N)
+  val dataOut = out Vec(elemType, N)
+  val controlIn = in Vec(controlType, 2 * log2Up(N) - 1)
 
   def switch22(a: Bits, b: Bits, switch: Bool) = {
     val (retA, retB) = (cloneOf(a), cloneOf(b))
@@ -60,23 +60,23 @@ case class BenesNetworkCore(n: Int, width: Int, stagesPerCycle: Int) extends Com
 // TODO: implement the function of stagesPerCycle(by DFG?)
 /** configuration for periodic Benes network
  *
- * @param n            size of input/output vector
+ * @param N            size of input/output vector
  * @param bitWidth     bit width of elements in input/output vector
  * @param permutations a group of permutations executed by the network periodically
  * @param stagesPerCycle number of cascaded switches in between pipeline registers
  * @see ''MATHEMATICS FOR COMPUTER SCIENCE'' Chapter 11
  */
-case class BenesNetworkConfig(n: Int, bitWidth: Int, permutations: Seq[Seq[Int]], stagesPerCycle: Int)
+case class BenesNetworkConfig(N: Int, bitWidth: Int, permutations: Seq[Seq[Int]], stagesPerCycle: Int)
   extends TransformConfig {
 
   override def latency = 0
 
-  override def inputFlow = CyclicFlow(n, permutations.length)
+  override def inputFlow = CyclicFlow(N, permutations.length)
 
-  override def outputFlow = CyclicFlow(n, permutations.length)
+  override def outputFlow = CyclicFlow(N, permutations.length)
 
   override def transform(dataIn: Seq[BigInt]) =
-    dataIn.grouped(n).toSeq.zip(permutations)
+    dataIn.grouped(N).toSeq.zip(permutations)
       .flatMap { case (data, perm) => perm.map(index => data(index)) }
 }
 
@@ -87,10 +87,10 @@ case class BenesNetwork(config: BenesNetworkConfig) extends TransformModule[Bits
   import config._
   val period = permutations.length
 
-  override val dataIn = slave Flow Fragment(Vec(Bits(bitWidth bits), n))
-  override val dataOut = master Flow Fragment(Vec(Bits(bitWidth bits), n))
+  override val dataIn = slave Flow Fragment(Vec(Bits(bitWidth bits), N))
+  override val dataOut = master Flow Fragment(Vec(Bits(bitWidth bits), N))
 
-  val core = BenesNetworkCore(n, bitWidth, stagesPerCycle)
+  val core = BenesNetworkCore(N, bitWidth, stagesPerCycle)
   val controlROM = Mem(permutations.map(Benes.getControlForHard))
 
   val counter = CounterFreeRun(period)

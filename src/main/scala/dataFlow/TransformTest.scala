@@ -54,10 +54,12 @@ object TransformTest {
         .grouped(outputFlow.period).toSeq
         .flatMap(outputFlow.toRawData)
 
-      val golden = transform(data)
+      val golden = data.grouped(outputFlow.rawDataCount).toSeq.flatMap(transform)
 
       if (firstTime != latency) logger.warn(s"latency is ${firstTime - 1}, while supposed to be $latency")
-      assert(yours == golden, s"\nyours : ${yours.mkString(" ")}\ngolden: ${golden.mkString(" ")}")
+      assert(yours == golden,
+        s"\nyours:\n${yours.grouped(inputFlow.rawDataCount).toSeq.map(_.mkString(" ")).mkString("\n")}\ngolden:\n" +
+          s"${golden.grouped(inputFlow.rawDataCount).toSeq.map(_.mkString(" ")).mkString("\n")}")
       logger.info("test for transform module passed")
     }
   }
