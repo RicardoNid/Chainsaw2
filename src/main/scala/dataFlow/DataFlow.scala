@@ -54,16 +54,17 @@ abstract class DataFlow() {
     WaveformGraph(name, waveforms :+ last :+ valid).generateJsonFile()
   }
 
-  def fromRawData(seq: Seq[BigInt]) = {
-    val data = flow.map(_.map(index => if (index >= 0) seq(index) else BigInt(0)))
+  def fromRawData[T](seq: Seq[T], zero: T) = {
+    val data = flow.map(_.map(index => if (index >= 0) seq(index) else zero))
     val valid = flow.map(_.exists(_ >= 0))
     val last = Seq.fill(period - 1)(false) :+ true
     (data, valid, last)
   }
 
-  def toRawData(dataFlow: Seq[Seq[BigInt]]) = {
-    require(dataFlow.length == period && dataFlow.head.length == portWidth)
-    val rawDataTemp = Seq.fill(rawDataCount)(ArrayBuffer[BigInt]())
+  def toRawData[T](dataFlow: Seq[Seq[T]]) = {
+    require(dataFlow.length == period && dataFlow.head.length == portWidth,
+      s"period should be $period while it is ${dataFlow.length}, portWidth should be $portWidth while it is ${dataFlow.head.length}")
+    val rawDataTemp = Seq.fill(rawDataCount)(ArrayBuffer[T]())
     flow.zip(dataFlow).foreach { case (flowRow, dataRow) =>
       flowRow.zip(dataRow).foreach { case (index, data) =>
         if (index >= 0) rawDataTemp(index) += data
@@ -80,7 +81,7 @@ object DataFlow { // examples
     val dataflow = BasicDataFlow(flow)
     dataflow.generateWaveform("example", "x")
     val rawData = Seq(1, 5, 9, 3).map(BigInt(_))
-    val theFlow = dataflow.fromRawData(rawData)._1
+    val theFlow = dataflow.fromRawData(rawData, BigInt(0))._1
     println(theFlow.map(_.mkString(" ")).mkString("\n"))
     val theRaw = dataflow.toRawData(theFlow)
     println(theRaw.mkString(" "))

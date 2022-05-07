@@ -1,6 +1,7 @@
 package org.datenlord
 package dataFlow
 
+import breeze.math._
 import spinal.core._
 import spinal.lib._
 
@@ -12,11 +13,13 @@ abstract class TransformConfig {
 
   def outputFlow: DataFlow
 
-  def transform(dataIn: Seq[BigInt]): Seq[BigInt]
+  def transform(dataIn: Seq[BigInt]): Seq[BigInt] = dataIn
+
+  def complexTransform(dataIn: Seq[Complex]): Seq[Complex] = dataIn
 
 }
 
-abstract class TransformModule[TIn <: BaseType, TOut <: BaseType] extends Component {
+abstract class TransformModule[TIn <: Data, TOut <: Data] extends Component {
 
   val config: TransformConfig
   val dataIn: Flow[Fragment[Vec[TIn]]]

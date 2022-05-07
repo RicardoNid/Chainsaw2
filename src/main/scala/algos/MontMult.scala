@@ -3,6 +3,7 @@ package algos
 
 import spinal.core._
 import scala.language.postfixOps
+import org.datenlord._
 
 object MontMult { // all kinds of algorithm for modular multiplication
 

@@ -54,13 +54,14 @@ object Dft {
     val pow: Int => Int = powR(radix, _)
     val t = logR(N, radix)
     if (t == 1) dftMatrix(radix, inverse) else {
+
       val L = Matrices.stridePermutation[Complex](N, radix)
       val DFTs = Matrices.kronecker(dftMatrix(radix, inverse), pow(t - 1))
-
       def C(l: Int) = diagC(N, l, radix, inverse)
+      def iterativeBox(l:Int) = L * DFTs * C(l)
 
       val R = Matrices.digitReversalPermutation[Complex](N, radix)
-      val parts = (0 until t).map(l => L * DFTs * C(l))
+      val parts = (0 until t).map(iterativeBox)
       parts.reduce(_ * _) * R
     }
   }

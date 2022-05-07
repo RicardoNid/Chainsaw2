@@ -5,13 +5,12 @@ import org.scalatest.flatspec.AnyFlatSpec
 
 class StridePermutation2Test extends AnyFlatSpec {
 
-
   "MTN" should "work" in {
     val widths = (1 to 3) ++ (5 to 6) // TODO: verilator failed on 4, why?
     val configs = widths.map(width => MTNConfig(width, 2 * width))
     configs.foreach { config =>
       val data = (0 until config.N).map(BigInt(_))
-      TransformTest.testTransformModule(MTN(config), Seq.fill(4)(data).flatten)
+      TransformTest.bitAccurateTest(MTN(config), Seq.fill(4)(data).flatten)
       logger.info(s"test on ${config.N}-point MTN, passed")
     }
   }
@@ -21,7 +20,7 @@ class StridePermutation2Test extends AnyFlatSpec {
     val configs = widths.map(width => SPNConfig(2 * width, width, 2 * width))
     configs.foreach { config =>
       val data = (0 until config.N).map(BigInt(_))
-      TransformTest.testTransformModule(SPN(config), Seq.fill(4)(data).flatten)
+      TransformTest.bitAccurateTest(SPN(config), Seq.fill(4)(data).flatten)
       logger.info(s"test on ${config.N}-point SPN, passed")
     }
   }
@@ -31,7 +30,7 @@ class StridePermutation2Test extends AnyFlatSpec {
     val configs = widths.map(width => SPNConfig(2 * width, width - 1, 2 * width))
     configs.foreach { config =>
       val data = (0 until config.N).map(BigInt(_))
-      TransformTest.testTransformModule(SPN(config), Seq.fill(4)(data).flatten)
+      TransformTest.bitAccurateTest(SPN(config), Seq.fill(4)(data).flatten)
       logger.info(s"test on ${config.N}-point SPN, passed")
     }
   }
@@ -41,7 +40,8 @@ class StridePermutation2Test extends AnyFlatSpec {
     val configs = portWidths.map(StridePermutation2Config(8, _, 1, 8))
     configs.foreach { config =>
       val data = (0 until config.N).map(BigInt(_))
-      TransformTest.testTransformModule(StridePermutation2(config), Seq.fill(4)(data).flatten)
+      TransformTest.bitAccurateTest(StridePermutation2(config), Seq.fill(4)(data).flatten)
+      VivadoSynth(StridePermutation2(config))
     }
   }
 
