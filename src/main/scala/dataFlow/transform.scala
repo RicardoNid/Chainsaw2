@@ -29,4 +29,11 @@ abstract class TransformModule[TIn <: Data, TOut <: Data] extends Component {
 
   def autoLast(): Unit = dataOut.last := dataIn.last.validAfter(config.latency)
 
+  def skipControl() = {
+    dataIn.valid.assignDontCare()
+    dataIn.last.assignDontCare()
+    dataIn.valid.allowPruning()
+    dataIn.last.allowPruning()
+  }
+
 }

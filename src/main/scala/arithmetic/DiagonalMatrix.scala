@@ -9,7 +9,8 @@ import spinal.lib._
 import scala.language.postfixOps
 
 case class DiagonalMatrixConfig(coeffs: Seq[BigInt], fold: Int,
-                                bitWidthIn: Int, bitWidthCoeff:Int, bitWidthOut: Int, baseMult: (Bits, Bits) => Bits, baseLatency: Int) extends TransformConfig {
+                                bitWidthIn: Int, bitWidthCoeff:Int, bitWidthOut: Int,
+                                baseMult: (Bits, Bits) => Bits, baseLatency: Int) extends TransformConfig {
 
   val n = coeffs.length
   require(n % fold == 0)

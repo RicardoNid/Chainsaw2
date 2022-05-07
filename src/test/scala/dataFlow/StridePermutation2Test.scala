@@ -36,7 +36,8 @@ class StridePermutation2Test extends AnyFlatSpec {
   }
 
   "StridePermutation2" should "work" in {
-    val portWidths = Seq(7, 6, 5, 4, 3, 2, 1).reverse
+    val portWidths = Seq(7, 6, 5, 4, 3, 2, 1)
+    //    val portWidths = Seq(8, 7, 6, 5, 4, 3, 2, 1) // todo: no clk when is combinational
     val configs = portWidths.map(StridePermutation2Config(8, _, 1, 8))
     configs.foreach { config =>
       val data = (0 until config.N).map(BigInt(_))

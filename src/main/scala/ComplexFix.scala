@@ -41,10 +41,10 @@ case class ComplexFix(peak: ExpNumber, resolution: ExpNumber) extends Bundle {
   }
 
   def *(that: ComplexFix): ComplexFix = {
-    val mult = ComplexMult(HardType(this), HardType(that))
-    mult.a := this
-    mult.b := that
-    mult.p
+    val mult = ComplexMult(this.sfixType, that.sfixType)
+    mult.data := this
+    mult.coeff := that
+    mult.product
   }
 
   def truncated(dataType: HardType[SFix]) = {
@@ -54,7 +54,7 @@ case class ComplexFix(peak: ExpNumber, resolution: ExpNumber) extends Bundle {
     ComplexFix(retReal, retImag)
   }
 
-  def realType = HardType(this.real)
+  def sfixType = HardType(this.real)
 
   def >>(that: Int) = ComplexFix(real >> that, imag >> that)
 

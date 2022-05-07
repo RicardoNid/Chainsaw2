@@ -21,11 +21,13 @@ case class StridePermutation2Config(n: Int, q: Int, s: Int, bitWidth: Int) exten
   val R = 1 << r
 
   val networkType = // there cases, each has a corresponding network structure
-    if (q > n - r) 0
+    if (q == n) -1
+    else if (q > n - r) 0
     else if (q <= n - r && q >= r) 1
     else 2 // q < r
 
   override def latency = networkType match {
+    case -1 => 0
     case 0 => MTNConfig(n - q, bitWidth).latency
     case 1 => MTNConfig(r, bitWidth).latency + SPNConfig(n - q, r, bitWidth).latency
     case 2 => SPNConfig(r, r - q, bitWidth).latency + MTNConfig(q, bitWidth).latency + SPNConfig(n - q, r, bitWidth).latency
@@ -45,7 +47,7 @@ case class StridePermutation2(config: StridePermutation2Config) extends Transfor
   override val dataIn = slave Flow Fragment(Vec(Bits(bitWidth bits), Q))
   override val dataOut = master Flow Fragment(Vec(Bits(bitWidth bits), Q))
 
-  //  logger.info(s"generating radix-2 stride permutation P_{$N, $S} based on registers, case $networkType")
+  logger.info(s"generating radix-2 stride permutation P_{$N, $S} based on registers, case $networkType")
 
   // TODO: using Flow[Fragment[..]] will lead to combinational loop, why?
   case class TempFlow(fragment: Vec[Bits], valid: Bool, last: Bool)
@@ -83,6 +85,9 @@ case class StridePermutation2(config: StridePermutation2Config) extends Transfor
   val FlowIn = TempFlow(dataIn.fragment, dataIn.valid, dataIn.last)
 
   networkType match {
+    case -1 =>
+      val P = Matrices.stridePermutation[Int](N, S)
+      dataOut.fragment := Vec(SpatialPermutation(dataIn.fragment, P))
     case 0 =>
       val P0 = {
         val core = Matrices.stridePermutation[Int](R, 1 << (q + r - n))
