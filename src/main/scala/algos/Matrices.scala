@@ -45,6 +45,16 @@ object Matrices {
     }
   }
 
+  def kronecker[T: ClassTag](a: DenseMatrix[T], b: DenseMatrix[T])(implicit ring: Semiring[T]) = {
+    val m = b.rows
+    val n = b.cols
+    DenseMatrix.tabulate(m * a.rows, n * a.cols) { (i, j) =>
+      val (ra, ca) = (i / m, j / n)
+      val (rb, cb) = (i % m, j % n)
+      a(ra, ca) * b(rb, cb)
+    }
+  }
+
   def main(args: Array[String]): Unit = { // examples
 
     // permutation matrix do permutation on a sequence by matrix-vector multiplication

@@ -7,7 +7,10 @@ import spinal.lib.Delay
 
 import scala.reflect.ClassTag
 import scala.util.Random
-
+import spinal.core._
+import spinal.core.sim._
+import spinal.lib._
+import spinal.lib.fsm._
 
 package object datenlord {
 
@@ -32,12 +35,16 @@ package object datenlord {
     def prevAndNext(f: ((T, T)) => Unit) = array.init.zip(array.tail).foreach(f)
   }
 
+  implicit class flowFragmentUtil[T <: Data](flow: Flow[Fragment[T]]) {
+
+  }
+
   def nextBigInt(width: Int) = BigInt(Random.nextString(width).map(_ % 2).mkString(""), 2)
 
   def logR(n: Int, radix: Int) = {
     var current = n
     var ret = 0
-    while (current > 1){
+    while (current > 1) {
       require(current % radix == 0)
       current /= radix
       ret += 1
@@ -45,6 +52,6 @@ package object datenlord {
     ret
   }
 
-  def powR(radix:Int, exp:Int) = Seq.fill(exp)(radix).product
+  def powR(radix: Int, exp: Int) = Seq.fill(exp)(radix).product
 
 }

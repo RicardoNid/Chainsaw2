@@ -3,11 +3,11 @@ package dataFlow
 
 import algos.Matrices
 import dataFlow.StridePermutation2.matrixJ
+import dataFlow.Utils.DSD
 
 import breeze.linalg._
 import spinal.core._
 import spinal.lib.{Counter, _}
-import Utils.{DSD, SEU, switch22}
 
 import scala.collection.mutable.ArrayBuffer
 import scala.language.postfixOps
@@ -20,7 +20,16 @@ case class StridePermutation2Config(n: Int, q: Int, s: Int, bitWidth: Int) exten
   val r = min(s, n - s)
   val R = 1 << r
 
-  override def latency = 1 << (n - q)
+  val networkType = // there cases, each has a corresponding network structure
+    if (q > n - r) 0
+    else if (q <= n - r && q >= r) 1
+    else 2 // q < r
+
+  override def latency = networkType match {
+    case 0 => MTNConfig(n - q, bitWidth).latency
+    case 1 => MTNConfig(r, bitWidth).latency + SPNConfig(n - q, r, bitWidth).latency
+    case 2 => SPNConfig(r, r - q, bitWidth).latency + MTNConfig(q, bitWidth).latency + SPNConfig(n - q, r, bitWidth).latency
+  }
 
   override def inputFlow = CyclicFlow(Q, N / Q)
 
@@ -36,29 +45,71 @@ case class StridePermutation2(config: StridePermutation2Config) extends Transfor
   override val dataIn = slave Flow Fragment(Vec(Bits(bitWidth bits), Q))
   override val dataOut = master Flow Fragment(Vec(Bits(bitWidth bits), Q))
 
-  require(q > n - r) // case1
-  println(s"I_${1 << (q - r)} P_{$R, ${1 << (q + r - n)}}")
-  println(s"MTN_${1 << (n - q)}")
-  println(s"P_{$Q, $R}")
+  //  logger.info(s"generating radix-2 stride permutation P_{$N, $S} based on registers, case $networkType")
 
-  val P0 = Matrices.stridePermutation[Int](R, 1 << (q + r - n))
-  val P1 = Matrices.stridePermutation[Int](Q, R)
+  // TODO: using Flow[Fragment[..]] will lead to combinational loop, why?
+  case class TempFlow(fragment: Vec[Bits], valid: Bool, last: Bool)
 
-  val mtnConfig = MTNConfig(n - q, bitWidth)
-  val MTNs = Seq.fill(1 << (2 * q - n))(MTN(mtnConfig))
-
-  val afterPart1: Seq[Seq[Bits]] = SpatialPermutation(dataIn.fragment, Matrices.kronecker(P0, 1 << (q - r))).grouped(1 << (n - q)).toSeq
-
-  MTNs.zip(afterPart1).foreach { case (mtn, data) =>
-    mtn.dataIn.fragment := Vec(data)
-    mtn.dataIn.valid := dataIn.valid
-    mtn.dataIn.last := dataIn.last
+  def passP(perm: DenseMatrix[Int], dataIn: TempFlow) = {
+    val retData = Vec(SpatialPermutation(dataIn.fragment, perm))
+    TempFlow(retData, dataIn.valid, dataIn.last)
   }
 
-  val afterMTNs: Vec[Bits] = Vec(MTNs.map(_.dataOut.fragment).flatten)
-  val afterPart2 = SpatialPermutation(afterMTNs, P1)
+  def passMTN(x: Int, dataIn: TempFlow) = {
+    val config = MTNConfig(x, bitWidth)
+    val MTNs = Seq.fill(1 << (q - x))(MTN(config))
+    val segments = dataIn.fragment.grouped(1 << x).toSeq
+    MTNs.zip(segments).foreach { case (mtn, data) =>
+      mtn.dataIn.fragment := Vec(data)
+      mtn.dataIn.valid := dataIn.valid
+      mtn.dataIn.last := dataIn.last
+    }
+    val retData = Vec(MTNs.flatMap(_.dataOut.fragment))
+    TempFlow(retData, MTNs.head.dataOut.valid, MTNs.head.dataOut.last)
+  }
 
-  dataOut.fragment := Vec(afterPart2)
+  def passSPN(n: Int, s: Int, dataIn: TempFlow) = {
+    val config = SPNConfig(n, s, bitWidth)
+    val SPNs = Seq.fill(1 << q)(SPN(config))
+    SPNs.zip(dataIn.fragment).foreach { case (spn, data) =>
+      spn.dataIn.fragment := Vec(data)
+      spn.dataIn.valid := dataIn.valid
+      spn.dataIn.last := dataIn.last
+    }
+    val retData = Vec(SPNs.flatMap(_.dataOut.fragment))
+    TempFlow(retData, SPNs.head.dataOut.valid, SPNs.head.dataOut.last)
+  }
+
+  val FlowIn = TempFlow(dataIn.fragment, dataIn.valid, dataIn.last)
+
+  networkType match {
+    case 0 =>
+      val P0 = {
+        val core = Matrices.stridePermutation[Int](R, 1 << (q + r - n))
+        Matrices.kronecker(core, 1 << (q - r))
+      }
+      val P1: DenseMatrix[Int] = Matrices.stridePermutation[Int](Q, R)
+
+      val afterP0 = passP(P0, FlowIn)
+      val afterMTNs = passMTN(n - q, afterP0)
+      val afterP1 = passP(P1, afterMTNs)
+      dataOut.fragment := afterP1.fragment
+
+    case 1 =>
+      val P = Matrices.stridePermutation[Int](Q, R)
+
+      val afterMTNs = passMTN(r, FlowIn)
+      val afterP = passP(P, afterMTNs)
+      val afterSPNs = passSPN(n - q, r, afterP)
+      dataOut.fragment := afterSPNs.fragment
+
+    case 2 =>
+      val afterSPNs0 = passSPN(r, r - q, FlowIn)
+      val afterMTNs = passMTN(q, afterSPNs0)
+      val afterSPNs1 = passSPN(n - q, r, afterMTNs)
+      dataOut.fragment := afterSPNs1.fragment
+  }
+
   autoValid()
   autoLast()
 }
@@ -75,8 +126,14 @@ object StridePermutation2 {
   }
 
   def main(args: Array[String]): Unit = {
-    println(matrixJ(2))
-    println(matrixJ(4))
+    val J4 = matrixJ(4)
+    val J8I2 = Matrices.kronecker(matrixJ(8), DenseMatrix.eye[Int](2))
+    val J8I1 = Matrices.kronecker(matrixJ(8), DenseMatrix.eye[Int](1))
+    val J16I1 = Matrices.kronecker(matrixJ(16), DenseMatrix.eye[Int](1))
+    println(SpatialPermutation((0 until 4), J4).mkString(" "))
+    println(SpatialPermutation((0 until 16), J8I2).mkString(" "))
+    println(SpatialPermutation((0 until 8), J8I1).mkString(" "))
+    println(SpatialPermutation((0 until 16), J16I1).mkString(" "))
   }
 }
 
@@ -135,7 +192,14 @@ case class SPNConfig(n: Int, s: Int, bitWidth: Int) extends TransformConfig {
   val N = 1 << n
   val S = 1 << s
 
-  override def latency = 1
+  val networkType = // there cases, each has a corresponding network structure
+    if (n % 2 == 0 && s == n / 2) 0 else 1
+
+
+  override def latency = networkType match {
+    case 0 => ((1 << s) - 1) * ((1 << s) - 1)
+    case 1 => ((1 << s) - 1) * ((1 << (n - s)) - 1)
+  }
 
   override def inputFlow = CyclicFlow(1, N)
 
@@ -148,20 +212,50 @@ case class SPN(config: SPNConfig) extends TransformModule[Bits, Bits] {
 
   import config._
 
+  logger.info(s"generating SPN $N $S, case $networkType")
+
   override val dataIn = slave Flow Fragment(Vec(Bits(bitWidth bits), 1))
   override val dataOut = master Flow Fragment(Vec(Bits(bitWidth bits), 1))
 
-  val counter = CounterFreeRun(2)
-  when(dataIn.last)(counter.clear())
+  networkType match {
+    case 0 =>
+      val counters = (0 until s).map(i => CounterFreeRun(1 << (s + 1 + i)))
+      val controls = counters.map { counter =>
+        val det = counter.value.takeHigh(s + 1)
+        det.msb && ~det.lsb
+      }
+      counters.foreach(counter => when(dataIn.last)(counter.clear()))
 
-  val dataPath = ArrayBuffer[Bits](dataIn.fragment.head)
-  (0 until s).foreach { i =>
-    val seuSize = (1 << i) * ((1 << s) - 1)
-    println(seuSize)
-    Utils.SEU((1 << i) * ((1 << s) - 1), dataPath.last, counter.value.msb)
+      val baseLatency = (1 << s) - 1
+
+      val dataPath = ArrayBuffer[Bits](dataIn.fragment.head)
+      (0 until s).foreach { i =>
+        val seuSize = (1 << i) * ((1 << s) - 1)
+        val prevLatency = ((1 << i) - 1) * baseLatency
+        val next = Utils.SEU(seuSize, dataPath.last, controls(i).d(prevLatency))
+        dataPath += next
+      }
+
+      dataOut.fragment := Vec(dataPath.last)
+
+    case 1 =>
+      val exps = Seq.tabulate(n - s, s)((i, j) => i - j + s - 1).flatten
+      val latencies = exps.map(1 << _).inits.toSeq.map(_.sum).tail.reverse
+      val counters = exps.map(i => CounterFreeRun(1 << (i + 2)))
+      counters.foreach(counter => when(dataIn.last)(counter.clear()))
+      val controls = counters.map { counter =>
+        val det = counter.value.takeHigh(2)
+        det.msb && ~det.lsb
+      }
+      val dataPath = ArrayBuffer[Bits](dataIn.fragment.head)
+      exps.zip(latencies).zipWithIndex.foreach { case ((exp, latency), i) =>
+        val seuSize = 1 << exp
+        val next = Utils.SEU(seuSize, dataPath.last, controls(i).d(latency))
+        dataPath += next
+      }
+      dataOut.fragment := Vec(dataPath.last)
   }
 
-  dataOut.fragment := Vec(dataPath.last)
   autoValid()
   autoLast()
 }
