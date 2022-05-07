@@ -16,32 +16,40 @@ import scala.language.postfixOps
  */
 case class PeaseFftConfig(N: Int, radix: Int,
                           dataWidth: Int, coeffWidth: Int,
-                          inverse: Boolean, fold: Int) extends TransformConfig {
+                          inverse: Boolean, spaceReuse: Int, timeReuse: Int) extends TransformConfig {
 
   val n = logR(N, 2)
   val stageCount = logR(N, radix)
   val stageWidth = logR(radix, 2)
 
+  require(spaceReuse <= N / radix && timeReuse <= stageCount)
+
   val bitReverse = digitReversalPermutation[Int](N, radix)
   val dft = BaseDft.radixRDft(radix)
   val dftLatency = BaseDft.latency(radix)
 
-  val portWidth = N / fold
+  val portWidth = N / spaceReuse
   val q = logR(portWidth, 2)
   val r = logR(radix, 2)
 
-  def iterativeLatency = {
+  val iterativeCount = stageCount / timeReuse
+
+  def iterativeBoxLatency = {
     val multLatency = ComplexMult.latency
     val dftLatency = BaseDft.latency(radix)
     val permLatency = StridePermutation2Config(n, q, r, dataWidth * 2).latency
     multLatency + dftLatency + permLatency
   }
 
-  override def latency = stageCount * iterativeLatency
+  def iterativeLatency = stageCount / timeReuse * iterativeBoxLatency
 
-  override def inputFlow = CyclicFlow(portWidth, fold)
+  def utilization = if (timeReuse == 1) 1 else spaceReuse.toDouble / iterativeLatency
 
-  override def outputFlow = CyclicFlow(portWidth, fold)
+  override def latency = iterativeBoxLatency * stageCount
+
+  override def inputFlow = CyclicFlow(portWidth, spaceReuse)
+
+  override def outputFlow = CyclicFlow(portWidth, spaceReuse)
 
   override def complexTransform(dataIn: Seq[Complex]) = {
     val dftMatrix = algos.Dft.dftMatrix(N, inverse)
@@ -52,6 +60,14 @@ case class PeaseFftConfig(N: Int, radix: Int,
     val normalized = ret / Complex(normalizeValue, 0) // for normalization
     normalized.toArray.toSeq
   }
+
+  def dspEstimation = (N / spaceReuse) * n * 3
+
+  logger.info(s"generating pease fft on with " +
+    s"throughput = ${1.0 / spaceReuse * timeReuse * utilization}, utilization = $utilization, " +
+    s"spaceReuse = $spaceReuse, timeReuse = $timeReuse, " +
+    s"latency = $latency, iterative box latency = $iterativeBoxLatency")
+
 }
 
 case class PeaseFft(config: PeaseFftConfig) extends TransformModule[ComplexFix, ComplexFix] {
@@ -68,15 +84,14 @@ case class PeaseFft(config: PeaseFftConfig) extends TransformModule[ComplexFix, 
   override val dataIn = slave Flow Fragment(Vec(ComplexFix(dataType), portWidth))
   override val dataOut = master Flow Fragment(Vec(ComplexFix(innerType), portWidth))
 
-  def iterativeBox(dataIn: Seq[ComplexFix], l: Int, valid: Bool, last: Bool) = {
+  def iterativeBox(dataIn: Flow[Fragment[Vec[ComplexFix]]], iters: Seq[Int]) = {
 
     // multipliers
-    val C = diagC(N, l, radix, inverse)
-    val cdmConfig = ComplexDiagonalMatrixConfig(C.diag.toArray.toSeq, fold, innerType, coeffType)
+    val Cs = iters.map(l => diagC(N, l, radix, inverse))
+    val coeffs = Cs.flatMap(_.diag.toArray)
+    val cdmConfig = ComplexDiagonalMatrixConfig(coeffs, spaceReuse, innerType, coeffType)
     val mults = ComplexDiagonalMatrix(cdmConfig)
-    mults.dataIn.valid := valid
-    mults.dataIn.last := last
-    mults.dataIn.fragment := Vec(dataIn.map(_.truncated(innerType)))
+    mults.dataIn << dataIn.withFragment(dataIn.fragment.map(_.truncated(innerType)))
     val afterMult = mults.dataOut.fragment.map(_.truncated(innerType))
 
     // dfts
@@ -85,18 +100,24 @@ case class PeaseFft(config: PeaseFftConfig) extends TransformModule[ComplexFix, 
     // permutation
     val permConfig = StridePermutation2Config(n, q, r, innerType.getBitsWidth * 2)
     val permutation = StridePermutation2(permConfig)
-    permutation.dataIn.fragment := Vec(afterDft.map(_.asBits))
-    permutation.dataIn.valid := mults.dataOut.valid.validAfter(dftLatency)
-    permutation.dataIn.last := mults.dataOut.last.validAfter(dftLatency)
+    val flowAfterDft = ChainsawFlow(Vec(afterDft.map(_.asBits)), mults.dataOut.valid.validAfter(dftLatency), mults.dataOut.last.validAfter(dftLatency))
+    permutation.dataIn << flowAfterDft
     val afterPerm = cloneOf(afterDft)
     afterPerm.zip(permutation.dataOut.fragment).foreach { case (complex, bits) => complex.assignFromBits(bits) }
 
-    (afterPerm, permutation.dataOut.valid, permutation.dataOut.last)
+    ChainsawFlow(afterPerm, permutation.dataOut.valid, permutation.dataOut.last)
   }
 
-  val dataPath = ArrayBuffer[Seq[ComplexFix]](dataIn.fragment)
-  val validPath = ArrayBuffer[Bool](dataIn.valid)
-  val lastPath = ArrayBuffer[Bool](dataIn.last)
+  val iterLatencyCounter = CounterFreeRun(iterativeLatency)
+  when(dataIn.last)(iterLatencyCounter.clear())
+
+  val iterCounter = Counter(timeReuse)
+  when(dataIn.last)(iterCounter.clear())
+  when(iterLatencyCounter.willOverflow)(iterCounter.increment())
+
+  val truncatedIn = dataIn.withFragment(dataIn.fragment.map(_.truncated(innerType)))
+  val iterStart = cloneOf(truncatedIn)
+  val dataPath = ArrayBuffer[Flow[Fragment[Vec[ComplexFix]]]](iterStart)
 
   // in our implementation, 1/N is not implemented in DFTs
   // ifft should be shift right n (for 1/N) and then shifted left n/2 (for normalization)
@@ -106,17 +127,17 @@ case class PeaseFft(config: PeaseFftConfig) extends TransformModule[ComplexFix, 
     else (stage * stageWidth + 1) / 2
   }
 
-  (0 until stageCount).reverse.map { i =>
-    val next = iterativeBox(dataPath.last, i, validPath.last, lastPath.last)
+  (0 until iterativeCount).reverse.map { i =>
+    val next = iterativeBox(dataPath.last, Seq(i))
     val normalizeWidth = normalizedWidthOnStage(i + 1) - normalizedWidthOnStage(i)
-    val normalized = next._1.map(_ >> normalizeWidth).map(_.truncated(innerType))
-    //    println(s"normalized by $normalizeWidth")
-    dataPath += normalized
-    validPath += next._2
-    lastPath += next._3
+    val normalized = next.fragment.map(_ >> normalizeWidth).map(_.truncated(innerType))
+    dataPath += next.withFragment(normalized)
   }
 
-  dataOut.fragment := Vec(dataPath.last)
+  val iterEnd = dataPath.last
+  iterStart << Mux(iterCounter.value === 0, truncatedIn, iterEnd)
+
+  dataOut.fragment := Vec(iterEnd.fragment)
   autoValid()
   autoLast()
 }

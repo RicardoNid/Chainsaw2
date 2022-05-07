@@ -50,8 +50,7 @@ case class StridePermutation2(config: StridePermutation2Config) extends Transfor
 
   logger.info(s"generating radix-2 stride permutation P_{$N, $S} based on registers, case $networkType")
 
-  // TODO: using Flow[Fragment[..]] will lead to combinational loop, why?
-  case class TempFlow(fragment: Vec[Bits], valid: Bool, last: Bool)
+
 
   def passP(perm: DenseMatrix[Int], dataIn: TempFlow) = {
     val retData = Vec(SpatialPermutation(dataIn.fragment, perm))

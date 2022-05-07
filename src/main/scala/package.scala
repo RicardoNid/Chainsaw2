@@ -22,6 +22,17 @@ package object datenlord {
 
   val logger = LoggerFactory.getLogger("datenlord logger")
 
+  type ChainsawFlow[T <: Data] = Flow[Fragment[Vec[T]]]
+
+  implicit class ChainsawFlowUtil[T <: Data](flow: ChainsawFlow[T]) {
+
+    def withFragment(fragment: Vec[T]): ChainsawFlow[T] = ChainsawFlow(fragment, flow.valid, flow.last)
+
+    def withFragment(fragment: Seq[T]): ChainsawFlow[T] = withFragment(Vec(fragment))
+
+  }
+
+
   def VivadoImpl[T <: Component](gen: => T, name: String = "temp", xdcPath: String = null) = {
     val report = VivadoFlow(design = gen, taskType = IMPL, topModuleName = name, workspacePath = s"./$name").doFlow()
     report.printArea()

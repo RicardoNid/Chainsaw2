@@ -11,13 +11,6 @@ import scala.util.Random
 
 class PeaseFftTest extends AnyFlatSpec {
 
-  val configs = (1 to 7).map { i =>
-    PeaseFftConfig(
-      N = 256, radix = 2,
-      dataWidth = 16, coeffWidth = 12,
-      inverse = true, fold = 1 << i)
-  }
-
   val data = Random.RandomComplexSequences(1, 512).head.map(_ * Complex(0.9, 0))
 
   def metric(yours: Seq[Complex], golden: Seq[Complex]) = {
@@ -31,13 +24,29 @@ class PeaseFftTest extends AnyFlatSpec {
     errorV.forall(_.abs < 1e-2)
   }
 
-  "Pease Fft" should "work" in {
-
-    configs.foreach { config =>
-      logger.info(s"generating pease fft on with fold = ${config.fold}")
-      TransformTest.complexTest(PeaseFft(config), data, metric)
-      VivadoSynth(PeaseFft(config))
+  "Pease Fft" should "show the reuse space" in {
+    Seq.tabulate(7, 3) { (space, time) =>
+      PeaseFftConfig(
+        N = 256, radix = 2,
+        dataWidth = 16, coeffWidth = 12,
+        inverse = true, spaceReuse = 1 << space, timeReuse = 1 << time)
     }
   }
+
+  "Pease Fft" should "work" in {
+
+    val spaceConfigs = Seq(7).map { i =>
+      PeaseFftConfig(
+        N = 256, radix = 2,
+        dataWidth = 16, coeffWidth = 12,
+        inverse = true, spaceReuse = 1 << i, timeReuse = 1)
+    }
+
+    spaceConfigs.foreach { config =>TransformTest.complexTest(PeaseFft(config), data, metric)}
+
+
+  }
+
+  //      VivadoSynth(PeaseFft(config), s"Pease_FFT_256_fold${config.fold}")
 
 }
