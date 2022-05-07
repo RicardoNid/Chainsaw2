@@ -43,7 +43,7 @@ case class PeaseFft(config: PeaseFftConfig) extends TransformModule[ComplexFix, 
   import algos.Matrices.{digitReversalPermutation, stridePermutation}
   import algos.Dft.diagC
 
-  val dataType = HardType(SFix(1 exp, -(dataWidth - 2) exp))
+  val dataType = HardType(SFix(0 exp, -(dataWidth - 1) exp))
   val coeffType = HardType(SFix(1 exp, -(coeffWidth - 2) exp))
 
   val innerMax = n + 1 / 2
