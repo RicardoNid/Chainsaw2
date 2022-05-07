@@ -27,6 +27,7 @@ case class PeaseFftConfig(N: Int, radix: Int, dataWidth: Int, coeffWidth: Int, i
 
   override def complexTransform(dataIn: Seq[Complex]) = {
     val dftMatrix = algos.Dft.dftMatrix(N, false)
+    val
     val ret = dftMatrix * new DenseVector(dataIn.toArray) / Complex(sqrt(N.toDouble), 0) // for normalization
     ret.toArray.toSeq
   }
