@@ -17,6 +17,7 @@ case class StridePermutation2Config(n: Int, q: Int, s: Int, bitWidth: Int) exten
   val N = 1 << n
   val Q = 1 << q
   val S = 1 << s
+  // TODO: implement the inverse network when r != s
   val r = min(s, n - s)
   val R = 1 << r
 
@@ -217,7 +218,7 @@ case class SPN(config: SPNConfig) extends TransformModule[Bits, Bits] {
 
   import config._
 
-  logger.info(s"generating SPN $N $S, case $networkType")
+  //  logger.info(s"generating SPN $N $S, case $networkType")
 
   override val dataIn = slave Flow Fragment(Vec(Bits(bitWidth bits), 1))
   override val dataOut = master Flow Fragment(Vec(Bits(bitWidth bits), 1))

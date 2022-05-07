@@ -11,12 +11,14 @@ import scala.util.Random
 
 class PeaseFftTest extends AnyFlatSpec {
 
-  val config = PeaseFftConfig(
-    N = 16, radix = 2,
-    dataWidth = 16, coeffWidth = 12,
-    inverse = true, fold = 2)
+  val configs = (1 to 7).map { i =>
+    PeaseFftConfig(
+      N = 256, radix = 2,
+      dataWidth = 16, coeffWidth = 12,
+      inverse = true, fold = 1 << i)
+  }
 
-  val data = Random.RandomComplexSequences(1, 32)
+  val data = Random.RandomComplexSequences(1, 512).head.map(_ * Complex(0.9, 0))
 
   def metric(yours: Seq[Complex], golden: Seq[Complex]) = {
     val yourV = new DenseVector(yours.toArray)
@@ -25,11 +27,17 @@ class PeaseFftTest extends AnyFlatSpec {
     println(yourV)
     println(goldenV)
     println(errorV)
-    errorV.forall(_.abs < 10e-3)
+    println(errorV.map(_.abs).toArray.max)
+    errorV.forall(_.abs < 1e-2)
   }
 
   "Pease Fft" should "work" in {
-    TransformTest.complexTest(PeaseFft(config), data.flatten, metric)
+
+    configs.foreach { config =>
+      logger.info(s"generating pease fft on with fold = ${config.fold}")
+      TransformTest.complexTest(PeaseFft(config), data, metric)
+      VivadoSynth(PeaseFft(config))
+    }
   }
 
 }

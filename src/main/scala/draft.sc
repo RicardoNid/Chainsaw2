@@ -4,4 +4,4 @@ import breeze.numerics._
 import breeze.numerics.constants._
 import breeze.signal._
 
-1 >> 3
+10e-2

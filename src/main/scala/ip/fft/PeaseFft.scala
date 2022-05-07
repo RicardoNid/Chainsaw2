@@ -4,12 +4,10 @@ package ip.fft
 import arithmetic.{ComplexDiagonalMatrix, ComplexDiagonalMatrixConfig}
 import algos.Matrices.{digitReversalPermutation, stridePermutation}
 import dataFlow._
-
 import breeze.linalg.DenseVector
 import breeze.math.Complex
 import spinal.core._
 import spinal.lib._
-
 import scala.collection.mutable.ArrayBuffer
 import scala.language.postfixOps
 
@@ -32,12 +30,14 @@ case class PeaseFftConfig(N: Int, radix: Int,
   val q = logR(portWidth, 2)
   val r = logR(radix, 2)
 
-  override def latency = {
+  def iterativeLatency = {
     val multLatency = ComplexMult.latency
     val dftLatency = BaseDft.latency(radix)
     val permLatency = StridePermutation2Config(n, q, r, dataWidth * 2).latency
-    stageCount * (multLatency + dftLatency + permLatency)
+    multLatency + dftLatency + permLatency
   }
+
+  override def latency = stageCount * iterativeLatency
 
   override def inputFlow = CyclicFlow(portWidth, fold)
 
@@ -62,7 +62,7 @@ case class PeaseFft(config: PeaseFftConfig) extends TransformModule[ComplexFix, 
   val dataType = HardType(SFix(0 exp, -(dataWidth - 1) exp))
   val coeffType = HardType(SFix(1 exp, -(coeffWidth - 2) exp))
 
-  val innerMax = n + 1 / 2
+  val innerMax = (n + 1) / 2
   val innerType = HardType(SFix(innerMax exp, -(dataWidth - innerMax - 1) exp))
 
   override val dataIn = slave Flow Fragment(Vec(ComplexFix(dataType), portWidth))
