@@ -25,7 +25,7 @@ class PeaseFftTest extends AnyFlatSpec {
   }
 
   "Pease Fft" should "show the reuse space" in {
-    Seq.tabulate(7, 3) { (space, time) =>
+    Seq.tabulate(8, 4) { (space, time) =>
       PeaseFftConfig(
         N = 256, radix = 2,
         dataWidth = 16, coeffWidth = 12,
@@ -33,20 +33,43 @@ class PeaseFftTest extends AnyFlatSpec {
     }
   }
 
-  "Pease Fft" should "work" in {
-
-    val spaceConfigs = Seq(7).map { i =>
+  it should "work with space reuse" in {
+    val spaceConfigs = (1 to 7).reverse.map { i =>
       PeaseFftConfig(
         N = 256, radix = 2,
         dataWidth = 16, coeffWidth = 12,
         inverse = true, spaceReuse = 1 << i, timeReuse = 1)
     }
-
-    spaceConfigs.foreach { config =>TransformTest.complexTest(PeaseFft(config), data, metric)}
-
-
+    spaceConfigs.foreach { config => TransformTest.complexTest(PeaseFft(config), data, metric) }
   }
 
-  //      VivadoSynth(PeaseFft(config), s"Pease_FFT_256_fold${config.fold}")
+  it should "work with time reuse" in {
+
+    val original = PeaseFftConfig(N = 64, radix = 2, dataWidth = 20, coeffWidth = 12, inverse = true, spaceReuse = 32, timeReuse = 1)
+    TransformTest.complexTest(PeaseFft(original), data, metric)
+
+    val timeConfigs = Seq(
+      PeaseFftConfig(
+        N = 64, radix = 2,
+        dataWidth = 20, coeffWidth = 12,
+        inverse = true, spaceReuse = 32, timeReuse = 6))
+    timeConfigs.foreach { config => TransformTest.complexTest(PeaseFft(config), data, metric) }
+  }
+  //
+
+  it should "synth for all configs" in {
+    //    val configs = Seq.tabulate(8, 4) { (space, time) =>
+    //      PeaseFftConfig(
+    //        N = 256, radix = 2,
+    //        dataWidth = 16, coeffWidth = 12,
+    //        inverse = true, spaceReuse = 1 << space, timeReuse = 1 << time)
+    //    }.flatten
+
+    val configs = Seq(PeaseFftConfig(
+      N = 256, radix = 2,
+      dataWidth = 16, coeffWidth = 12,
+      inverse = true, spaceReuse = 1 << 7, timeReuse = 1 << 3))
+    configs.foreach(config => VivadoSynth(PeaseFft(config), s"Pease_FFT_256_space_${config.spaceReuse}_time_${config.timeReuse}"))
+  }
 
 }

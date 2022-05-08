@@ -97,3 +97,23 @@ case class FullyPipelinedFlow(thePortWidth: Int) extends DataFlow {
 case class CyclicFlow(thePortWidth: Int, thePeriod: Int) extends DataFlow {
   override val flow = (0 until thePortWidth * thePeriod).grouped(thePortWidth).toSeq
 }
+
+case class TimeSpaceFlow(N: Int, spaceReuse: Int, timeReuse: Int, iterativeLatency: Int) extends DataFlow {
+
+  val thePortWidth = N / spaceReuse
+
+  override val flow = {
+    val iterativePeriod = if (timeReuse > 1) spaceReuse max iterativeLatency else spaceReuse
+    val empty = Seq.fill(thePortWidth)(-1)
+    val first = (0 until N).grouped(thePortWidth).toSeq.padTo(iterativePeriod, empty)
+    first ++ Seq.fill(iterativePeriod * (timeReuse - 1))(empty)
+  }
+
+
+}
+
+object TimeSpaceFlow {
+  def main(args: Array[String]): Unit = {
+    TimeSpaceFlow(16, 4, 4, 5).generateWaveform(s"timespace", "x")
+  }
+}

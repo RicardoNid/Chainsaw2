@@ -118,7 +118,7 @@ object TransformTest {
 
       val golden = data.grouped(outputFlow.rawDataCount).toSeq.map(complexTransform)
       if (firstTime != latency) logger.warn(s"latency is ${firstTime - 1}, while supposed to be $latency")
-      yours.zip(golden).foreach{ case (a, b) => assert(metric(a, b))}
+      yours.tail.zip(golden.tail).foreach{ case (a, b) => assert(metric(a, b))}
       logger.info("test for transform module passed")
     }
   }

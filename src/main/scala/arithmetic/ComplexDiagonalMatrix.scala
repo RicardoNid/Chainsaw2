@@ -10,7 +10,7 @@ import spinal.lib._
 import scala.language.postfixOps
 
 case class ComplexDiagonalMatrixConfig(coeffs: Seq[Complex], fold: Int,
-                                dataType: HardType[SFix], coeffType: HardType[SFix]) extends TransformConfig {
+                                       dataType: HardType[SFix], coeffType: HardType[SFix]) extends TransformConfig {
 
   val n = coeffs.length
   require(n % fold == 0)
@@ -35,15 +35,18 @@ case class ComplexDiagonalMatrix(config: ComplexDiagonalMatrixConfig) extends Tr
 
   override val dataIn = slave Flow Fragment(Vec(ComplexFix(dataType), portWidth))
   val coeffHard = coeffs.map(CF(_, coeffType))
+  val currentCoeffs = Vec(HardType(ComplexFix(coeffType)), portWidth)
+  currentCoeffs.setName("current")
 
-  val ret = if (fold > 1) {
+  if (fold > 1) {
     val coeffROM = Mem(coeffHard.grouped(portWidth).toSeq.map(Vec(_)))
     val counter = CounterFreeRun(fold)
     when(dataIn.last)(counter.clear())
-    val currentCoeffs = coeffROM.readAsync(counter.value)
-    Vec(dataIn.fragment.zip(currentCoeffs).map { case (data, coeff) => complexMult(data, coeff) })
+    currentCoeffs := coeffROM.readAsync(counter.value)
   }
-  else Vec(dataIn.fragment.zip(coeffHard).map { case (data, coeff) => complexMult(data, coeff) })
+  else currentCoeffs := Vec(coeffHard)
+
+  val ret = Vec(dataIn.fragment.zip(currentCoeffs).map { case (data, coeff) => complexMult(data, coeff) })
 
   override val dataOut = master Flow Fragment(ret)
   dataOut.fragment := ret

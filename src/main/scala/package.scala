@@ -30,6 +30,8 @@ package object datenlord {
 
     def withFragment(fragment: Seq[T]): ChainsawFlow[T] = withFragment(Vec(fragment))
 
+    def d(cycle:Int) = ChainsawFlow(flow.fragment.d(cycle), flow.valid.d(cycle), flow.last.d(cycle))
+
   }
 
 

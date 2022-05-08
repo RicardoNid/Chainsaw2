@@ -27,12 +27,13 @@ case class StridePermutation2Config(n: Int, q: Int, s: Int, bitWidth: Int) exten
     else if (q <= n - r && q >= r) 1
     else 2 // q < r
 
-  override def latency = networkType match {
-    case -1 => 0
-    case 0 => MTNConfig(n - q, bitWidth).latency
-    case 1 => MTNConfig(r, bitWidth).latency + SPNConfig(n - q, r, bitWidth).latency
-    case 2 => SPNConfig(r, r - q, bitWidth).latency + MTNConfig(q, bitWidth).latency + SPNConfig(n - q, r, bitWidth).latency
-  }
+  override def latency =
+    networkType match {
+      case -1 => 0
+      case 0 => MTNConfig(n - q, bitWidth).latency
+      case 1 => MTNConfig(r, bitWidth).latency + SPNConfig(n - q, r, bitWidth).latency
+      case 2 => SPNConfig(r, r - q, bitWidth).latency + MTNConfig(q, bitWidth).latency + SPNConfig(n - q, r, bitWidth).latency
+    }
 
   override def inputFlow = CyclicFlow(Q, N / Q)
 
@@ -49,8 +50,6 @@ case class StridePermutation2(config: StridePermutation2Config) extends Transfor
   override val dataOut = master Flow Fragment(Vec(Bits(bitWidth bits), Q))
 
   logger.info(s"generating radix-2 stride permutation P_{$N, $S} based on registers, case $networkType")
-
-
 
   def passP(perm: DenseMatrix[Int], dataIn: TempFlow) = {
     val retData = Vec(SpatialPermutation(dataIn.fragment, perm))
