@@ -34,6 +34,15 @@ case class StreamPermutationConfig(permutation: Seq[Int], streamWidth: Int, bitW
 
   override def bitTransform(dataIn: Seq[BigInt]) = permutation.map(i => dataIn(i))
 
+  def getMappingMatrix = {
+    val mappingMatrixContent = Array.tabulate(streamWidth, streamWidth) { (i, j) =>
+      permutation.zipWithIndex.count { case (out, in) =>
+        (out % streamWidth == j) && (in % streamWidth == i)
+      }
+    }
+    new DenseMatrix(streamWidth, streamWidth, mappingMatrixContent.flatten)
+  }
+
   // get permutation matrices from mapping matrix by brute force algorithm
   // TODO: better algorithm
   def getDecomposition(array: DenseMatrix[Int]) = {
@@ -70,12 +79,7 @@ case class StreamPermutationConfig(permutation: Seq[Int], streamWidth: Int, bitW
    */
   def getControls = {
     // build the mapping matrix according to definition 2
-    val mappingMatrixContent = Array.tabulate(streamWidth, streamWidth) { (i, j) =>
-      permutation.zipWithIndex.count { case (out, in) =>
-        (out % streamWidth == j) && (in % streamWidth == i)
-      }
-    }
-    val mappingMatrix = new DenseMatrix(streamWidth, streamWidth, mappingMatrixContent.flatten)
+    val mappingMatrix = getMappingMatrix
     val permutations = getDecomposition(mappingMatrix)
     val readAddr = ArrayBuffer[Seq[Int]]() // read addr of M_0
     val writeAddr = ArrayBuffer[Seq[Int]]() // write addr of M_1
@@ -114,11 +118,16 @@ case class StreamPermutation(config: StreamPermutationConfig)
   val R = Mem(readAddr.map(seq => Vec(seq.map(U(_, addrWidth bits)))))
   val W = Mem(writeAddr.map(seq => Vec(seq.map(U(_, addrWidth bits)))))
   val M0, M1 = Seq.fill(w)(Mem(dataType, memDepth))
+  // controls
   val counter = autoInputCounter()
-  // connections
   val state = counter.value
+  val controlLatency = networkConfig.latency % period
+  val stateAfterN = state.d(controlLatency)
   val pingPongM0 = Reg(UInt(1 bits))
   when(counter.willOverflow)(pingPongM0 := ~pingPongM0)
+  val pingPongM1 = Reg(UInt(1 bits))
+  when(counter.willOverflow.d(controlLatency))(pingPongM1 := ~pingPongM1)
+  // datapath
   // step 1 input -> M0
   M0.zip(dataIn.fragment).foreach { case (port, data) => port.write(state @@ pingPongM0, data) }
   // step 2 M0 -> data
@@ -130,10 +139,6 @@ case class StreamPermutation(config: StreamPermutationConfig)
   network.dataIn.last := dataIn.last.validAfter(period)
   val afterN = network.dataOut.fragment
   // step 4 data -> M1
-  val controlLatency = networkConfig.latency % period
-  val stateAfterN = state.d(controlLatency)
-  val pingPongM1 = Reg(UInt(1 bits))
-  when(counter.willOverflow.d(controlLatency))(pingPongM1 := ~pingPongM1)
   val writeAddrs = W.readAsync(stateAfterN)
   M1.zip(writeAddrs.zip(afterN)).foreach { case (port, (addr, data)) =>
     port.write(addr @@ pingPongM1, data)
@@ -143,39 +148,3 @@ case class StreamPermutation(config: StreamPermutationConfig)
   autoLast()
   autoValid()
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

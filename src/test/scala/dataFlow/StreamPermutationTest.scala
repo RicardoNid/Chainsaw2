@@ -12,10 +12,12 @@ class StreamPermutationTest extends AnyFlatSpec {
     val n = 12
     val w = 4
     val data = (0 until n).toList
-    val perm = Seq(5, 3, 0, 4, 10, 8, 7, 2, 1, 11, 9, 6)
+    val perms = (0 until 5).map(_ => Random.shuffle(data))
 
-    val config = StreamPermutationConfig(perm, w, 5)
-    TransformTest.bitAccurateTest(StreamPermutation(config), (data ++ data).map(BigInt(_)))
+    perms.foreach { perm =>
+      val config = StreamPermutationConfig(perm, w, 5)
+      TransformTest.bitAccurateTest(StreamPermutation(config), (data ++ data).map(BigInt(_)))
+    }
   }
 
 }
