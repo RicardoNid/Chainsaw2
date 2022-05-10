@@ -22,7 +22,7 @@ object TransformTest {
     SimConfig.withFstWave.compile(transformModule).doSim { dut =>
 
       import dut.{clockDomain, config, dataIn, dataOut}
-      import config.{inputFlow, latency, outputFlow, transform}
+      import config.{inputFlow, latency, outputFlow, bitTransform}
 
       require(data.length % inputFlow.rawDataCount == 0, s"test data incomplete, should be a multiple of ${inputFlow.rawDataCount} while it is ${data.length}")
 
@@ -52,9 +52,11 @@ object TransformTest {
       }
 
       // peek only
-      (0 until latency + 1).foreach { _ =>
+      (0 until latency + 1).foreach { i =>
         dataRecord += dataOut.fragment.map(_.toBigInt)
         lastRecord += dataOut.last.toBoolean
+        dataIn.valid #= valid(i % inputFlow.period)
+        dataIn.last #= last(i % inputFlow.period)
         clockDomain.waitSampling()
       }
 
@@ -65,7 +67,7 @@ object TransformTest {
         .grouped(outputFlow.period).toSeq
         .flatMap(outputFlow.toRawData)
 
-      val golden = data.grouped(outputFlow.rawDataCount).toSeq.flatMap(transform)
+      val golden = data.grouped(outputFlow.rawDataCount).toSeq.flatMap(bitTransform)
 
       if (firstTime != latency) logger.warn(s"latency is ${firstTime - 1}, while supposed to be $latency")
       assert(yours == golden,
@@ -75,12 +77,13 @@ object TransformTest {
     }
   }
 
-  def complexTest(transformModule: => TransformModule[ComplexFix, ComplexFix], data: Seq[Complex], metric:(Seq[Complex], Seq[Complex]) => Boolean): Unit = {
-    SimConfig.withFstWave.compile(transformModule).doSim { dut =>
+  def complexTest(transformModule: => TransformModule[ComplexFix, ComplexFix], data: Seq[Complex], metric:(Seq[Complex], Seq[Complex]) => Boolean, name:String = "temp"): Unit = {
+    SimConfig.withFstWave.workspaceName(name).compile(transformModule).doSim { dut =>
 
       import dut.{clockDomain, config, dataIn, dataOut}
       import config.{inputFlow, latency, outputFlow, complexTransform}
 
+      logger.info("Chainsaw test started")
       require(data.length % inputFlow.rawDataCount == 0, s"test data incomplete, should be a multiple of ${inputFlow.rawDataCount} while it is ${data.length}")
 
       clockDomain.forkStimulus(2)
@@ -103,9 +106,11 @@ object TransformTest {
       }
 
       // peek only
-      (0 until latency + 1).foreach { _ =>
+      (0 until latency + 1).foreach { i =>
         dataRecord += dataOut.fragment.map(_.toComplex)
         lastRecord += dataOut.last.toBoolean
+        dataIn.valid #= valid(i % inputFlow.period)
+        dataIn.last #= last(i % inputFlow.period)
         clockDomain.waitSampling()
       }
 
@@ -118,7 +123,8 @@ object TransformTest {
 
       val golden = data.grouped(outputFlow.rawDataCount).toSeq.map(complexTransform)
       if (firstTime != latency) logger.warn(s"latency is ${firstTime - 1}, while supposed to be $latency")
-      yours.tail.zip(golden.tail).foreach{ case (a, b) => assert(metric(a, b))}
+      // TODO: currently drop the first vector
+      yours.zip(golden).foreach{ case (a, b) => assert(metric(a, b))}
       logger.info("test for transform module passed")
     }
   }

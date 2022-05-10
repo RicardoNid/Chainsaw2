@@ -13,7 +13,7 @@ abstract class TransformConfig {
 
   def outputFlow: DataFlow
 
-  def transform(dataIn: Seq[BigInt]): Seq[BigInt] = dataIn
+  def bitTransform(dataIn: Seq[BigInt]): Seq[BigInt] = dataIn
 
   def complexTransform(dataIn: Seq[Complex]): Seq[Complex] = dataIn
 
@@ -35,5 +35,13 @@ abstract class TransformModule[TIn <: Data, TOut <: Data] extends Component {
     dataIn.valid.allowPruning()
     dataIn.last.allowPruning()
   }
+
+  def autoInputCounter() = {
+    val counter = Counter(config.inputFlow.period)
+    when(dataIn.valid)(counter.increment())
+    when(dataIn.last)(counter.clear())
+    counter
+  }
+
 
 }

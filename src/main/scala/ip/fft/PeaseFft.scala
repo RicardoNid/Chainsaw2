@@ -4,20 +4,24 @@ package ip.fft
 import arithmetic.{ComplexDiagonalMatrix, ComplexDiagonalMatrixConfig}
 import algos.Matrices.{digitReversalPermutation, stridePermutation}
 import dataFlow._
+
 import breeze.linalg.DenseVector
 import breeze.math.Complex
+import breeze.numerics.ceil
 import spinal.core._
 import spinal.lib._
+
 import scala.collection.mutable.ArrayBuffer
 import scala.language.postfixOps
 
 /**
- * by default, this module takes signed normalized input within [-1, 1)
+ * by default, this module takes signed normalized input within [-1, 1) 256 8 128 1024
  */
 case class PeaseFftConfig(N: Int, radix: Int,
                           dataWidth: Int, coeffWidth: Int,
                           inverse: Boolean, spaceReuse: Int, timeReuse: Int) extends TransformConfig {
 
+  // coefficients
   val n = logR(N, 2)
   val stageCount = logR(N, radix)
   val stageWidth = logR(radix, 2)
@@ -33,7 +37,14 @@ case class PeaseFftConfig(N: Int, radix: Int,
   val q = logR(portWidth, 2)
   val r = logR(radix, 2)
 
-  val iterativeCount = stageCount / timeReuse
+  val iterativeCount = stageCount / timeReuse // number of iterative boxes in one iteration
+
+  val totalShift = (n + 1) / 2
+  val iterativeShift = ceil(totalShift.toDouble / timeReuse).toInt
+  val iterativeBoxShift = iterativeShift.toDouble / iterativeCount
+  val shifts = (0 until iterativeCount).map(i => ceil((i + 1) * iterativeBoxShift) - ceil(i * iterativeBoxShift)).map(_.toInt) // shifts after each iterative box
+  require(shifts.sum == iterativeShift)
+  val compensateShift = iterativeShift * timeReuse - totalShift
 
   def iterativeBoxLatency = {
     val permLatency = StridePermutation2Config(n, q, r, dataWidth * 2).latency
@@ -43,6 +54,8 @@ case class PeaseFftConfig(N: Int, radix: Int,
   def iterativeLatency = iterativeCount * iterativeBoxLatency
 
   def utilization = if (timeReuse == 1) 1 else if (spaceReuse > iterativeLatency) 1 else spaceReuse.toDouble / iterativeLatency
+
+  def throughput = 1.0 / (spaceReuse * timeReuse) * utilization
 
   override def latency = (spaceReuse max iterativeLatency) * timeReuse
 
@@ -62,11 +75,10 @@ case class PeaseFftConfig(N: Int, radix: Int,
 
   def dspEstimation = (N / spaceReuse) * (stageCount / timeReuse) * 3
 
-  logger.info(s"generating pease fft on with " +
+  override def toString = s"generating pease fft on with " +
     s"spaceReuse = $spaceReuse, timeReuse = $timeReuse, dsp estimated = $dspEstimation, " +
-    s"throughput = ${(1.0 / (spaceReuse * timeReuse) * utilization)}, utilization = ${utilization}, " +
-    s"latency = $latency, iterative latency = $iterativeLatency")
-
+    s"throughput inverse = ${1.0 / throughput}, utilization = $utilization, " +
+    s"latency = $latency, iterative latency = $iterativeLatency"
 }
 
 case class PeaseFft(config: PeaseFftConfig) extends TransformModule[ComplexFix, ComplexFix] {
@@ -77,7 +89,7 @@ case class PeaseFft(config: PeaseFftConfig) extends TransformModule[ComplexFix, 
   val dataType = HardType(SFix(0 exp, -(dataWidth - 1) exp))
   val coeffType = HardType(SFix(1 exp, -(coeffWidth - 2) exp))
 
-  val innerMax = (n + 1) / 2 + 3
+  val innerMax = (n + 1) / 2 + 1
   val innerType = HardType(SFix(innerMax exp, -(dataWidth - innerMax - 1) exp))
 
   override val dataIn = slave Flow Fragment(Vec(ComplexFix(dataType), portWidth))
@@ -134,15 +146,12 @@ case class PeaseFft(config: PeaseFftConfig) extends TransformModule[ComplexFix, 
   (0 until iterativeCount).reverse.map { i =>
     val coeffSet = (0 until timeReuse).map(j => j * iterativeCount + i).reverse
     val next = iterativeBox(dataPath.last, coeffSet)
-    val normalizeWidth = if(timeReuse == 1) normalizedWidthOnStage(i + 1) - normalizedWidthOnStage(i) else 0
-    println(s"norm on stage $normalizeWidth")
-    val normalized = next.fragment.map(_ >> normalizeWidth).map(_.truncated(innerType))
+    val normalized = next.fragment.map(_ >> shifts(i)).map(_.truncated(innerType))
     dataPath += next.withFragment(normalized)
   }
 
 
   val padLatency = if (iterativeLatency < spaceReuse && timeReuse > 1) spaceReuse - iterativeLatency else 0
-  println(s"pad $padLatency")
 
   val point = iterCounter.value === 0
   point.setName("fromDataIn")
@@ -154,7 +163,7 @@ case class PeaseFft(config: PeaseFftConfig) extends TransformModule[ComplexFix, 
   }
   else iterStart << dataInTruncated
 
-  dataOut.fragment := (if(timeReuse == 1) iterEnd.fragment else Vec(iterEnd.fragment.map(_ >> (n + 1) / 2).map(_.truncated(innerType))))
+  dataOut.fragment := (if (timeReuse == 1) iterEnd.fragment else Vec(iterEnd.fragment.map(_ << compensateShift).map(_.truncated(innerType))))
   autoValid()
   autoLast()
 }

@@ -38,11 +38,22 @@ case class ComplexDiagonalMatrix(config: ComplexDiagonalMatrixConfig) extends Tr
   val currentCoeffs = Vec(HardType(ComplexFix(coeffType)), portWidth)
   currentCoeffs.setName("current")
 
+  if (portWidth * coeffType.getBitsWidth * 2 > 4096) println(s"too big signal")
+
+
   if (fold > 1) {
-    val coeffROM = Mem(coeffHard.grouped(portWidth).toSeq.map(Vec(_)))
+
     val counter = CounterFreeRun(fold)
     when(dataIn.last)(counter.clear())
-    currentCoeffs := coeffROM.readAsync(counter.value)
+
+    val coeff0 = coeffHard.grouped(portWidth).toSeq.map(_.take(portWidth / 2)).map(Vec(_))
+    val coeff1 = coeffHard.grouped(portWidth).toSeq.map(_.takeRight(portWidth / 2)).map(Vec(_))
+    val rom0 = Mem(coeff0)
+    val rom1 = Mem(coeff1)
+    currentCoeffs := Vec(rom0.readAsync(counter.value) ++ rom1.readAsync(counter.value))
+
+    //    val coeffROM = Mem(coeffHard.grouped(portWidth).toSeq.map(Vec(_)))
+    //    currentCoeffs := coeffROM.readAsync(counter.value)
   }
   else currentCoeffs := Vec(coeffHard)
 

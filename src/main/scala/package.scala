@@ -20,7 +20,7 @@ import spinal.lib.fsm._
 
 package object datenlord {
 
-  val logger = LoggerFactory.getLogger("datenlord logger")
+  val logger = LoggerFactory.getLogger("Chainsaw logger")
 
   type ChainsawFlow[T <: Data] = Flow[Fragment[Vec[T]]]
 

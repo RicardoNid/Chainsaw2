@@ -22,7 +22,7 @@ case class DiagonalMatrixConfig(coeffs: Seq[BigInt], fold: Int,
 
   override def outputFlow = CyclicFlow(portWidth, fold)
 
-  override def transform(dataIn: Seq[BigInt]) = dataIn.zip(coeffs).map { case (a, b) => a * b }
+  override def bitTransform(dataIn: Seq[BigInt]) = dataIn.zip(coeffs).map { case (a, b) => a * b }
 }
 
 case class DiagonalMatrix(config: DiagonalMatrixConfig) extends TransformModule[Bits, Bits] {
