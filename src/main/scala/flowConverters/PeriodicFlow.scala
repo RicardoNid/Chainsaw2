@@ -1,7 +1,9 @@
 package org.datenlord
-package dataFlow
+package flowConverters
 
 import dsl.{Repetition, Reuse}
+
+import breeze.math._
 
 case class PeriodicFlow(size: (Int, Int), repetition: Repetition, reuse: Reuse) {
 
@@ -50,6 +52,7 @@ object PeriodicFlow { // examples
 
   def main(args: Array[String]): Unit = {
 
+    Complex(1, 0) + Complex(2, 0)
 
   }
 

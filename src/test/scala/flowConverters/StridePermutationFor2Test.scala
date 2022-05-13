@@ -1,9 +1,9 @@
 package org.datenlord
-package dataFlow
+package flowConverters
 
 import org.scalatest.flatspec.AnyFlatSpec
 
-class StridePermutation2Test extends AnyFlatSpec {
+class StridePermutationFor2Test extends AnyFlatSpec {
 
   "MTN" should "work" in {
     val widths = (1 to 3) ++ (5 to 6) // TODO: verilator failed on 4, why?
@@ -38,11 +38,11 @@ class StridePermutation2Test extends AnyFlatSpec {
   "StridePermutation2" should "work" in {
     val portWidths = Seq(7, 6, 5, 4, 3, 2, 1)
     //    val portWidths = Seq(8, 7, 6, 5, 4, 3, 2, 1) // todo: no clk when is combinational
-    val configs = portWidths.map(StridePermutation2Config(8, _, 1, 8))
+    val configs = portWidths.map(StridePermutationFor2Config(8, _, 1, 8))
     configs.foreach { config =>
       val data = (0 until config.N).map(BigInt(_))
-      TransformTest.bitAccurateTest(StridePermutation2(config), Seq.fill(4)(data).flatten)
-      VivadoSynth(StridePermutation2(config))
+      TransformTest.bitAccurateTest(StridePermutationFor2(config), Seq.fill(4)(data).flatten)
+      VivadoSynth(StridePermutationFor2(config))
     }
   }
 

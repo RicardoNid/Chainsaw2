@@ -1,6 +1,6 @@
 package org.datenlord
 
-import dataFlow._
+import flowConverters._
 import spinal.core._
 
 /** configuration of complex multiplication

@@ -87,12 +87,6 @@ package object datenlord {
     def padToLeft(len: Int, elem: T) = array.reverse.padTo(len, elem).reverse
   }
 
-  implicit class flowFragmentUtil[T <: Data](flow: Flow[Fragment[T]]) {
-
-  }
-
-  def nextBigInt(width: Int) = BigInt(Random.nextString(width).map(_ % 2).mkString(""), 2)
-
   def logR(n: Int, radix: Int) = {
     var current = n
     var ret = 0
@@ -161,21 +155,10 @@ package object datenlord {
       ret := sf.truncated
       ret
     }
-  }
-
-  implicit class SimComplexPimper(cn: ComplexFix) {
-    def #=(value: Complex): Unit = {
-      cn.real #= value.real
-      cn.imag #= value.imag
-    }
-
-    def toComplex = new Complex(cn.real.toDouble, cn.imag.toDouble)
-  }
-
-  implicit class SimSFixPimper(sf: SFix) {
 
     import sf._
 
+    // for sfix simulation
     def #=(value: BigDecimal): Unit = { // copied from SF object
       assert(value <= maxValue, s"Literal $value is too big to be assigned in $this")
       assert(value >= minValue, s"Literal $value is too small to be assigned in this $this")
@@ -191,6 +174,21 @@ package object datenlord {
     def #=(value: Double): Unit = #=(BigDecimal(value))
 
     def toDouble = raw.toBigInt.toDouble / (1 << -minExp)
+
   }
+
+  implicit class SimComplexPimper(cn: ComplexFix) {
+    def #=(value: Complex): Unit = {
+      cn.real #= value.real
+      cn.imag #= value.imag
+    }
+
+    def toComplex = new Complex(cn.real.toDouble, cn.imag.toDouble)
+  }
+
+  implicit class VecUtil[T <: Data](vec: Vec[T]) {
+    def :=(that:Seq[T]) = vec.zip(that).foreach{ case (port, data) => port := data}
+  }
+
 
 }

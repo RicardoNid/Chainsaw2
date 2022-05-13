@@ -1,9 +1,9 @@
 package org.datenlord
-package dataFlow
+package flowConverters
 
 import algos.Matrices
-import dataFlow.StridePermutation2.matrixJ
-import dataFlow.Utils.DSD
+import flowConverters.StridePermutationFor2.matrixJ
+import flowConverters.Utils.DSD
 
 import breeze.linalg._
 import spinal.core._
@@ -12,7 +12,14 @@ import spinal.lib.{Counter, _}
 import scala.collection.mutable.ArrayBuffer
 import scala.language.postfixOps
 
-case class StridePermutation2Config(n: Int, q: Int, s: Int, bitWidth: Int) extends TransformConfig {
+/** Stride permutation for which frame, stride and stream width are all 2's exponent, based on Registers
+ * @param n frame length
+ * @param q stream width
+ * @param s stride length
+ * @param bitWidth bit width of elements in input & output vector
+ * @see ''Stride Permutation Networks for Array Processors'', Tuomas J¨arvinen Perttu Salmela Harri Sorokin Jarmo Takala
+ */
+case class StridePermutationFor2Config(n: Int, q: Int, s: Int, bitWidth: Int) extends TransformConfig {
 
   val N = 1 << n
   val Q = 1 << q
@@ -42,7 +49,11 @@ case class StridePermutation2Config(n: Int, q: Int, s: Int, bitWidth: Int) exten
   override def bitTransform(dataIn: Seq[BigInt]) = dataIn.grouped(1 << s).toSeq.transpose.flatten
 }
 
-case class StridePermutation2(config: StridePermutation2Config) extends TransformModule[Bits, Bits] {
+object StridePermutationFor2Config {
+
+}
+
+case class StridePermutationFor2(config: StridePermutationFor2Config) extends TransformModule[Bits, Bits] {
 
   import config._
 
@@ -118,7 +129,7 @@ case class StridePermutation2(config: StridePermutation2Config) extends Transfor
   autoLast()
 }
 
-object StridePermutation2 {
+object StridePermutationFor2 {
 
   def matrixJ(K: Int) = {
     if (K == 2) DenseMatrix.eye[Int](2)

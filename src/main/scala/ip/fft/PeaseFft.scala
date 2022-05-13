@@ -3,7 +3,7 @@ package ip.fft
 
 import arithmetic.{ComplexDiagonalMatrix, ComplexDiagonalMatrixConfig}
 import algos.Matrices.{digitReversalPermutation, stridePermutation}
-import dataFlow._
+import flowConverters._
 
 import breeze.linalg.DenseVector
 import breeze.math.Complex
@@ -47,7 +47,7 @@ case class PeaseFftConfig(N: Int, radix: Int,
   val compensateShift = iterativeShift * timeReuse - totalShift
 
   def iterativeBoxLatency = {
-    val permLatency = StridePermutation2Config(n, q, r, dataWidth * 2).latency
+    val permLatency = StridePermutationFor2Config(n, q, r, dataWidth * 2).latency
     multLatency + dftLatency + permLatency
   }
 
@@ -120,8 +120,8 @@ case class PeaseFft(config: PeaseFftConfig) extends TransformModule[ComplexFix, 
     val afterDft = Vec(afterMult.grouped(radix).toSeq.flatMap(seq => dft(Vec(seq)).map(_.truncated(innerType))))
 
     // permutation
-    val permConfig = StridePermutation2Config(n, q, r, innerType.getBitsWidth * 2)
-    val permutation = StridePermutation2(permConfig)
+    val permConfig = StridePermutationFor2Config(n, q, r, innerType.getBitsWidth * 2)
+    val permutation = StridePermutationFor2(permConfig)
     val flowAfterDft = ChainsawFlow(Vec(afterDft.map(_.asBits)), iterIn.valid.validAfter(dftLatency + multLatency), iterIn.last.validAfter(dftLatency + multLatency))
     permutation.dataIn << flowAfterDft
     val afterPerm = cloneOf(afterDft)

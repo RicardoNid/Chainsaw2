@@ -1,7 +1,7 @@
 package org.datenlord
 package arithmetic
 
-import dataFlow._
+import flowConverters._
 
 import breeze.math._
 import spinal.core._
@@ -24,6 +24,7 @@ case class ComplexDiagonalMatrixConfig(coeffs: Seq[Complex], fold: Int,
 
   override def complexTransform(dataIn: Seq[Complex]) =
     dataIn.zip(coeffs).map { case (data, coeff) => data * coeff }
+
 }
 
 case class ComplexDiagonalMatrix(config: ComplexDiagonalMatrixConfig) extends TransformModule[ComplexFix, ComplexFix] {

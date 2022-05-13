@@ -16,8 +16,8 @@ class KaratsubaForXilinxTest extends AnyFlatSpec {
   val testCount = 1000
   val width = 34
 
-  val xs = (0 until testCount).map(_ => nextBigInt(width))
-  val ys = (0 until testCount).map(_ => nextBigInt(width))
+  val xs = (0 until testCount).map(_ => Random.nextBigInt(width))
+  val ys = (0 until testCount).map(_ => Random.nextBigInt(width))
   val goldens = xs.zip(ys).map{ case (x, y) => x * y}
 
   "karatsuba for Xilinx" should "work" in {

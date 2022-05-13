@@ -1,5 +1,4 @@
 package org.datenlord
-package dataFlow
 
 import util._
 
@@ -108,8 +107,6 @@ case class TimeSpaceFlow(N: Int, spaceReuse: Int, timeReuse: Int, iterativeLaten
     val first = (0 until N).grouped(thePortWidth).toSeq.padTo(iterativePeriod, empty)
     first ++ Seq.fill(iterativePeriod * (timeReuse - 1))(empty)
   }
-
-
 }
 
 object TimeSpaceFlow {

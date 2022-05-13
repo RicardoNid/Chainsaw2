@@ -1,5 +1,5 @@
 package org.datenlord
-package dataFlow
+package flowConverters
 
 import breeze.linalg._
 

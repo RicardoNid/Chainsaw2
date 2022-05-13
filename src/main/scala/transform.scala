@@ -1,5 +1,4 @@
 package org.datenlord
-package dataFlow
 
 import breeze.math._
 import spinal.core._
@@ -17,6 +16,9 @@ abstract class TransformConfig {
 
   def complexTransform(dataIn: Seq[Complex]): Seq[Complex] = dataIn
 
+  def bit2ComplexTransform(dataIn: Seq[BigInt]): Seq[Complex] = Seq(Complex(0, 0))
+
+//  def impl: TransformModule[_, _]
 }
 
 abstract class TransformModule[TIn <: Data, TOut <: Data] extends Component {
@@ -42,6 +44,4 @@ abstract class TransformModule[TIn <: Data, TOut <: Data] extends Component {
     when(dataIn.last)(counter.clear())
     counter
   }
-
-
 }

@@ -1,7 +1,7 @@
 package org.datenlord
 package arithmetic
 
-import dataFlow._
+import flowConverters._
 
 import spinal.core._
 import spinal.lib._

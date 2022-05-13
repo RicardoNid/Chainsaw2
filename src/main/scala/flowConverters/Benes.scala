@@ -1,5 +1,5 @@
 package org.datenlord
-package dataFlow
+package flowConverters
 
 import spinal.core._
 import scala.collection.JavaConversions._

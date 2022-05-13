@@ -14,11 +14,11 @@ object example {
     override def toString = "add"
   }
 
-  class Mult() extends DspNode[UInt]{
+  class Mult() extends DspNode[SInt]{
     override val exeTime = 0.5
     override val delay = 0
     override val period = 1
-    override val impl = (dataIn: Array[UInt]) => Array(dataIn(0) * dataIn(1))
+    override val impl = (dataIn: Array[SInt]) => Array(dataIn(0) * dataIn(1))
 
     override def toString = "mult"
   }
