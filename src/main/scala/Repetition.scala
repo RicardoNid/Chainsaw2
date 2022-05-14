@@ -1,5 +1,5 @@
 package org.datenlord
-package dsl
+
 import scala.reflect.ClassTag
 
 case class SpaceRepetition(factor: Int, step: Int = -1) {

@@ -79,6 +79,8 @@ case class PeaseFftConfig(N: Int, radix: Int,
     s"spaceReuse = $spaceReuse, timeReuse = $timeReuse, dsp estimated = $dspEstimation, " +
     s"throughput inverse = ${1.0 / throughput}, utilization = $utilization, " +
     s"latency = $latency, iterative latency = $iterativeLatency"
+
+  override def impl = PeaseFft(this)
 }
 
 case class PeaseFft(config: PeaseFftConfig) extends TransformModule[ComplexFix, ComplexFix] {

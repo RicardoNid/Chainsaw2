@@ -1,7 +1,7 @@
 package org.datenlord
 package flowConverters
 
-import dsl.{Repetition, Reuse}
+import dsl.Reuse
 
 import breeze.math._
 

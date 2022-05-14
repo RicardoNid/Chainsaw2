@@ -17,7 +17,7 @@ case class ComplexLUTConfig(coeffs: Seq[Complex], dataType: HardType[SFix]) exte
 
   override def bit2ComplexTransform(dataIn: Seq[BigInt]) = Seq(coeffs(dataIn.head.toInt))
 
-
+  override def impl = ComplexLUT(this)
 }
 
 case class ComplexLUT(config: ComplexLUTConfig) extends TransformModule[UInt, ComplexFix] {

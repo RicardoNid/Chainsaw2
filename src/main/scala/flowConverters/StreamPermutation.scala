@@ -102,6 +102,7 @@ case class StreamPermutationConfig(permutation: Seq[Int], streamWidth: Int, bitW
     (permutations, readAddr, writeAddr)
   }
 
+  override def impl = StreamPermutation(this)
 }
 
 case class StreamPermutation(config: StreamPermutationConfig)

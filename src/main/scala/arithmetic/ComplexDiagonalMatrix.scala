@@ -25,6 +25,7 @@ case class ComplexDiagonalMatrixConfig(coeffs: Seq[Complex], fold: Int,
   override def complexTransform(dataIn: Seq[Complex]) =
     dataIn.zip(coeffs).map { case (data, coeff) => data * coeff }
 
+  override def impl = ComplexDiagonalMatrix(this)
 }
 
 case class ComplexDiagonalMatrix(config: ComplexDiagonalMatrixConfig) extends TransformModule[ComplexFix, ComplexFix] {

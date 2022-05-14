@@ -12,13 +12,18 @@ abstract class TransformConfig {
 
   def outputFlow: DataFlow
 
+  def inputWidth = inputFlow.portWidth
+
+  def outputWidth = inputFlow.portWidth
+
   def bitTransform(dataIn: Seq[BigInt]): Seq[BigInt] = dataIn
 
   def complexTransform(dataIn: Seq[Complex]): Seq[Complex] = dataIn
 
   def bit2ComplexTransform(dataIn: Seq[BigInt]): Seq[Complex] = Seq(Complex(0, 0))
 
-//  def impl: TransformModule[_, _]
+  def impl: TransformModule[_, _]
+
 }
 
 abstract class TransformModule[TIn <: Data, TOut <: Data] extends Component {

@@ -78,6 +78,8 @@ case class BenesNetworkConfig(N: Int, bitWidth: Int, permutations: Seq[Seq[Int]]
   override def bitTransform(dataIn: Seq[BigInt]) =
     dataIn.grouped(N).toSeq.zip(permutations)
       .flatMap { case (data, perm) => perm.map(index => data(index)) }
+
+  override def impl = BenesNetwork(this)
 }
 
 /** periodic Benes network

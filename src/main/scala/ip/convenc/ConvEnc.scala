@@ -13,8 +13,6 @@ case class ConvEncConfig(codeGen: Seq[Seq[String]], codeGenRadix: Int = 8)
   val constraintLengths = binaryCodeGen.map(_.map(_.length).max)
 
   val inputStep = binaryCodeGen.length
-  val inputWidth = inputStep * constraintLength
-  val outputWidth = binaryCodeGen.head.length
   val codeRate = inputStep.toDouble / outputWidth
 
   override def latency = constraintLength - 1
@@ -24,6 +22,8 @@ case class ConvEncConfig(codeGen: Seq[Seq[String]], codeGenRadix: Int = 8)
   override def outputFlow = FullyPipelinedFlow(outputWidth)
 
   // TODO: reference model
+
+  override def impl = ConvEnc(this)
 }
 
 case class ConvEnc(config: ConvEncConfig) extends TransformModule[Bool, Bool] {
