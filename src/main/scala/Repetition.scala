@@ -24,15 +24,15 @@ case class Repetition(space: Seq[SpaceRepetition], time: TimeRepetition) {
 
   def timeFactor = time.factor
 
-  def ⊗(group: Int, step: Int = -1) = {
+  def ⊗(factor: Int, step: Int = -1) = {
     if (step == -1) {
-      if (space.last.step == -1) Repetition(space.init :+ SpaceRepetition(space.last.factor * group), time)
-      else Repetition(space :+ SpaceRepetition(group), time)
+      if (space.last.step == -1) Repetition(space.init :+ SpaceRepetition(space.last.factor * factor), time)
+      else Repetition(space :+ SpaceRepetition(factor), time)
     }
-    else Repetition(space :+ SpaceRepetition(group, step), time)
+    else Repetition(space :+ SpaceRepetition(factor, step), time)
   }
 
-  def ^(group: Int) = Repetition(space, TimeRepetition(time.factor * group))
+  def ∏(factor: Int) = Repetition(space, TimeRepetition(time.factor * factor))
 
   def expand(size: (Int,Int)) = {
     var init = size

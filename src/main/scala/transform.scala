@@ -24,6 +24,7 @@ abstract class TransformConfig {
 
   def impl: TransformModule[_, _]
 
+  def toTransformMesh = transformMesh(this, Repetition.unit)
 }
 
 abstract class TransformModule[TIn <: Data, TOut <: Data] extends Component {

@@ -10,9 +10,9 @@ import spinal.lib.fsm._
  */
 case class transformMesh(transform: TransformConfig, repetition: Repetition) {
 
-  def ⊗(parallel: Int, step: Int = -1) = transformMesh(transform, repetition.⊗(parallel, step))
+  def ⊗(factor: Int, step: Int = -1) = transformMesh(transform, repetition.⊗(factor, step))
 
-  def ^(iterative: Int) = transformMesh(transform, repetition.^(iterative))
+  def ∏(factor:Int) = transformMesh(transform, repetition.∏(factor))
 
 
 }
