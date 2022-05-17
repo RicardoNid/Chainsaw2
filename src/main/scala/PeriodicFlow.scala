@@ -31,7 +31,7 @@ case class PeriodicFlow(transform: TransformConfig, repetition: Repetition, reus
 
   def segments2Iteration(segments: Array[Slice], portWidth: Int) = {
     segments
-      .divide(reuse.spaceReuse).flatMap { slices =>
+      .divide(reuse.spaceReuse).flatMap { slices => // building the queue to fill in the iteration latency
       if (reuse.spaceFold != 1) {
         val subSlices: Array[Array[Slice]] = slices.map(_.divide(reuse.spaceFold))
         val reordered: Array[Slice] = (0 until reuse.spaceFold).map(i => subSlices.flatMap(_.apply(i))).toArray
