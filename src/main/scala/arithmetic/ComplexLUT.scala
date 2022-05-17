@@ -15,7 +15,7 @@ case class ComplexLUTConfig(coeffs: Seq[Complex], dataType: HardType[SFix]) exte
 
   override def outputFlow = FullyPipelinedFlow(1)
 
-  override def bit2ComplexTransform(dataIn: Seq[BigInt]) = Seq(coeffs(dataIn.head.toInt))
+  override def transform(dataIn: Seq[_]) = Seq(coeffs(dataIn.head.asInstanceOf[BigInt].toInt))
 
   override def impl = ComplexLUT(this)
 }

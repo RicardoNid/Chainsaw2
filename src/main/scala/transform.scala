@@ -16,13 +16,15 @@ abstract class TransformConfig {
 
   def outputWidth = inputFlow.portWidth
 
-  def bitTransform(dataIn: Seq[BigInt]): Seq[BigInt] = dataIn
+//  def bitTransform(dataIn: Seq[BigInt]): Seq[BigInt] = dataIn
 
-  def complexTransform(dataIn: Seq[Complex]): Seq[Complex] = dataIn
-
-  def bit2ComplexTransform(dataIn: Seq[BigInt]): Seq[Complex] = Seq(Complex(0, 0))
+//  def complexTransform(dataIn: Seq[Complex]): Seq[Complex] = dataIn
+//
+//  def bit2ComplexTransform(dataIn: Seq[BigInt]): Seq[Complex] = Seq(Complex(0, 0))
 
   def impl: TransformModule[_, _]
+
+  def transform(dataIn: Seq[_]): Seq[_] = dataIn
 
   def toTransformMesh = transformMesh(this, Repetition.unit)
 }

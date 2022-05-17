@@ -75,8 +75,8 @@ case class BenesNetworkConfig(N: Int, bitWidth: Int, permutations: Seq[Seq[Int]]
 
   override def outputFlow = CyclicFlow(N, permutations.length)
 
-  override def bitTransform(dataIn: Seq[BigInt]) =
-    dataIn.grouped(N).toSeq.zip(permutations)
+  override def transform(dataIn: Seq[_]) =
+    dataIn.asInstanceOf[Seq[BigInt]].grouped(N).toSeq.zip(permutations)
       .flatMap { case (data, perm) => perm.map(index => data(index)) }
 
   override def impl = BenesNetwork(this)

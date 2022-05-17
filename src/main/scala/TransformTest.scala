@@ -12,7 +12,17 @@ import scala.collection.mutable.ArrayBuffer
 
 object TransformTest {
 
-  private def data2Flow[T](data: Seq[T], flow: DataFlow, zero: T) = {
+  def getZero[T](data: T) = {
+    val temp = data match {
+      case _: BigInt => BigInt(0)
+      case _: Double => 0.0
+      case _: Complex => Complex(0, 0)
+    }
+    temp.asInstanceOf[T]
+  }
+
+  private def data2Flow[T](data: Seq[T], flow: DataFlow) = {
+    val zero = getZero(data.head)
     val dataflows = data.grouped(flow.rawDataCount).toSeq.map(flow.fromRawData(_, zero))
     val rawData = dataflows.flatMap(_._1)
     val valid = dataflows.flatMap(_._2)
@@ -20,11 +30,33 @@ object TransformTest {
     (rawData, valid, last)
   }
 
-  def bitAccurateTest[TIn <: BaseType, TOut <: BaseType](transformModule: => TransformModule[TIn, TOut], data: Seq[BigInt]): Unit = {
-    SimConfig.withFstWave.compile(transformModule).doSim { dut =>
+  // TODO: better method?
+  def pokeWhatever[T <: Data](port: Vec[T], data: Seq[_]): Unit = {
+    port.head match {
+      case _: Bool => port.asInstanceOf[Vec[Bool]].zip(data).foreach { case (bool, value) => bool #= value.asInstanceOf[Boolean] }
+      case _: BitVector => port.asInstanceOf[Vec[BitVector]].zip(data).foreach { case (bool, value) => bool #= value.asInstanceOf[BigInt] }
+      case _: SFix => port.asInstanceOf[Vec[SFix]].zip(data).foreach { case (bool, value) => bool #= value.asInstanceOf[Double] }
+      case _: ComplexFix => port.asInstanceOf[Vec[ComplexFix]].zip(data).foreach { case (bool, value) => bool #= value.asInstanceOf[Complex] }
+    }
+  }
+
+  def peekWhatever[T <: Data](port: Vec[T]) = {
+    port.head match {
+      case _: Bool => port.asInstanceOf[Vec[Bool]].map(_.toBoolean)
+      case _: BitVector => port.asInstanceOf[Vec[BitVector]].map(_.toBigInt)
+      case _: SFix => port.asInstanceOf[Vec[SFix]].map(_.toDouble)
+      case _: ComplexFix => port.asInstanceOf[Vec[ComplexFix]].map(_.toComplex)
+    }
+  }
+
+  def showError[T](yours: Seq[T], golden: Seq[T]) = s"yours:\n${yours.mkString(" ")}\ngolden:\n${golden.mkString(" ")}"
+
+  def test[TIn <: Data, TOut <: Data, T](transformModule: => TransformModule[TIn, TOut], data: Seq[T],
+                                         metric: (Seq[T], Seq[T]) => Boolean = null, name: String = "temp") = {
+    SimConfig.workspaceName(name).withFstWave.compile(transformModule).doSim { dut =>
 
       import dut.{clockDomain, config, dataIn, dataOut}
-      import config.{bitTransform, inputFlow, latency, outputFlow}
+      import config.{transform, inputFlow, latency, outputFlow}
 
       require(data.length % inputFlow.rawDataCount == 0, s"test data incomplete, should be a multiple of ${inputFlow.rawDataCount} while it is ${data.length}")
 
@@ -33,83 +65,30 @@ object TransformTest {
       dataIn.last #= true // refresh the inner state of dut
       clockDomain.waitSampling()
 
-      val dataflows: Seq[(Seq[Seq[BigInt]], Seq[Boolean], Seq[Boolean])] = data.grouped(inputFlow.rawDataCount).toSeq
-        .map(inputFlow.fromRawData(_, BigInt(0)))
+      val zero = getZero(data.head)
+      val dataflows = data.grouped(inputFlow.rawDataCount).toSeq
+        .map(inputFlow.fromRawData(_, zero))
 
       val dataFlow = dataflows.flatMap(_._1)
       val valid = dataflows.flatMap(_._2)
       val last = dataflows.flatMap(_._3)
 
-      val dataRecord = ArrayBuffer[Seq[BigInt]]()
+      val dataRecord = ArrayBuffer[Seq[T]]()
       val lastRecord = ArrayBuffer[Boolean]()
 
       // peek and poke
       dataFlow.indices.foreach { i =>
-        dataIn.fragment.zip(dataFlow(i)).foreach { case (port, bigint) => port.assignBigInt(bigint) }
+        pokeWhatever(dataIn.fragment, dataFlow(i))
         dataIn.valid #= valid(i)
         dataIn.last #= last(i)
-        dataRecord += dataOut.fragment.map(_.toBigInt)
+        dataRecord += peekWhatever(dataOut.fragment).asInstanceOf[Seq[T]]
         lastRecord += dataOut.last.toBoolean
         clockDomain.waitSampling()
       }
 
       // peek only
       (0 until latency + 1).foreach { i =>
-        dataRecord += dataOut.fragment.map(_.toBigInt)
-        lastRecord += dataOut.last.toBoolean
-        dataIn.valid #= valid(i % inputFlow.period)
-        dataIn.last #= last(i % inputFlow.period)
-        clockDomain.waitSampling()
-      }
-
-      val firstTime = lastRecord.indexOf(true) // first time when last appeared
-      val lastTime = lastRecord.lastIndexOf(true) // last time when last appeared
-
-      val yours = dataRecord.slice(firstTime + 1, lastTime + 1)
-        .grouped(outputFlow.period).toSeq
-        .flatMap(outputFlow.toRawData)
-
-      val golden = data.grouped(outputFlow.rawDataCount).toSeq.flatMap(bitTransform)
-
-      if (firstTime != latency) logger.warn(s"latency is ${firstTime - 1}, while supposed to be $latency")
-      assert(yours == golden,
-        s"\nyours:\n${yours.grouped(inputFlow.rawDataCount).toSeq.map(_.mkString(" ")).mkString("\n")}\ngolden:\n" +
-          s"${golden.grouped(inputFlow.rawDataCount).toSeq.map(_.mkString(" ")).mkString("\n")}")
-      logger.info("test for transform module passed")
-    }
-  }
-
-  def complexTest(transformModule: => TransformModule[ComplexFix, ComplexFix], data: Seq[Complex], metric: (Seq[Complex], Seq[Complex]) => Boolean, name: String = "temp"): Unit = {
-    SimConfig.withFstWave.workspaceName(name).compile(transformModule).doSim { dut =>
-
-      import dut.{clockDomain, config, dataIn, dataOut}
-      import config.{complexTransform, inputFlow, latency, outputFlow}
-
-      logger.info("Chainsaw test started")
-      require(data.length % inputFlow.rawDataCount == 0, s"test data incomplete, should be a multiple of ${inputFlow.rawDataCount} while it is ${data.length}")
-
-      clockDomain.forkStimulus(2)
-      dataIn.valid #= false
-      dataIn.last #= true // refresh the inner state of dut
-      clockDomain.waitSampling()
-
-      val (rawData, valid, last) = data2Flow(data, inputFlow, Complex(0, 0))
-      val dataRecord = ArrayBuffer[Seq[Complex]]()
-      val lastRecord = ArrayBuffer[Boolean]()
-
-      // peek and poke
-      rawData.indices.foreach { i =>
-        dataIn.fragment.zip(rawData(i)).foreach { case (port, complex) => port #= complex }
-        dataIn.valid #= valid(i)
-        dataIn.last #= last(i)
-        dataRecord += dataOut.fragment.map(_.toComplex)
-        lastRecord += dataOut.last.toBoolean
-        clockDomain.waitSampling()
-      }
-
-      // peek only
-      (0 until latency + 1).foreach { i =>
-        dataRecord += dataOut.fragment.map(_.toComplex)
+        dataRecord += peekWhatever(dataOut.fragment).asInstanceOf[Seq[T]]
         lastRecord += dataOut.last.toBoolean
         dataIn.valid #= valid(i % inputFlow.period)
         dataIn.last #= last(i % inputFlow.period)
@@ -123,10 +102,17 @@ object TransformTest {
         .grouped(outputFlow.period).toSeq
         .map(outputFlow.toRawData)
 
-      val golden = data.grouped(outputFlow.rawDataCount).toSeq.map(complexTransform)
+      val golden = data.grouped(outputFlow.rawDataCount).toSeq.map(transform).map(_.asInstanceOf[Seq[T]])
+
       if (firstTime != latency) logger.warn(s"latency is ${firstTime - 1}, while supposed to be $latency")
-      // TODO: currently drop the first vector
-      yours.zip(golden).foreach { case (a, b) => assert(metric(a, b)) }
+
+      logger.info(s"\nfirst pair:${showError(yours.head, golden.head)}")
+
+      yours.zip(golden).foreach { case (y, g) =>
+        if (metric == null) assert(y == g, showError(y, g))
+        else assert(metric(y, g), showError(y, g))
+      }
+
       logger.info("test for transform module passed")
     }
   }

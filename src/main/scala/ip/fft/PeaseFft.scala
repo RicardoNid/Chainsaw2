@@ -63,9 +63,10 @@ case class PeaseFftConfig(N: Int, radix: Int,
 
   override def outputFlow = TimeSpaceFlow(N, spaceReuse, timeReuse, iterativeLatency)
 
-  override def complexTransform(dataIn: Seq[Complex]) = {
+  override def transform(dataIn: Seq[_]) = {
+    val data = dataIn.asInstanceOf[Seq[Complex]]
     val dftMatrix = algos.Dft.dftMatrix(N, inverse)
-    val input = new DenseVector(SpatialPermutation(dataIn.toArray, bitReverse).toArray)
+    val input = new DenseVector(SpatialPermutation(data.toArray, bitReverse).toArray)
     val ret = if (!inverse) dftMatrix * input else dftMatrix * input / Complex(N, 0)
     val normalizeWidth = if (!inverse) (n + 1) / 2 else n / 2 // around sqrt(N), take upper for dft and lower for idft
     val normalizeValue = if (!inverse) (1 << normalizeWidth).toDouble else 1.0 / (1 << normalizeWidth)

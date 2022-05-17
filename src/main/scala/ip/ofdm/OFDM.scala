@@ -25,6 +25,8 @@ case class OFDMConfig(fold: Int) extends TransformConfig {
   override def latency = 1
 
   override def impl = OFDM(this)
+
+  // TODO: reference model
 }
 
 case class OFDM(config: OFDMConfig) extends TransformModule[Bool, ComplexFix] {

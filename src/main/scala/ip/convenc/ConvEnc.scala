@@ -21,9 +21,9 @@ case class ConvEncConfig(codeGen: Seq[Seq[String]], codeGenRadix: Int = 8)
 
   override def outputFlow = FullyPipelinedFlow(outputWidth)
 
-  // TODO: reference model
-
   override def impl = ConvEnc(this)
+
+  // TODO: reference model
 }
 
 case class ConvEnc(config: ConvEncConfig) extends TransformModule[Bool, Bool] {

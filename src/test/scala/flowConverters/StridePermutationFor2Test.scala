@@ -10,7 +10,7 @@ class StridePermutationFor2Test extends AnyFlatSpec {
     val configs = widths.map(width => MTNConfig(width, 2 * width))
     configs.foreach { config =>
       val data = (0 until config.N).map(BigInt(_))
-      TransformTest.bitAccurateTest(MTN(config), Seq.fill(4)(data).flatten)
+      TransformTest.test(MTN(config), Seq.fill(4)(data).flatten)
       logger.info(s"test on ${config.N}-point MTN, passed")
     }
   }
@@ -20,7 +20,7 @@ class StridePermutationFor2Test extends AnyFlatSpec {
     val configs = widths.map(width => SPNConfig(2 * width, width, 2 * width))
     configs.foreach { config =>
       val data = (0 until config.N).map(BigInt(_))
-      TransformTest.bitAccurateTest(SPN(config), Seq.fill(4)(data).flatten)
+      TransformTest.test(SPN(config), Seq.fill(4)(data).flatten)
       logger.info(s"test on ${config.N}-point SPN, passed")
     }
   }
@@ -30,7 +30,7 @@ class StridePermutationFor2Test extends AnyFlatSpec {
     val configs = widths.map(width => SPNConfig(2 * width, width - 1, 2 * width))
     configs.foreach { config =>
       val data = (0 until config.N).map(BigInt(_))
-      TransformTest.bitAccurateTest(SPN(config), Seq.fill(4)(data).flatten)
+      TransformTest.test(SPN(config), Seq.fill(4)(data).flatten)
       logger.info(s"test on ${config.N}-point SPN, passed")
     }
   }
@@ -41,7 +41,7 @@ class StridePermutationFor2Test extends AnyFlatSpec {
     val configs = portWidths.map(StridePermutationFor2Config(8, _, 1, 8))
     configs.foreach { config =>
       val data = (0 until config.N).map(BigInt(_))
-      TransformTest.bitAccurateTest(StridePermutationFor2(config), Seq.fill(4)(data).flatten)
+      TransformTest.test(StridePermutationFor2(config), Seq.fill(4)(data).flatten)
       VivadoSynth(StridePermutationFor2(config))
     }
   }

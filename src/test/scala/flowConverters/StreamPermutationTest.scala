@@ -16,7 +16,7 @@ class StreamPermutationTest extends AnyFlatSpec {
 
     perms.foreach { perm =>
       val config = StreamPermutationConfig(perm, w, 5)
-      TransformTest.bitAccurateTest(StreamPermutation(config), (data ++ data).map(BigInt(_)))
+      TransformTest.test(StreamPermutation(config), (data ++ data).map(BigInt(_)))
     }
   }
 

@@ -19,9 +19,8 @@ class DiagonalMatrixTest extends AnyFlatSpec {
     val config0 = DiagonalMatrixConfig(coeffs, 1, width, width, width * 2, baseMult, 1)
     val config1 = DiagonalMatrixConfig(coeffs, 4, width, width, width * 2, baseMult, 1)
 
-    TransformTest.bitAccurateTest(DiagonalMatrix(config0), coeffs)
-    TransformTest.bitAccurateTest(DiagonalMatrix(config1), coeffs)
-    new QuartusFlow(DiagonalMatrix(config1)).impl()
+    TransformTest.test(DiagonalMatrix(config0), coeffs)
+    TransformTest.test(DiagonalMatrix(config1), coeffs)
   }
 
 }

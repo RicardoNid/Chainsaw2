@@ -31,7 +31,7 @@ class PeaseFftTest extends AnyFlatSpec {
         N = 64, radix = 2,
         dataWidth = 16, coeffWidth = 16,
         inverse = true, spaceReuse = 1 << (space + 2), timeReuse = 1 << time)
-      TransformTest.complexTest(PeaseFft(config), data, metric, s"ofdm_fold_${1 << (space + 2)}")
+      TransformTest.test(PeaseFft(config), data, metric)
     }
   }
 
@@ -42,7 +42,7 @@ class PeaseFftTest extends AnyFlatSpec {
         dataWidth = 20, coeffWidth = 12,
         inverse = true, spaceReuse = 128, timeReuse = 8)
     }
-    spaceConfigs.foreach { config => TransformTest.complexTest(PeaseFft(config), data, metric) }
+    spaceConfigs.foreach { config => TransformTest.test(PeaseFft(config), data, metric) }
   }
 
   it should "work with time reuse" in {
@@ -52,7 +52,7 @@ class PeaseFftTest extends AnyFlatSpec {
         N = 256, radix = 2,
         dataWidth = 20, coeffWidth = 12,
         inverse = true, spaceReuse = 128, timeReuse = 8))
-    timeConfigs.foreach { config => TransformTest.complexTest(PeaseFft(config), data, metric) }
+    timeConfigs.foreach { config => TransformTest.test(PeaseFft(config), data, metric) }
   }
   //
 

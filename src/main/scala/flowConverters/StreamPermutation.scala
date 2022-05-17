@@ -34,7 +34,10 @@ case class StreamPermutationConfig(permutation: Seq[Int], streamWidth: Int, bitW
 
   override def outputFlow = CyclicFlow(w, n / w)
 
-  override def bitTransform(dataIn: Seq[BigInt]) = permutation.map(i => dataIn(i))
+  override def transform(dataIn: Seq[_]) = {
+    val data = dataIn.asInstanceOf[Seq[BigInt]]
+    permutation.map(i => data(i))
+  }
 
   def getMappingMatrix = {
     val mappingMatrixContent = Array.tabulate(streamWidth, streamWidth) { (i, j) =>

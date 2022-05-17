@@ -46,7 +46,7 @@ case class StridePermutationFor2Config(n: Int, q: Int, s: Int, bitWidth: Int) ex
 
   override def outputFlow = CyclicFlow(Q, N / Q)
 
-  override def bitTransform(dataIn: Seq[BigInt]) = dataIn.grouped(1 << s).toSeq.transpose.flatten
+  override def transform(dataIn: Seq[_]) = dataIn.grouped(1 << s).toSeq.transpose.flatten
 
   override def impl = StridePermutationFor2(this)
 }
@@ -165,7 +165,10 @@ case class MTNConfig(q: Int, bitWidth: Int) extends TransformConfig {
 
   override def outputFlow = CyclicFlow(Q, Q)
 
-  override def bitTransform(dataIn: Seq[BigInt]) = dataIn.grouped(Q).toSeq.transpose.flatten
+  override def transform(dataIn: Seq[_]) = {
+    val data = dataIn.asInstanceOf[Seq[BigInt]]
+    data.grouped(Q).toSeq.transpose.flatten
+  }
 
   override def impl = MTN(this)
 }
@@ -224,7 +227,10 @@ case class SPNConfig(n: Int, s: Int, bitWidth: Int) extends TransformConfig {
 
   override def outputFlow = CyclicFlow(1, N)
 
-  override def bitTransform(dataIn: Seq[BigInt]) = dataIn.grouped(S).toSeq.transpose.flatten
+  override def transform(dataIn: Seq[_]) = {
+    val data = dataIn.asInstanceOf[Seq[BigInt]]
+    data.grouped(S).toSeq.transpose.flatten
+  }
 
   override def impl = SPN(this)
 }

@@ -31,7 +31,7 @@ class ComplexDiagonalMatrixTest extends AnyFlatSpec {
     val folds = Seq(1, 2, 5, 10)
     folds.foreach { i =>
       val config = ComplexDiagonalMatrixConfig(coeffs, i, dataType = dataType, coeffType = coeffType)
-      TransformTest.complexTest(ComplexDiagonalMatrix(config), data, metric)
+      TransformTest.test(ComplexDiagonalMatrix(config), data, metric)
     }
   }
 

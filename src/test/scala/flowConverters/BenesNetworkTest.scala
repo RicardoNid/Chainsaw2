@@ -16,6 +16,6 @@ class BenesNetworkTest extends AnyFlatSpec {
   val config = BenesNetworkConfig(8, 3, perms, 5)
 
   "Benes network" should "work" in {
-    TransformTest.bitAccurateTest(BenesNetwork(config), data.flatten)
+    TransformTest.test(BenesNetwork(config), data.flatten)
   }
 }

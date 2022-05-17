@@ -22,8 +22,8 @@ case class ComplexDiagonalMatrixConfig(coeffs: Seq[Complex], fold: Int,
 
   override def outputFlow = CyclicFlow(portWidth, fold)
 
-  override def complexTransform(dataIn: Seq[Complex]) =
-    dataIn.zip(coeffs).map { case (data, coeff) => data * coeff }
+  override def transform(dataIn: Seq[_]) =
+    dataIn.asInstanceOf[Seq[Complex]].zip(coeffs).map { case (data, coeff) => data * coeff }
 
   override def impl = ComplexDiagonalMatrix(this)
 }
