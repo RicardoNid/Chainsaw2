@@ -13,10 +13,7 @@ import scala.util.Random
 
 case class OFDMConfig(fold: Int) extends TransformConfig {
 
-  val convConfig = ConvEncConfig(Seq(Seq("171", "133")))
-  val spConfig = StridePermutationFor2Config(8, 8 - log2Up(fold), 4, 1)
-  val qamConfig = ComplexLUTConfig(Random.RandomComplexSequences(1, 16).head, HardType(SFix(0 exp, -15 exp)))
-  val ifftConfig = PeaseFftConfig(64, 2, 16, 12, inverse = true, fold, 1)
+  override val size = (128, 64)
 
   override def inputFlow = CyclicFlow(128 / fold, fold)
 
@@ -25,6 +22,11 @@ case class OFDMConfig(fold: Int) extends TransformConfig {
   override def latency = 1
 
   override def implH = OFDM(this)
+
+  val convConfig = ConvEncConfig(Seq(Seq("171", "133")))
+  val spConfig = StridePermutationFor2Config(8, 8 - log2Up(fold), 4, 1)
+  val qamConfig = ComplexLUTConfig(Random.RandomComplexSequences(1, 16).head, HardType(SFix(0 exp, -15 exp)))
+  val ifftConfig = PeaseFftConfig(64, 2, 16, 12, inverse = true, fold, 1)
 
   // TODO: reference model
 }

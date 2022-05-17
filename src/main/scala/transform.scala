@@ -1,10 +1,11 @@
 package org.datenlord
 
-import breeze.math._
 import spinal.core._
 import spinal.lib._
 
 abstract class TransformConfig {
+
+  val size: (Int, Int)
 
   def latency: Int
 
@@ -20,11 +21,28 @@ abstract class TransformConfig {
 
   def impl(dataIn: Seq[_]): Seq[_] = dataIn
 
-  def toTransformMesh = TransformMesh(this, Repetition.unit)
+  //  def toTransformMesh = TransformMesh(this, Repetition.unit)
+  //
+  //  def ⊗(factor: Int, step: Int = -1) = TransformMesh(this, Repetition(Seq(SpaceRepetition(factor, step)), TimeRepetition(1)))
+  //
+  //  def ∏(factor: Int) = TransformMesh(this, Repetition(Seq(SpaceRepetition(1)), TimeRepetition(factor)))
+}
 
-  def ⊗(factor: Int, step: Int = -1) = TransformMesh(this, Repetition(Seq(SpaceRepetition(factor, step)), TimeRepetition(1)))
+/** Transform with no implementations, for dataflow analysis only
+ *
+ */
+object TransformConfigForTest {
+  def apply(theSize: (Int, Int), theLatency: Int) = new TransformConfig {
+    override val size = theSize
 
-  def ∏(factor: Int) = TransformMesh(this, Repetition(Seq(SpaceRepetition(1)), TimeRepetition(factor)))
+    override def latency = theLatency
+
+    override def inputFlow = null
+
+    override def outputFlow = null
+
+    override def implH = null
+  }
 }
 
 abstract class TransformModule[TIn <: Data, TOut <: Data] extends Component {

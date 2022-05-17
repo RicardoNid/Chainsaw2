@@ -57,6 +57,9 @@ case class PeaseFftConfig(N: Int, radix: Int,
 
   def throughput = 1.0 / (spaceReuse * timeReuse) * utilization
 
+
+  override val size = (N, N)
+
   override def latency = (spaceReuse max iterativeLatency) * timeReuse
 
   override def inputFlow = TimeSpaceFlow(N, spaceReuse, timeReuse, iterativeLatency)

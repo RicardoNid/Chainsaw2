@@ -12,9 +12,12 @@ case class DiagonalMatrixConfig(coeffs: Seq[BigInt], fold: Int,
                                 bitWidthIn: Int, bitWidthCoeff:Int, bitWidthOut: Int,
                                 baseMult: (Bits, Bits) => Bits, baseLatency: Int) extends TransformConfig {
 
-  val n = coeffs.length
-  require(n % fold == 0)
-  val portWidth = n / fold
+  val N = coeffs.length
+  require(N % fold == 0)
+  val portWidth = N / fold
+
+
+  override val size = (N,N)
 
   override def latency = baseLatency
 
@@ -31,7 +34,7 @@ case class DiagonalMatrix(config: DiagonalMatrixConfig) extends TransformModule[
 
   import config._
 
-  val controlType = HardType(Bits(n / 2 bits))
+  val controlType = HardType(Bits(N / 2 bits))
 
   override val dataIn = slave Flow Fragment(Vec(Bits(bitWidthIn bits), portWidth))
   override val dataOut = master Flow Fragment(Vec(Bits(bitWidthOut bits), portWidth))

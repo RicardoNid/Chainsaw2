@@ -13,9 +13,10 @@ import scala.collection.mutable.ArrayBuffer
 import scala.language.postfixOps
 
 /** Stride permutation for which frame, stride and stream width are all 2's exponent, based on Registers
- * @param n frame length
- * @param q stream width
- * @param s stride length
+ *
+ * @param n        frame length
+ * @param q        stream width
+ * @param s        stride length
  * @param bitWidth bit width of elements in input & output vector
  * @see ''Stride Permutation Networks for Array Processors'', Tuomas J¨arvinen Perttu Salmela Harri Sorokin Jarmo Takala
  */
@@ -33,6 +34,9 @@ case class StridePermutationFor2Config(n: Int, q: Int, s: Int, bitWidth: Int) ex
     else if (q > n - r) 0
     else if (q <= n - r && q >= r) 1
     else 2 // q < r
+
+
+  override val size = (N, N)
 
   override def latency =
     networkType match {
@@ -159,6 +163,9 @@ case class MTNConfig(q: Int, bitWidth: Int) extends TransformConfig {
   val Q = 1 << q
   val N = Q * Q
 
+
+  override val size = (N, N)
+
   override def latency = Q
 
   override def inputFlow = CyclicFlow(Q, Q)
@@ -217,6 +224,8 @@ case class SPNConfig(n: Int, s: Int, bitWidth: Int) extends TransformConfig {
   val networkType = // there cases, each has a corresponding network structure
     if (n % 2 == 0 && s == n / 2) 0 else 1
 
+
+  override val size = (N, N)
 
   override def latency = networkType match {
     case 0 => ((1 << s) - 1) * ((1 << s) - 1)

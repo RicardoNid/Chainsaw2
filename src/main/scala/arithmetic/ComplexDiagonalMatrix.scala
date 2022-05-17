@@ -12,9 +12,11 @@ import scala.language.postfixOps
 case class ComplexDiagonalMatrixConfig(coeffs: Seq[Complex], fold: Int,
                                        dataType: HardType[SFix], coeffType: HardType[SFix]) extends TransformConfig {
 
-  val n = coeffs.length
-  require(n % fold == 0)
-  val portWidth = n / fold
+  val N = coeffs.length
+  require(N % fold == 0)
+  val portWidth = N / fold
+
+  override val size = (N, N)
 
   override def latency = ComplexMult.latency
 
@@ -26,6 +28,7 @@ case class ComplexDiagonalMatrixConfig(coeffs: Seq[Complex], fold: Int,
     dataIn.asInstanceOf[Seq[Complex]].zip(coeffs).map { case (data, coeff) => data * coeff }
 
   override def implH = ComplexDiagonalMatrix(this)
+
 }
 
 case class ComplexDiagonalMatrix(config: ComplexDiagonalMatrixConfig) extends TransformModule[ComplexFix, ComplexFix] {
@@ -33,7 +36,7 @@ case class ComplexDiagonalMatrix(config: ComplexDiagonalMatrixConfig) extends Tr
   import config._
   import ComplexMult.complexMult
 
-  val controlType = HardType(Bits(n / 2 bits))
+  val controlType = HardType(Bits(N / 2 bits))
 
   override val dataIn = slave Flow Fragment(Vec(ComplexFix(dataType), portWidth))
   val coeffHard = coeffs.map(CF(_, coeffType))

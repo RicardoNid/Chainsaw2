@@ -1,3 +1,3 @@
 package org.datenlord
 
-case class Reuse(spaceReuse: Int, timeReuse: Int, foldReuse: Int, iterationLatency:Int)
+case class Reuse(spaceReuse: Int, timeReuse: Int, foldReuse: Int)

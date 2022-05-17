@@ -17,22 +17,24 @@ import scala.collection.mutable.ArrayBuffer
  */
 case class StreamPermutationConfig(permutation: Seq[Int], streamWidth: Int, bitWidth: Int) extends TransformConfig {
 
-  val n = permutation.length
+  val N = permutation.length
   val w = streamWidth
-  require(n % w == 0)
-  val period = n / w
+  require(N % w == 0)
+  val period = N / w
 
   val memDepth = 2 * period
-  val addrWidth = log2Up(n / w)
+  val addrWidth = log2Up(N / w)
 
   val (permutations, readAddr, writeAddr) = getControls
   val networkConfig = BenesNetworkConfig(w, bitWidth, permutations, 2)
 
+  override val size = (N, N)
+
   override def latency = period * 2 + networkConfig.latency
 
-  override def inputFlow = CyclicFlow(w, n / w)
+  override def inputFlow = CyclicFlow(w, N / w)
 
-  override def outputFlow = CyclicFlow(w, n / w)
+  override def outputFlow = CyclicFlow(w, N / w)
 
   override def impl(dataIn: Seq[_]) = {
     val data = dataIn.asInstanceOf[Seq[BigInt]]
@@ -89,7 +91,7 @@ case class StreamPermutationConfig(permutation: Seq[Int], streamWidth: Int, bitW
     val readAddr = ArrayBuffer[Seq[Int]]() // read addr of M_0
     val writeAddr = ArrayBuffer[Seq[Int]]() // write addr of M_1
     // remained elements
-    val elems = mutable.Set(0 until n: _*)
+    val elems = mutable.Set(0 until N: _*)
     // decomposition of mapping matrix
     permutations.foreach { case (perm) =>
       // algorithm 6 line7

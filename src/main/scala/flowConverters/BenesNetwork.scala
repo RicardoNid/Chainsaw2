@@ -58,16 +58,19 @@ case class BenesNetworkCore(N: Int, bitWidth: Int, stagesPerCycle: Int) extends 
 }
 
 // TODO: implement the function of stagesPerCycle(by DFG?)
+
 /** configuration for periodic Benes network
  *
- * @param N            size of input/output vector
- * @param bitWidth     bit width of elements in input/output vector
- * @param permutations a group of permutations executed by the network periodically
+ * @param N              size of input/output vector
+ * @param bitWidth       bit width of elements in input/output vector
+ * @param permutations   a group of permutations executed by the network periodically
  * @param stagesPerCycle number of cascaded switches in between pipeline registers
  * @see ''MATHEMATICS FOR COMPUTER SCIENCE'' Chapter 11
  */
 case class BenesNetworkConfig(N: Int, bitWidth: Int, permutations: Seq[Seq[Int]], stagesPerCycle: Int)
   extends TransformConfig {
+
+  override val size = (N, N)
 
   override def latency = 0
 
@@ -80,6 +83,8 @@ case class BenesNetworkConfig(N: Int, bitWidth: Int, permutations: Seq[Seq[Int]]
       .flatMap { case (data, perm) => perm.map(index => data(index)) }
 
   override def implH = BenesNetwork(this)
+
+
 }
 
 /** periodic Benes network
@@ -87,6 +92,7 @@ case class BenesNetworkConfig(N: Int, bitWidth: Int, permutations: Seq[Seq[Int]]
 case class BenesNetwork(config: BenesNetworkConfig) extends TransformModule[Bits, Bits] {
 
   import config._
+
   val period = permutations.length
 
   override val dataIn = slave Flow Fragment(Vec(Bits(bitWidth bits), N))
