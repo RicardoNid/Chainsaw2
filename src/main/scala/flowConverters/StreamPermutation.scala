@@ -34,7 +34,7 @@ case class StreamPermutationConfig(permutation: Seq[Int], streamWidth: Int, bitW
 
   override def outputFlow = CyclicFlow(w, n / w)
 
-  override def transform(dataIn: Seq[_]) = {
+  override def impl(dataIn: Seq[_]) = {
     val data = dataIn.asInstanceOf[Seq[BigInt]]
     permutation.map(i => data(i))
   }
@@ -105,7 +105,7 @@ case class StreamPermutationConfig(permutation: Seq[Int], streamWidth: Int, bitW
     (permutations, readAddr, writeAddr)
   }
 
-  override def impl = StreamPermutation(this)
+  override def implH = StreamPermutation(this)
 }
 
 case class StreamPermutation(config: StreamPermutationConfig)

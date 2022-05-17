@@ -24,7 +24,7 @@ case class OFDMConfig(fold: Int) extends TransformConfig {
 
   override def latency = 1
 
-  override def impl = OFDM(this)
+  override def implH = OFDM(this)
 
   // TODO: reference model
 }
@@ -36,7 +36,7 @@ case class OFDM(config: OFDMConfig) extends TransformModule[Bool, ComplexFix] {
   override val dataIn = slave Flow Fragment(Vec(Bool(), 128 / fold))
   override val dataOut = master Flow Fragment(Vec(ComplexFix(4 exp, -11 exp), 64 / fold))
 
-  val convCores = Seq.fill(128)(convConfig.impl)
+  val convCores = Seq.fill(128)(convConfig.implH)
   val intrlvCore = StridePermutationFor2(spConfig)
   val qamCores = Seq.fill(64)(ComplexLUT(qamConfig))
   val ifftCore = PeaseFft(ifftConfig)

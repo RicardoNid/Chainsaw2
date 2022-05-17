@@ -56,7 +56,7 @@ object TransformTest {
     SimConfig.workspaceName(name).withFstWave.compile(transformModule).doSim { dut =>
 
       import dut.{clockDomain, config, dataIn, dataOut}
-      import config.{transform, inputFlow, latency, outputFlow}
+      import config.{impl, inputFlow, latency, outputFlow}
 
       require(data.length % inputFlow.rawDataCount == 0, s"test data incomplete, should be a multiple of ${inputFlow.rawDataCount} while it is ${data.length}")
 
@@ -102,7 +102,7 @@ object TransformTest {
         .grouped(outputFlow.period).toSeq
         .map(outputFlow.toRawData)
 
-      val golden = data.grouped(outputFlow.rawDataCount).toSeq.map(transform).map(_.asInstanceOf[Seq[T]])
+      val golden = data.grouped(outputFlow.rawDataCount).toSeq.map(impl).map(_.asInstanceOf[Seq[T]])
 
       if (firstTime != latency) logger.warn(s"latency is ${firstTime - 1}, while supposed to be $latency")
 

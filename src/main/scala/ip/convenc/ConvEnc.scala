@@ -21,7 +21,7 @@ case class ConvEncConfig(codeGen: Seq[Seq[String]], codeGenRadix: Int = 8)
 
   override def outputFlow = FullyPipelinedFlow(outputWidth)
 
-  override def impl = ConvEnc(this)
+  override def implH = ConvEnc(this)
 
   // TODO: reference model
 }

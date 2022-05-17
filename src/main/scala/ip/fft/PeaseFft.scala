@@ -63,7 +63,7 @@ case class PeaseFftConfig(N: Int, radix: Int,
 
   override def outputFlow = TimeSpaceFlow(N, spaceReuse, timeReuse, iterativeLatency)
 
-  override def transform(dataIn: Seq[_]) = {
+  override def impl(dataIn: Seq[_]) = {
     val data = dataIn.asInstanceOf[Seq[Complex]]
     val dftMatrix = algos.Dft.dftMatrix(N, inverse)
     val input = new DenseVector(SpatialPermutation(data.toArray, bitReverse).toArray)
@@ -81,7 +81,7 @@ case class PeaseFftConfig(N: Int, radix: Int,
     s"throughput inverse = ${1.0 / throughput}, utilization = $utilization, " +
     s"latency = $latency, iterative latency = $iterativeLatency"
 
-  override def impl = PeaseFft(this)
+  override def implH = PeaseFft(this)
 }
 
 case class PeaseFft(config: PeaseFftConfig) extends TransformModule[ComplexFix, ComplexFix] {

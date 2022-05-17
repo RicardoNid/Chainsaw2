@@ -22,9 +22,9 @@ case class DiagonalMatrixConfig(coeffs: Seq[BigInt], fold: Int,
 
   override def outputFlow = CyclicFlow(portWidth, fold)
 
-  override def transform(dataIn: Seq[_]) = dataIn.asInstanceOf[Seq[BigInt]].zip(coeffs).map { case (a, b) => a * b }
+  override def impl(dataIn: Seq[_]) = dataIn.asInstanceOf[Seq[BigInt]].zip(coeffs).map { case (a, b) => a * b }
 
-  override def impl = DiagonalMatrix(this)
+  override def implH = DiagonalMatrix(this)
 }
 
 case class DiagonalMatrix(config: DiagonalMatrixConfig) extends TransformModule[Bits, Bits] {

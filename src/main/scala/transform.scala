@@ -16,17 +16,15 @@ abstract class TransformConfig {
 
   def outputWidth = inputFlow.portWidth
 
-//  def bitTransform(dataIn: Seq[BigInt]): Seq[BigInt] = dataIn
+  def implH: TransformModule[_, _]
 
-//  def complexTransform(dataIn: Seq[Complex]): Seq[Complex] = dataIn
-//
-//  def bit2ComplexTransform(dataIn: Seq[BigInt]): Seq[Complex] = Seq(Complex(0, 0))
+  def impl(dataIn: Seq[_]): Seq[_] = dataIn
 
-  def impl: TransformModule[_, _]
+  def toTransformMesh = TransformMesh(this, Repetition.unit)
 
-  def transform(dataIn: Seq[_]): Seq[_] = dataIn
+  def ⊗(factor: Int, step: Int = -1) = TransformMesh(this, Repetition(Seq(SpaceRepetition(factor, step)), TimeRepetition(1)))
 
-  def toTransformMesh = transformMesh(this, Repetition.unit)
+  def ∏(factor: Int) = TransformMesh(this, Repetition(Seq(SpaceRepetition(1)), TimeRepetition(factor)))
 }
 
 abstract class TransformModule[TIn <: Data, TOut <: Data] extends Component {
