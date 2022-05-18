@@ -73,14 +73,11 @@ object TransformMesh extends App {
 
   import breeze.math._
 
-  val dataType = HardType(SFix(2 exp, -13 exp))
-  val coeffs = Seq(Complex(1, 0), Complex(2, 0))
-  val config = arithmetic.ComplexLUTConfig(coeffs, dataType)
-  val data = Array(0, 1).map(BigInt(_))
+  val config = flowConverters.StreamPermutationConfig(Seq(1, 0, 2, 1), 4, 4)
+  val data = Seq(0, 1, 2, 3, 4, 5, 6, 7).map(BigInt(_))
+  val mesh = config ⊗ 2 ∏ 2
 
-  val mesh = config ⊗ 2
+  // test for a 2 * 2 mesh
+  TransformTest.test(mesh.implForTest(UInt(4 bits), UInt(4 bits)), data)
 
-  SpinalConfig(netlistFileName = "lut.sv").generateSystemVerilog((config ⊗ 2).implForTest(UInt(1 bits), ComplexFix(dataType)))
-  TransformTest.test(mesh.implForTest(UInt(1 bits), ComplexFix(dataType)), data)
-  VivadoSynth(mesh.implForTest(UInt(1 bits), ComplexFix(dataType)))
 }

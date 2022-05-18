@@ -30,7 +30,8 @@ case class StreamPermutationConfig(permutation: Seq[Int], streamWidth: Int, bitW
 
   override val size = (N, N)
 
-  override def latency = period * 2 + networkConfig.latency
+  override def latency = if (N > w) period * 2 + networkConfig.latency
+  else 1
 
   override val spaceFold = N / w
 
@@ -116,41 +117,48 @@ case class StreamPermutation(config: StreamPermutationConfig)
   // I/O
   override val dataIn = slave Flow Fragment(Vec(Bits(bitWidth bits), w))
   override val dataOut = master Flow Fragment(Vec(Bits(bitWidth bits), w))
-  // types
-  val addrType = HardType(UInt(addrWidth bits))
-  val dataType = HardType(Bits(bitWidth bits))
-  // components
-  val network = BenesNetwork(networkConfig)
-  val R = Mem(readAddr.map(seq => Vec(seq.map(U(_, addrWidth bits)))))
-  val W = Mem(writeAddr.map(seq => Vec(seq.map(U(_, addrWidth bits)))))
-  val M0, M1 = Seq.fill(w)(Mem(dataType, memDepth))
-  // controls
-  val counter = autoInputCounter()
-  val state = counter.value
-  val controlLatency = networkConfig.latency % period
-  val stateAfterN = state.d(controlLatency)
-  val pingPongM0 = Reg(UInt(1 bits))
-  when(counter.willOverflow)(pingPongM0 := ~pingPongM0)
-  val pingPongM1 = Reg(UInt(1 bits))
-  when(counter.willOverflow.d(controlLatency))(pingPongM1 := ~pingPongM1)
-  // datapath
-  // step 1 input -> M0
-  M0.zip(dataIn.fragment).foreach { case (port, data) => port.write(state @@ pingPongM0, data) }
-  // step 2 M0 -> data
-  val readAddrs = R.readAsync(state)
-  val afterM0 = Vec(M0.zip(readAddrs).map { case (port, addr) => port.readAsync(addr @@ ~pingPongM0) })
-  // step 3 data -> network -> data
-  network.dataIn.fragment := afterM0
-  network.dataIn.valid := dataIn.valid.validAfter(period)
-  network.dataIn.last := dataIn.last.validAfter(period)
-  val afterN = network.dataOut.fragment
-  // step 4 data -> M1
-  val writeAddrs = W.readAsync(stateAfterN)
-  M1.zip(writeAddrs.zip(afterN)).foreach { case (port, (addr, data)) =>
-    port.write(addr @@ pingPongM1, data)
+  if (N > w) {
+    // types
+    val addrType = HardType(UInt(addrWidth bits))
+    val dataType = HardType(Bits(bitWidth bits))
+    // components
+    val network = BenesNetwork(networkConfig)
+    val R = Mem(readAddr.map(seq => Vec(seq.map(U(_, addrWidth bits)))))
+    val W = Mem(writeAddr.map(seq => Vec(seq.map(U(_, addrWidth bits)))))
+    val M0, M1 = Seq.fill(w)(Mem(dataType, memDepth))
+    // controls
+    val counter = autoInputCounter()
+    val state = counter.value
+    val controlLatency = networkConfig.latency % period
+    val stateAfterN = state.d(controlLatency)
+    val pingPongM0 = Reg(UInt(1 bits))
+    when(counter.willOverflow)(pingPongM0 := ~pingPongM0)
+    val pingPongM1 = Reg(UInt(1 bits))
+    when(counter.willOverflow.d(controlLatency))(pingPongM1 := ~pingPongM1)
+    // datapath
+    // step 1 input -> M0
+    M0.zip(dataIn.fragment).foreach { case (port, data) => port.write(state @@ pingPongM0, data) }
+    // step 2 M0 -> data
+    val readAddrs = R.readAsync(state)
+    val afterM0 = Vec(M0.zip(readAddrs).map { case (port, addr) => port.readAsync(addr @@ ~pingPongM0) })
+    // step 3 data -> network -> data
+    network.dataIn.fragment := afterM0
+    network.dataIn.valid := dataIn.valid.validAfter(period)
+    network.dataIn.last := dataIn.last.validAfter(period)
+    val afterN = network.dataOut.fragment
+    // step 4 data -> M1
+    val writeAddrs = W.readAsync(stateAfterN)
+    M1.zip(writeAddrs.zip(afterN)).foreach { case (port, (addr, data)) =>
+      port.write(addr @@ pingPongM1, data)
+    }
+    // step 5 M1 -> output
+    dataOut.fragment := Vec(M1.map(port => port.readAsync(stateAfterN @@ ~pingPongM1)))
+
   }
-  // step 5 M1 -> output
-  dataOut.fragment := Vec(M1.map(port => port.readAsync(stateAfterN @@ ~pingPongM1)))
+  else {
+    val reordered = Vec(permutation.map(i => dataIn.fragment(i)))
+    dataOut.fragment := RegNext(reordered)
+  }
   autoLast()
   autoValid()
 }
