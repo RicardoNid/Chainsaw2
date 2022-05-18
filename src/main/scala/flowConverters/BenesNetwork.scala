@@ -86,6 +86,7 @@ case class BenesNetworkConfig(N: Int, bitWidth: Int, permutations: Seq[Seq[Int]]
       .flatMap { case (data, perm) => perm.map(index => data(index)) }
 
   override def implH = BenesNetwork(this)
+  override def implHBits = TransformBitsWrapper(BenesNetwork(this))
 
 }
 

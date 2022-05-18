@@ -25,6 +25,8 @@ abstract class TransformConfig {
 
   def implH: TransformModule[_, _]
 
+  def implHBits: TransformModule[Bits, Bits]
+
   def impl(dataIn: Seq[_]): Seq[_] = dataIn
 
   def toTransformMesh = TransformMesh(this, Repetition.unit)
@@ -48,6 +50,8 @@ object TransformConfigForTest {
     override def outputFlow = null
 
     override def implH = null
+
+    override def implHBits = null
   }
 }
 
@@ -73,5 +77,28 @@ abstract class TransformModule[TIn <: Data, TOut <: Data] extends Component {
     when(dataIn.valid)(counter.increment())
     when(dataIn.last)(counter.clear())
     counter
+  }
+}
+
+object TransformBitsWrapper {
+  def apply[TIn <: Data, TOut <: Data](original: => TransformModule[TIn, TOut]) = {
+    new TransformModule[Bits, Bits] {
+      override val config = original.config
+      val core = original
+      val inWidth = core.dataIn.fragment.head.getBitsWidth
+      val outWidth = core.dataOut.fragment.head.getBitsWidth
+
+      import config._
+
+      override val dataIn = slave Flow Fragment(Vec(Bits(inWidth bits), inputWidth))
+      override val dataOut = master Flow Fragment(Vec(Bits(outWidth bits), outputWidth))
+
+      core.dataIn.fragment.assignFromBits(dataIn.fragment.asBits)
+      core.dataIn.valid := dataIn.valid
+      core.dataIn.last := dataIn.last
+      dataOut.fragment.assignFromBits(core.dataOut.fragment.asBits)
+      dataOut.valid := core.dataOut.valid
+      dataOut.last := core.dataOut.last
+    }
   }
 }

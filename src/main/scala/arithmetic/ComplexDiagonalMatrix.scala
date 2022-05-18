@@ -24,6 +24,8 @@ case class ComplexDiagonalMatrixConfig(coeffs: Seq[Complex], override val spaceF
     dataIn.asInstanceOf[Seq[Complex]].zip(coeffs).map { case (data, coeff) => data * coeff }
 
   override def implH = ComplexDiagonalMatrix(this)
+
+  override def implHBits = TransformBitsWrapper(ComplexDiagonalMatrix(this))
 }
 
 case class ComplexDiagonalMatrix(config: ComplexDiagonalMatrixConfig) extends TransformModule[ComplexFix, ComplexFix] {

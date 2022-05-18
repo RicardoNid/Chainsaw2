@@ -9,7 +9,7 @@ import spinal.lib._
 import scala.language.postfixOps
 
 case class DiagonalMatrixConfig(coeffs: Seq[BigInt], override val spaceFold: Int,
-                                bitWidthIn: Int, bitWidthCoeff:Int, bitWidthOut: Int,
+                                bitWidthIn: Int, bitWidthCoeff: Int, bitWidthOut: Int,
                                 baseMult: (Bits, Bits) => Bits, baseLatency: Int) extends TransformConfig {
 
   val N = coeffs.length
@@ -17,13 +17,15 @@ case class DiagonalMatrixConfig(coeffs: Seq[BigInt], override val spaceFold: Int
   val portWidth = N / spaceFold
 
 
-  override val size = (N,N)
+  override val size = (N, N)
 
   override def latency = baseLatency
 
   override def impl(dataIn: Seq[_]) = dataIn.asInstanceOf[Seq[BigInt]].zip(coeffs).map { case (a, b) => a * b }
 
   override def implH = DiagonalMatrix(this)
+
+  override def implHBits = TransformBitsWrapper(DiagonalMatrix(this))
 }
 
 case class DiagonalMatrix(config: DiagonalMatrixConfig) extends TransformModule[Bits, Bits] {

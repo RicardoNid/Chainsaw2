@@ -86,6 +86,8 @@ case class PeaseFftConfig(N: Int, radix: Int,
     s"latency = $latency, iterative latency = $iterativeLatency"
 
   override def implH = PeaseFft(this)
+
+  override def implHBits = TransformBitsWrapper(PeaseFft(this))
 }
 
 case class PeaseFft(config: PeaseFftConfig) extends TransformModule[ComplexFix, ComplexFix] {

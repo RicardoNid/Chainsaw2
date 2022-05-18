@@ -23,6 +23,7 @@ case class ConvEncConfig(codeGen: Seq[Seq[String]], codeGenRadix: Int = 8)
 
   // TODO: reference model
 
+  override def implHBits = TransformBitsWrapper(ConvEnc(this))
 }
 
 case class ConvEnc(config: ConvEncConfig) extends TransformModule[Bool, Bool] {
