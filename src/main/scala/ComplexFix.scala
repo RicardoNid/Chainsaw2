@@ -79,7 +79,6 @@ object ComplexFix {
 object CF {
   def apply(complex: Complex, dataType: HardType[SFix]): ComplexFix = {
     def toSF(value: Double) = SF(value, dataType().maxExp exp, dataType().minExp exp)
-
     ComplexFix(toSF(complex.real), toSF(complex.imag))
   }
 }

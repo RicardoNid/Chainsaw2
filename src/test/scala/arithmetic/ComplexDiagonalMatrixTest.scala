@@ -25,12 +25,6 @@ class ComplexDiagonalMatrixTest extends AnyFlatSpec {
   }
 
   "ComplexDiagonalMatrix" should "work for all folds" in {
-    //    val folds = Seq(1, 2, 5, 10)
-    //    folds.foreach { i =>
-    //      val config = ComplexDiagonalMatrixConfig(coeffs, i, dataType = dataType, coeffType = coeffType)
-    //      TransformTest.test(ComplexDiagonalMatrix(config), data, metric)
-    //    }
-
     val config = ComplexDiagonalMatrixConfig(coeffs, 1, dataType = dataType, coeffType = coeffType)
     TransformTest.testAllFolds(config, data, metric)
   }

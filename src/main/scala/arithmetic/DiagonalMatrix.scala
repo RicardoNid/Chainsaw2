@@ -10,12 +10,12 @@ import scala.language.postfixOps
 
 case class DiagonalMatrixConfig(coeffs: Seq[BigInt], override val spaceFold: Int,
                                 bitWidthIn: Int, bitWidthCoeff: Int, bitWidthOut: Int,
-                                baseMult: (Bits, Bits) => Bits, baseLatency: Int) extends TransformConfig {
+                                baseMult: (Bits, Bits) => Bits, baseLatency: Int)
+  extends BaseTransformConfig {
 
   val N = coeffs.length
   require(N % spaceFold == 0)
   val portWidth = N / spaceFold
-
 
   override val size = (N, N)
 

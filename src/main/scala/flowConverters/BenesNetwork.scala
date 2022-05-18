@@ -68,7 +68,7 @@ case class BenesNetworkCore(N: Int, bitWidth: Int, stagesPerCycle: Int) extends 
  * @see ''MATHEMATICS FOR COMPUTER SCIENCE'' Chapter 11
  */
 case class BenesNetworkConfig(N: Int, bitWidth: Int, permutations: Seq[Seq[Int]], stagesPerCycle: Int)
-  extends TransformConfig {
+  extends BaseTransformConfig {
 
   val p = permutations.length
 

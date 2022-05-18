@@ -42,7 +42,6 @@ class StridePermutationFor2Test extends AnyFlatSpec {
     configs.foreach { config =>
       val data = (0 until config.N).map(BigInt(_))
       TransformTest.test(StridePermutationFor2(config), Seq.fill(4)(data).flatten)
-      //      VivadoSynth(StridePermutationFor2(config))
     }
   }
 

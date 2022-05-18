@@ -59,6 +59,6 @@ class KaratsubaBigMultiplierTest extends AnyFlatSpec {
     }
   }
 
-  "Karatsuba Multiplier " should "impl" in VivadoImpl(KaratsubaBigMultiplier(config))
+  //  "Karatsuba Multiplier " should "impl" in VivadoImpl(KaratsubaBigMultiplier(config))
 
 }

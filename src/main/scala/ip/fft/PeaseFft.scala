@@ -19,7 +19,8 @@ import scala.language.postfixOps
  */
 case class PeaseFftConfig(N: Int, radix: Int,
                           dataWidth: Int, coeffWidth: Int,
-                          inverse: Boolean, spaceReuse: Int, timeReuse: Int) extends TransformConfig {
+                          inverse: Boolean, spaceReuse: Int, timeReuse: Int)
+  extends BaseTransformConfig {
 
   // coefficients
   val n = logR(N, 2)

@@ -6,7 +6,7 @@ import spinal.lib._
 
 
 case class ConvEncConfig(codeGen: Seq[Seq[String]], codeGenRadix: Int = 8)
-  extends TransformConfig {
+  extends BaseTransformConfig {
 
   val binaryCodeGen = codeGen.map(_.map(BigInt(_, codeGenRadix).toString(2)))
   val constraintLength = binaryCodeGen.flatten.map(_.length).max

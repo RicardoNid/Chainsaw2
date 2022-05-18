@@ -1,12 +1,8 @@
 package org.datenlord
 
 import breeze.math.Complex
-import spinal.core.sim.SimConfig
-import spinal.core.{BaseType, assert}
 import spinal.core._
-import spinal.core.sim._
-import spinal.lib._
-import spinal.lib.fsm._
+import spinal.core.sim.{SimConfig, _}
 
 import scala.collection.mutable.ArrayBuffer
 
@@ -19,15 +15,6 @@ object TransformTest {
       case _: Complex => Complex(0, 0)
     }
     temp.asInstanceOf[T]
-  }
-
-  private def data2Flow[T](data: Seq[T], flow: DataFlow) = {
-    val zero = getZero(data.head)
-    val dataflows = data.grouped(flow.rawDataCount).toSeq.map(flow.fromRawData(_, zero))
-    val rawData = dataflows.flatMap(_._1)
-    val valid = dataflows.flatMap(_._2)
-    val last = dataflows.flatMap(_._3)
-    (rawData, valid, last)
   }
 
   // TODO: better method?
@@ -43,6 +30,7 @@ object TransformTest {
   def peekWhatever[T <: Data](port: Vec[T]) = {
     port.head match {
       case _: Bool => port.asInstanceOf[Vec[Bool]].map(_.toBoolean)
+      // BitVector.toBigInt works for SInt correctly
       case _: BitVector => port.asInstanceOf[Vec[BitVector]].map(_.toBigInt)
       case _: SFix => port.asInstanceOf[Vec[SFix]].map(_.toDouble)
       case _: ComplexFix => port.asInstanceOf[Vec[ComplexFix]].map(_.toComplex)
@@ -51,8 +39,9 @@ object TransformTest {
 
   def showError[T](yours: Seq[T], golden: Seq[T]) = s"yours:\n${yours.mkString(" ")}\ngolden:\n${golden.mkString(" ")}"
 
-  def test[TIn <: Data, TOut <: Data, T](transformModule: => TransformModule[TIn, TOut], data: Seq[T],
-                                         metric: (Seq[T], Seq[T]) => Boolean = null, name: String = "temp") = {
+  def test[TIn <: Data, TOut <: Data, T]
+  (transformModule: => TransformModule[TIn, TOut], data: Seq[T],
+   metric: (Seq[T], Seq[T]) => Boolean = null, name: String = "temp") = {
     SimConfig.workspaceName(name).withFstWave.compile(transformModule).doSim { dut =>
 
       import dut.{clockDomain, config, dataIn, dataOut}
@@ -103,8 +92,6 @@ object TransformTest {
         .map(outputFlow.toRawData)
 
       val golden = data.grouped(outputFlow.rawDataCount).toSeq.map(impl).map(_.asInstanceOf[Seq[T]])
-      logger.warn(data.mkString(" "))
-      logger.warn(golden.mkString(" "))
 
       if (firstTime != latency) logger.warn(s"latency is ${firstTime - 1}, while supposed to be $latency")
 
@@ -119,7 +106,10 @@ object TransformTest {
     }
   }
 
-  def testAllFolds[TIn <: Data, TOut <: Data, T](config: TransformConfig, data: Seq[T], metric: (Seq[T], Seq[T]) => Boolean = null, name: String = "temp") = {
+  // run this when folding is available/natural, otherwise, run test()
+  def testAllFolds[TIn <: Data, TOut <: Data, T]
+  (config: BaseTransformConfig, data: Seq[T],
+   metric: (Seq[T], Seq[T]) => Boolean = null, name: String = "temp"): Unit = {
     if (config.spaceFolds.length == 1 && config.timeFolds.length == 1) test[TIn, TOut, T](config.implH.asInstanceOf[TransformModule[TIn, TOut]], data, metric, name)
     else if (config.spaceFolds.length != 1) {
       config.spaceFolds.foreach { sf =>

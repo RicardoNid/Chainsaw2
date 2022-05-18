@@ -10,7 +10,8 @@ import spinal.lib._
 import scala.language.postfixOps
 
 case class ComplexDiagonalMatrixConfig(coeffs: Seq[Complex], override val spaceFold: Int,
-                                       dataType: HardType[SFix], coeffType: HardType[SFix]) extends TransformConfig {
+                                       dataType: HardType[SFix], coeffType: HardType[SFix])
+  extends BaseTransformConfig {
 
   val N = coeffs.length
   require(N % spaceFold == 0)

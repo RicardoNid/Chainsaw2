@@ -2,7 +2,7 @@ package org.datenlord
 package ip.ofdm
 
 import flowConverters._
-import arithmetic.{ComplexLUT, ComplexLUTConfig}
+import arithmetic.{LUT, LUTConfig}
 import ip.convenc.{ConvEnc, ConvEncConfig}
 import ip.fft.{PeaseFft, PeaseFftConfig}
 
@@ -12,7 +12,8 @@ import spinal.lib._
 import scala.util.Random
 
 // TODO: this should be a system, rather than a Transform
-case class OFDMConfig(override val spaceFold: Int) extends TransformConfig {
+case class OFDMConfig(override val spaceFold: Int)
+  extends BaseTransformConfig {
 
   override val size = (128, 64)
 
@@ -22,7 +23,7 @@ case class OFDMConfig(override val spaceFold: Int) extends TransformConfig {
 
   val convConfig = ConvEncConfig(Seq(Seq("171", "133")))
   val spConfig = StridePermutationFor2Config(8, 8 - log2Up(spaceFold), 4, 1)
-  val qamConfig = ComplexLUTConfig(Random.RandomComplexSequences(1, 16).head, HardType(SFix(0 exp, -15 exp)))
+  val qamConfig = LUTConfig(Random.RandomComplexSequences(1, 16).head, HardType(ComplexFix(SFix(0 exp, -15 exp))))
   val ifftConfig = PeaseFftConfig(64, 2, 16, 12, inverse = true, spaceFold, 1)
 
   // TODO: reference model
@@ -37,7 +38,7 @@ case class OFDM(config: OFDMConfig) extends TransformModule[Bool, ComplexFix] {
 
   val convCores = Seq.fill(128)(convConfig.implH)
   val intrlvCore = StridePermutationFor2(spConfig)
-  val qamCores = Seq.fill(64)(ComplexLUT(qamConfig))
+  val qamCores = Seq.fill(64)(LUT(qamConfig))
   val ifftCore = PeaseFft(ifftConfig)
 
   // sliding input

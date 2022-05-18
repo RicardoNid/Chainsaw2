@@ -56,32 +56,29 @@ class PeaseFftTest extends AnyFlatSpec {
   }
   //
 
-  it should "synth for all configs for 256" in {
-    val configs = Seq.tabulate(8, 4) { (space, time) =>
-      PeaseFftConfig(
-        N = 256, radix = 2,
-        dataWidth = 16, coeffWidth = 12,
-        inverse = true, spaceReuse = 1 << space, timeReuse = 1 << time) // skip when spaceReuse = 1
-    }.flatten
+  //  it should "synth for all configs for 256" in {
+  //    val configs = Seq.tabulate(8, 4) { (space, time) =>
+  //      PeaseFftConfig(
+  //        N = 256, radix = 2,
+  //        dataWidth = 16, coeffWidth = 12,
+  //        inverse = true, spaceReuse = 1 << space, timeReuse = 1 << time) // skip when spaceReuse = 1
+  //    }.flatten
+  //
+  //    val reports = configs.map { config => VivadoSynth(PeaseFft(config), s"Pease_FFT_256_space_${config.spaceReuse}_time_${config.timeReuse}") }
+  //    reports.foreach(report => println(s"dsp ${report.DSP} lut ${report.LUT} ff ${report.FF} fmax ${report.Frequency}"))
+  //
+  //  }
 
-    val reports = configs.map { config => VivadoSynth(PeaseFft(config), s"Pease_FFT_256_space_${config.spaceReuse}_time_${config.timeReuse}") }
-    reports.foreach(report => println(s"dsp ${report.DSP} lut ${report.LUT} ff ${report.FF} fmax ${report.Frequency}"))
-
-  }
-
-  it should "synth for all configs for 64" in {
-    val configs = (0 until 4).map { i =>
-      PeaseFftConfig(
-        N = 64, radix = 2,
-        dataWidth = 16, coeffWidth = 12,
-        inverse = true, spaceReuse = 1 << i, timeReuse = 1) // skip when spaceReuse = 1
-    }
-
-    //    configs.foreach(println)
-
-    val reports = configs.map { config => VivadoSynth(PeaseFft(config), s"Pease_FFT_64_space_${config.spaceReuse}_time_${config.timeReuse}") }
-    reports.foreach(report => println(s"dsp ${report.DSP} lut ${report.LUT} ff ${report.FF} fmax ${report.Frequency}"))
-
-  }
+  //  it should "synth for all configs for 64" in {
+  //    val configs = (0 until 4).map { i =>
+  //      PeaseFftConfig(
+  //        N = 64, radix = 2,
+  //        dataWidth = 16, coeffWidth = 12,
+  //        inverse = true, spaceReuse = 1 << i, timeReuse = 1) // skip when spaceReuse = 1
+  //    }
+  //
+  //    val reports = configs.map { config => VivadoSynth(PeaseFft(config), s"Pease_FFT_64_space_${config.spaceReuse}_time_${config.timeReuse}") }
+  //    reports.foreach(report => println(s"dsp ${report.DSP} lut ${report.LUT} ff ${report.FF} fmax ${report.Frequency}"))
+  //  }
 
 }
