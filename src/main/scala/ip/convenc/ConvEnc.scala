@@ -19,10 +19,6 @@ case class ConvEncConfig(codeGen: Seq[Seq[String]], codeGenRadix: Int = 8)
 
   override def latency = constraintLength - 1
 
-  override def inputFlow = FullyPipelinedFlow(inputWidth)
-
-  override def outputFlow = FullyPipelinedFlow(outputWidth)
-
   override def implH = ConvEnc(this)
 
   // TODO: reference model

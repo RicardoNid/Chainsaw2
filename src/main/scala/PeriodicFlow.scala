@@ -30,7 +30,7 @@ case class PeriodicFlow(transform: TransformConfig, repetition: Repetition, reus
   }
 
   def segments2Iteration(segments: Array[Slice], portWidth: Int) = {
-    segments
+    val noBubble = segments
       .divide(reuse.spaceReuse).flatMap { slices => // building the queue to fill in the iteration latency
       if (reuse.spaceFold != 1) {
         val subSlices: Array[Array[Slice]] = slices.map(_.divide(reuse.spaceFold))
@@ -41,7 +41,9 @@ case class PeriodicFlow(transform: TransformConfig, repetition: Repetition, reus
         val ret: Array[Slice] = (slices ++ bubble).grouped(slices.length).toSeq.map(_.flatten).toArray
         ret
       }
-    }.padTo(iterationLatency, Array.fill(portWidth)(-1))
+    }
+    if (reuse.timeReuse > 1) noBubble.padTo(iterationLatency, Array.fill(portWidth)(-1))
+    else noBubble
   }
 
   def getBubble(data: Array[Slice]) = data.map(_.map(_ => -1))
@@ -66,6 +68,19 @@ object PeriodicFlow { // examples
 
   def main(args: Array[String]): Unit = {
 
+    // basic
+    val basic = TransformConfigForTest((2, 2), 1)
+    val spaceFold = Reuse(1, 1, 2, 1)
+    val timeFold = Reuse(1, 1, 1, 2)
+    val noReuse = Reuse.unit
+    val noRepeat = Repetition.unit
+
+    println("basic")
+    println(PeriodicFlow(basic, noRepeat, noReuse).inputFlow)
+    println(PeriodicFlow(basic, noRepeat, spaceFold).inputFlow)
+    println(PeriodicFlow(basic, noRepeat, timeFold).outputFlow)
+
+    // complex
     val config0: TransformConfig = TransformConfigForTest((2, 2), 3)
     val config1: TransformConfig = TransformConfigForTest((2, 2), 4)
     val config2: TransformConfig = TransformConfigForTest((2, 2), 5)
@@ -73,6 +88,7 @@ object PeriodicFlow { // examples
     val repeat = Repetition(Seq(SpaceRepetition(2, 1), SpaceRepetition(2)), TimeRepetition(2))
     val reuse0 = Reuse(2, 2, 2, 1)
     val reuse1 = Reuse(2, 2, 1, 2)
+    val reuse2 = Reuse(2, 2, 1, 1)
     // no bubble, fifo
     println(PeriodicFlow(config0, repeat, reuse0).inputFlow)
     println(PeriodicFlow(config0, repeat, reuse0).outputFlow)
@@ -90,7 +106,7 @@ object PeriodicFlow { // examples
     println(PeriodicFlow(config1, repeat, reuse1).outputFlow)
     // bubble, fifo
     println(PeriodicFlow(config2, repeat, reuse1).inputFlow)
-    println(PeriodicFlow(config2, repeat, reuse1).outputFlow)
+    println(PeriodicFlow(config2, repeat, reuse1).inputFlow)
   }
 
 }

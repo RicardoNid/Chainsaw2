@@ -70,20 +70,22 @@ case class BenesNetworkCore(N: Int, bitWidth: Int, stagesPerCycle: Int) extends 
 case class BenesNetworkConfig(N: Int, bitWidth: Int, permutations: Seq[Seq[Int]], stagesPerCycle: Int)
   extends TransformConfig {
 
-  override val size = (N, N)
+  val p = permutations.length
+
+  override val size = (N * p, N * p)
 
   override def latency = 0
 
-  override def inputFlow = CyclicFlow(N, permutations.length)
+  override val spaceFold = p
 
-  override def outputFlow = CyclicFlow(N, permutations.length)
+  println(inputFlow)
+  println(outputFlow)
 
   override def impl(dataIn: Seq[_]) =
     dataIn.asInstanceOf[Seq[BigInt]].grouped(N).toSeq.zip(permutations)
       .flatMap { case (data, perm) => perm.map(index => data(index)) }
 
   override def implH = BenesNetwork(this)
-
 
 }
 

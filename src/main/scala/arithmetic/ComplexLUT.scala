@@ -13,14 +13,9 @@ case class ComplexLUTConfig(coeffs: Seq[Complex], dataType: HardType[SFix]) exte
 
   override def latency = 1
 
-  override def inputFlow = FullyPipelinedFlow(1)
-
-  override def outputFlow = FullyPipelinedFlow(1)
-
   override def impl(dataIn: Seq[_]) = Seq(coeffs(dataIn.head.asInstanceOf[BigInt].toInt))
 
   override def implH = ComplexLUT(this)
-
 }
 
 case class ComplexLUT(config: ComplexLUTConfig) extends TransformModule[UInt, ComplexFix] {

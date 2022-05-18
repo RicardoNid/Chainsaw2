@@ -9,26 +9,21 @@ import spinal.lib._
 
 import scala.language.postfixOps
 
-case class ComplexDiagonalMatrixConfig(coeffs: Seq[Complex], fold: Int,
+case class ComplexDiagonalMatrixConfig(coeffs: Seq[Complex], override val spaceFold: Int,
                                        dataType: HardType[SFix], coeffType: HardType[SFix]) extends TransformConfig {
 
   val N = coeffs.length
-  require(N % fold == 0)
-  val portWidth = N / fold
+  require(N % spaceFold == 0)
+  val portWidth = N / spaceFold
 
   override val size = (N, N)
 
   override def latency = ComplexMult.latency
 
-  override def inputFlow = CyclicFlow(portWidth, fold)
-
-  override def outputFlow = CyclicFlow(portWidth, fold)
-
   override def impl(dataIn: Seq[_]) =
     dataIn.asInstanceOf[Seq[Complex]].zip(coeffs).map { case (data, coeff) => data * coeff }
 
   override def implH = ComplexDiagonalMatrix(this)
-
 }
 
 case class ComplexDiagonalMatrix(config: ComplexDiagonalMatrixConfig) extends TransformModule[ComplexFix, ComplexFix] {
@@ -46,9 +41,9 @@ case class ComplexDiagonalMatrix(config: ComplexDiagonalMatrixConfig) extends Tr
   if (portWidth * coeffType.getBitsWidth * 2 > 4096) println(s"too big signal")
 
 
-  if (fold > 1) {
+  if (spaceFold > 1) {
 
-    val counter = CounterFreeRun(fold)
+    val counter = CounterFreeRun(spaceFold)
     when(dataIn.last)(counter.clear())
 
     val coeff0 = coeffHard.grouped(portWidth).toSeq.map(_.take(portWidth / 2)).map(Vec(_))

@@ -7,11 +7,17 @@ abstract class TransformConfig {
 
   val size: (Int, Int)
 
+  // override only when folding is available
+  val timeFold: Int = 1
+  val spaceFold: Int = 1
+
   def latency: Int
 
-  def inputFlow: DataFlow
+  def flowFormat = PeriodicFlow(this, Repetition.unit, Reuse(1, 1, spaceFold, timeFold))
 
-  def outputFlow: DataFlow
+  def inputFlow: DataFlow = flowFormat.inputFlow
+
+  def outputFlow: DataFlow = flowFormat.outputFlow
 
   def inputWidth = inputFlow.portWidth
 

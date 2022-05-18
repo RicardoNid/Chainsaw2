@@ -46,9 +46,7 @@ case class StridePermutationFor2Config(n: Int, q: Int, s: Int, bitWidth: Int) ex
       case 2 => SPNConfig(r, r - q, bitWidth).latency + MTNConfig(q, bitWidth).latency + SPNConfig(n - q, r, bitWidth).latency
     }
 
-  override def inputFlow = CyclicFlow(Q, N / Q)
-
-  override def outputFlow = CyclicFlow(Q, N / Q)
+  override val spaceFold = N / Q
 
   override def impl(dataIn: Seq[_]) = dataIn.grouped(1 << s).toSeq.transpose.flatten
 
@@ -168,9 +166,7 @@ case class MTNConfig(q: Int, bitWidth: Int) extends TransformConfig {
 
   override def latency = Q
 
-  override def inputFlow = CyclicFlow(Q, Q)
-
-  override def outputFlow = CyclicFlow(Q, Q)
+  override val spaceFold = Q
 
   override def impl(dataIn: Seq[_]) = {
     val data = dataIn.asInstanceOf[Seq[BigInt]]
@@ -232,9 +228,7 @@ case class SPNConfig(n: Int, s: Int, bitWidth: Int) extends TransformConfig {
     case 1 => ((1 << s) - 1) * ((1 << (n - s)) - 1)
   }
 
-  override def inputFlow = CyclicFlow(1, N)
-
-  override def outputFlow = CyclicFlow(1, N)
+  override val spaceFold = N
 
   override def impl(dataIn: Seq[_]) = {
     val data = dataIn.asInstanceOf[Seq[BigInt]]

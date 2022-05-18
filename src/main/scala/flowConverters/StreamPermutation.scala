@@ -32,9 +32,7 @@ case class StreamPermutationConfig(permutation: Seq[Int], streamWidth: Int, bitW
 
   override def latency = period * 2 + networkConfig.latency
 
-  override def inputFlow = CyclicFlow(w, N / w)
-
-  override def outputFlow = CyclicFlow(w, N / w)
+  override val spaceFold = N / w
 
   override def impl(dataIn: Seq[_]) = {
     val data = dataIn.asInstanceOf[Seq[BigInt]]

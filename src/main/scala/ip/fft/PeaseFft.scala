@@ -62,6 +62,7 @@ case class PeaseFftConfig(N: Int, radix: Int,
 
   override def latency = (spaceReuse max iterativeLatency) * timeReuse
 
+  // TODO: define its flows by periodic flow
   override def inputFlow = TimeSpaceFlow(N, spaceReuse, timeReuse, iterativeLatency)
 
   override def outputFlow = TimeSpaceFlow(N, spaceReuse, timeReuse, iterativeLatency)
