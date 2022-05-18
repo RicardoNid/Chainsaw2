@@ -3,14 +3,13 @@ package org.datenlord
 import spinal.core._
 import spinal.lib._
 
+import scala.language.postfixOps
 import scala.reflect.ClassTag
 
 /** transform with repetition
  *
  */
 case class TransformMesh(base: TransformConfig, repetition: Repetition) extends TransformConfig {
-
-  require(base.spaceFold == 1 && base.timeFold == 1)
 
   override val size = repetition.expand(base.size)
 
@@ -41,7 +40,7 @@ case class TransformMesh(base: TransformConfig, repetition: Repetition) extends 
     }
   }
 
-  override def implH = {
+  override def implH: TransformModule[Bits, Bits] = {
     val meshConfig = this
     new TransformModule[Bits, Bits] {
 
@@ -71,9 +70,7 @@ case class TransformMesh(base: TransformConfig, repetition: Repetition) extends 
 
 object TransformMesh extends App {
 
-  import breeze.math._
-
-  val config = flowConverters.StreamPermutationConfig(Seq(1, 0, 2, 1), 4, 4)
+  val config = flowConverters.StreamPermutationConfig(Seq(1, 2, 3, 0), 4, 4)
   val data = Seq(0, 1, 2, 3, 4, 5, 6, 7).map(BigInt(_))
   val mesh = config ⊗ 2 ∏ 2
 

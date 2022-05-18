@@ -3,12 +3,27 @@ package org.datenlord
 import spinal.core._
 import spinal.lib._
 
-abstract class TransformConfig {
+abstract class Transform {
 
   val size: (Int, Int)
+  val timeFolds: Seq[Int]
+  val spaceFolds: Seq[Int]
+
+  def impl(dataIn: Seq[Any]): Seq[Any] = dataIn
+
+  def getConfig(timeFold: Int, spaceFold: Int): TransformConfig
+}
+
+abstract class TransformConfig {
+
+  // hardware-independent attributes
+  val size: (Int, Int)
+
+  def impl(dataIn: Seq[Any]): Seq[Any] = dataIn
 
   // override only when folding is available
   val timeFold: Int = 1
+
   val spaceFold: Int = 1
 
   def latency: Int
@@ -24,8 +39,6 @@ abstract class TransformConfig {
   def outputWidth = inputFlow.portWidth
 
   def implH: TransformModule[_, _]
-
-  def impl(dataIn: Seq[Any]): Seq[Any] = dataIn
 
   def toTransformMesh = TransformMesh(this, Repetition.unit)
 
