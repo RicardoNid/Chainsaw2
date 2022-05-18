@@ -25,7 +25,7 @@ abstract class TransformConfig {
 
   def implH: TransformModule[_, _]
 
-  def impl(dataIn: Seq[_]): Seq[_] = dataIn
+  def impl(dataIn: Seq[Any]): Seq[Any] = dataIn
 
   def toTransformMesh = TransformMesh(this, Repetition.unit)
 

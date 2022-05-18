@@ -18,7 +18,11 @@ case class TransformMesh(base: TransformConfig, repetition: Repetition) extends 
 
   override def ∏(factor: Int) = TransformMesh(base, repetition.∏(factor))
 
-  override def impl(dataIn: Seq[_]) = repetition.divide(dataIn).map(_.toSeq).map(base.impl).flatten
+  override def impl(dataIn: Seq[Any]) = repetition.divide(dataIn).flatMap { segment =>
+    var temp = segment
+    (0 until repetition.timeFactor).foreach(_ => temp = base.impl(temp))
+    temp
+  }
 
   override def latency = base.latency * repetition.timeFactor
 

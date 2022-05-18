@@ -34,7 +34,7 @@ case class StreamPermutationConfig(permutation: Seq[Int], streamWidth: Int, bitW
 
   override val spaceFold = N / w
 
-  override def impl(dataIn: Seq[_]) = {
+  override def impl(dataIn: Seq[Any]) = {
     val data = dataIn.asInstanceOf[Seq[BigInt]]
     permutation.map(i => data(i))
   }

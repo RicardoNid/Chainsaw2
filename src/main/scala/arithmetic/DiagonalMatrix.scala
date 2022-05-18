@@ -21,7 +21,7 @@ case class DiagonalMatrixConfig(coeffs: Seq[BigInt], override val spaceFold: Int
 
   override def latency = baseLatency
 
-  override def impl(dataIn: Seq[_]) = dataIn.asInstanceOf[Seq[BigInt]].zip(coeffs).map { case (a, b) => a * b }
+  override def impl(dataIn: Seq[Any]) = dataIn.asInstanceOf[Seq[BigInt]].zip(coeffs).map { case (a, b) => a * b }
 
   override def implH = DiagonalMatrix(this)
 }

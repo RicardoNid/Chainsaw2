@@ -78,7 +78,7 @@ case class BenesNetworkConfig(N: Int, bitWidth: Int, permutations: Seq[Seq[Int]]
 
   override val spaceFold = p
 
-  override def impl(dataIn: Seq[_]) =
+  override def impl(dataIn: Seq[Any]) =
     dataIn.asInstanceOf[Seq[BigInt]].grouped(N).toSeq.zip(permutations)
       .flatMap { case (data, perm) => perm.map(index => data(index)) }
 

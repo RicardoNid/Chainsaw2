@@ -48,7 +48,7 @@ case class StridePermutationFor2Config(n: Int, q: Int, s: Int, bitWidth: Int) ex
 
   override val spaceFold = N / Q
 
-  override def impl(dataIn: Seq[_]) = dataIn.grouped(1 << s).toSeq.transpose.flatten
+  override def impl(dataIn: Seq[Any]) = dataIn.grouped(1 << s).toSeq.transpose.flatten
 
   override def implH = StridePermutationFor2(this)
 }
@@ -168,7 +168,7 @@ case class MTNConfig(q: Int, bitWidth: Int) extends TransformConfig {
 
   override val spaceFold = Q
 
-  override def impl(dataIn: Seq[_]) = {
+  override def impl(dataIn: Seq[Any]) = {
     val data = dataIn.asInstanceOf[Seq[BigInt]]
     data.grouped(Q).toSeq.transpose.flatten
   }
@@ -230,7 +230,7 @@ case class SPNConfig(n: Int, s: Int, bitWidth: Int) extends TransformConfig {
 
   override val spaceFold = N
 
-  override def impl(dataIn: Seq[_]) = {
+  override def impl(dataIn: Seq[Any]) = {
     val data = dataIn.asInstanceOf[Seq[BigInt]]
     data.grouped(S).toSeq.transpose.flatten
   }

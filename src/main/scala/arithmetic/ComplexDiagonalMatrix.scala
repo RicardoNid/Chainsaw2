@@ -20,7 +20,7 @@ case class ComplexDiagonalMatrixConfig(coeffs: Seq[Complex], override val spaceF
 
   override def latency = ComplexMult.latency
 
-  override def impl(dataIn: Seq[_]) =
+  override def impl(dataIn: Seq[Any]) =
     dataIn.asInstanceOf[Seq[Complex]].zip(coeffs).map { case (data, coeff) => data * coeff }
 
   override def implH = ComplexDiagonalMatrix(this)
