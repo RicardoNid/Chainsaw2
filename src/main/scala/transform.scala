@@ -27,11 +27,11 @@ abstract class TransformConfig {
 
   def impl(dataIn: Seq[_]): Seq[_] = dataIn
 
-  //  def toTransformMesh = TransformMesh(this, Repetition.unit)
-  //
-  //  def ⊗(factor: Int, step: Int = -1) = TransformMesh(this, Repetition(Seq(SpaceRepetition(factor, step)), TimeRepetition(1)))
-  //
-  //  def ∏(factor: Int) = TransformMesh(this, Repetition(Seq(SpaceRepetition(1)), TimeRepetition(factor)))
+  def toTransformMesh = TransformMesh(this, Repetition.unit)
+
+  def ⊗(factor: Int, step: Int = -1) = TransformMesh(this, Repetition(Seq(SpaceRepetition(factor, step)), TimeRepetition(1)))
+
+  def ∏(factor: Int) = TransformMesh(this, Repetition(Seq(SpaceRepetition(1)), TimeRepetition(factor)))
 }
 
 /** Transform with no implementations, for dataflow analysis only

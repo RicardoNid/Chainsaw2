@@ -64,7 +64,7 @@ package object datenlord {
 
     def toWords(wordWidth: Int) = bi.toString(2)
       .reverse.grouped(wordWidth).toSeq
-      .map(digits => BigInt(digits.reverse, 2)).toArray
+      .map(digits => BigInt(digits.reverse, 2))
   }
 
   implicit class DMUtil[T: ClassTag](matrix: DenseMatrix[T]) {
@@ -79,12 +79,12 @@ package object datenlord {
     def padToLeft(len: Int, elem: Char) = s.reverse.padTo(len, elem).reverse
   }
 
-  implicit class arrayUtil[T: ClassTag](array: Array[T]) {
-    def divide(group: Int) = array.grouped(array.length / group).toArray
+  implicit class seqUtil[T: ClassTag](seq: Seq[T]) {
+    def divide(group: Int) = seq.grouped(seq.length / group).toArray
 
-    def prevAndNext(f: ((T, T)) => Unit) = array.init.zip(array.tail).foreach(f)
+    def prevAndNext(f: ((T, T)) => Unit) = seq.init.zip(seq.tail).foreach(f)
 
-    def padToLeft(len: Int, elem: T) = array.reverse.padTo(len, elem).reverse
+    def padToLeft(len: Int, elem: T) = seq.reverse.padTo(len, elem).reverse
   }
 
   def logR(n: Int, radix: Int) = {

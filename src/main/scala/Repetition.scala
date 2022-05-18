@@ -10,9 +10,9 @@ case class SpaceRepetition(factor: Int, step: Int = -1) {
     else (step * (factor - 1) + inputSize, outputSize * factor)
   }
 
-  def divide[T:ClassTag](vec: Array[T]) =
-    if(step == -1) vec.grouped(vec.length / factor).toArray
-    else vec.sliding(vec.length - step * (factor - 1), step).toArray
+  def divide[T:ClassTag](vec: Seq[T]) =
+    if(step == -1) vec.grouped(vec.length / factor).toSeq
+    else vec.sliding(vec.length - step * (factor - 1), step).toSeq
 
 }
 
@@ -40,12 +40,12 @@ case class Repetition(space: Seq[SpaceRepetition], time: TimeRepetition) {
     init
   }
 
-  def divide[T:ClassTag](dataIn: Array[T]) = {
+  def divide[T:ClassTag](dataIn: Seq[T]) = {
     var segments = Seq(dataIn)
     space.reverse.foreach { rep =>
       segments = segments.map(segment => rep.divide(segment)).flatten
     }
-    segments.toArray
+    segments
   }
 
 }

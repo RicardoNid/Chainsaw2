@@ -2,7 +2,7 @@ package org.datenlord
 
 case class PeriodicFlow(transform: TransformConfig, repetition: Repetition, reuse: Reuse) {
 
-  type Slice = Array[Int]
+  type Slice = Seq[Int]
 
   // repetition: base vector -> expanded vector
 
@@ -14,11 +14,11 @@ case class PeriodicFlow(transform: TransformConfig, repetition: Repetition, reus
   val inputSize = repetition.expand(size)._1
   val outputSize = repetition.expand(size)._2
 
-  val inputRange = (0 until inputSize).toArray
-  val outputRange = (0 until outputSize).toArray
+  val inputRange = (0 until inputSize)
+  val outputRange = (0 until outputSize)
 
-  val inputSegments: Array[Slice] = repetition.divide(inputRange)
-  val outputSegments: Array[Slice] = outputRange.divide(repetition.spaceFactor)
+  val inputSegments  = repetition.divide(inputRange)
+  val outputSegments = outputRange.divide(repetition.spaceFactor)
 
   // reuse - vector -> array
   val iterationLatency = {
@@ -29,27 +29,27 @@ case class PeriodicFlow(transform: TransformConfig, repetition: Repetition, reus
     wait max queue
   }
 
-  def segments2Iteration(segments: Array[Slice], portWidth: Int) = {
+  def segments2Iteration(segments: Seq[Slice], portWidth: Int) = {
     val noBubble = segments
       .divide(reuse.spaceReuse).flatMap { slices => // building the queue to fill in the iteration latency
       if (reuse.spaceFold != 1) {
-        val subSlices: Array[Array[Slice]] = slices.map(_.divide(reuse.spaceFold))
-        val reordered: Array[Slice] = (0 until reuse.spaceFold).map(i => subSlices.flatMap(_.apply(i))).toArray
+        val subSlices = slices.map(_.divide(reuse.spaceFold))
+        val reordered = (0 until reuse.spaceFold).map(i => subSlices.flatMap(_.apply(i)))
         reordered
       } else {
-        val bubble = Array.fill(reuse.timeFold - 1)(getBubble(slices)).flatten
-        val ret: Array[Slice] = (slices ++ bubble).grouped(slices.length).toSeq.map(_.flatten).toArray
+        val bubble = Seq.fill(reuse.timeFold - 1)(getBubble(slices)).flatten
+        val ret = (slices ++ bubble).grouped(slices.length).toSeq.map(_.flatten)
         ret
       }
     }
-    if (reuse.timeReuse > 1) noBubble.padTo(iterationLatency, Array.fill(portWidth)(-1))
+    if (reuse.timeReuse > 1) noBubble.padTo(iterationLatency, Seq.fill(portWidth)(-1))
     else noBubble
   }
 
-  def getBubble(data: Array[Slice]) = data.map(_.map(_ => -1))
+  def getBubble(data: Seq[Slice]) = data.map(_.map(_ => -1))
 
-  def iteration2Sequence(iteration: Array[Slice]) = {
-    (iteration +: Array.fill(reuse.timeReuse - 1)(getBubble(iteration))).reduce(_ ++ _)
+  def iteration2Sequence(iteration: Seq[Slice]) = {
+    (iteration +: Seq.fill(reuse.timeReuse - 1)(getBubble(iteration))).reduce(_ ++ _)
   }
 
   val inputSequence = iteration2Sequence(segments2Iteration(inputSegments, inPortWidth))
