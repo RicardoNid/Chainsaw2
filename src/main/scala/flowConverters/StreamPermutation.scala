@@ -106,7 +106,6 @@ case class StreamPermutationConfig(permutation: Seq[Int], streamWidth: Int, bitW
   }
 
   override def implH = StreamPermutation(this)
-  override def implHBits = TransformBitsWrapper(StreamPermutation(this))
 }
 
 case class StreamPermutation(config: StreamPermutationConfig)

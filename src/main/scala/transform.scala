@@ -25,8 +25,6 @@ abstract class TransformConfig {
 
   def implH: TransformModule[_, _]
 
-  def implHBits: TransformModule[Bits, Bits]
-
   def impl(dataIn: Seq[_]): Seq[_] = dataIn
 
   def toTransformMesh = TransformMesh(this, Repetition.unit)
@@ -50,8 +48,6 @@ object TransformConfigForTest {
     override def outputFlow = null
 
     override def implH = null
-
-    override def implHBits = null
   }
 }
 
@@ -78,13 +74,32 @@ abstract class TransformModule[TIn <: Data, TOut <: Data] extends Component {
     when(dataIn.last)(counter.clear())
     counter
   }
+
+  def getWrapper() = {
+    val inWidth = dataIn.fragment.length
+    val inBitWidth = dataIn.fragment.head.getBitsWidth
+    val outWidth = dataOut.fragment.length
+    val outBitWidth = dataOut.fragment.head.getBitsWidth
+    val dataInBits = Flow Fragment Vec(Bits(inBitWidth bits), inWidth)
+    val dataOutBits = Flow Fragment Vec(Bits(outBitWidth bits), outWidth)
+    dataIn.fragment.assignFromBits(dataInBits.fragment.asBits)
+    dataIn.valid := dataInBits.valid
+    dataIn.last := dataInBits.last
+    dataOutBits.fragment.assignFromBits(dataOut.fragment.asBits)
+    dataOutBits.valid := dataOut.valid
+    dataOutBits.last := dataOut.last
+    (dataInBits, dataOutBits)
+  }
+
 }
 
+// TODO: make generated code shorter
 object TransformBitsWrapper {
   def apply[TIn <: Data, TOut <: Data](original: => TransformModule[TIn, TOut]) = {
+    logger.info("wrapper invoked")
     new TransformModule[Bits, Bits] {
-      override val config = original.config
       val core = original
+      override val config = core.config
       val inWidth = core.dataIn.fragment.head.getBitsWidth
       val outWidth = core.dataOut.fragment.head.getBitsWidth
 

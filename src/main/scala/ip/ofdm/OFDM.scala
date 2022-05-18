@@ -20,8 +20,6 @@ case class OFDMConfig(override val spaceFold: Int) extends TransformConfig {
 
   override def implH = OFDM(this)
 
-  override def implHBits = TransformBitsWrapper(OFDM(this))
-
   val convConfig = ConvEncConfig(Seq(Seq("171", "133")))
   val spConfig = StridePermutationFor2Config(8, 8 - log2Up(spaceFold), 4, 1)
   val qamConfig = ComplexLUTConfig(Random.RandomComplexSequences(1, 16).head, HardType(SFix(0 exp, -15 exp)))

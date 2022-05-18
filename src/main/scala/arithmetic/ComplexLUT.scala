@@ -17,7 +17,6 @@ case class ComplexLUTConfig(coeffs: Seq[Complex], dataType: HardType[SFix]) exte
 
   override def implH = ComplexLUT(this)
 
-  override def implHBits = TransformBitsWrapper(ComplexLUT(this))
 }
 
 case class ComplexLUT(config: ComplexLUTConfig) extends TransformModule[UInt, ComplexFix] {

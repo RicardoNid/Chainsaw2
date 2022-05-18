@@ -10,66 +10,73 @@ import scala.reflect.ClassTag
  */
 case class TransformMesh(base: TransformConfig, repetition: Repetition) extends TransformConfig {
 
+  require(base.spaceFold == 1 && base.timeFold == 1)
+
   override val size = repetition.expand(base.size)
 
   override def ⊗(factor: Int, step: Int = -1) = TransformMesh(base, repetition.⊗(factor, step))
 
   override def ∏(factor: Int) = TransformMesh(base, repetition.∏(factor))
 
-  def impl[T: ClassTag](dataIn: Array[T]) = repetition.divide(dataIn).map(_.toSeq).map(base.impl)
+  override def impl(dataIn: Seq[_]) = repetition.divide(dataIn).map(_.toSeq).map(base.impl).flatten
 
   override def latency = base.latency * repetition.timeFactor
 
   override def flowFormat = PeriodicFlow(base, repetition, Reuse.unit)
 
+  def implForTest[Tin <: Data : ClassTag, TOut <: Data : ClassTag](typeIn: HardType[Tin], typeOut: HardType[TOut]) = {
+    val meshConfig = this
+    new TransformModule[Tin, TOut] {
+      override val config = meshConfig
+      override val dataIn = slave Flow Fragment(Vec(typeIn, size._1))
+      override val dataOut = master Flow Fragment(Vec(typeOut, size._2))
+
+      val core: TransformModule[Bits, Bits] = implH
+      core.dataIn.assignFromBits(dataIn.asBits)
+      dataOut.assignFromBits(core.dataOut.asBits)
+    }
+  }
+
   override def implH = {
     val meshConfig = this
     new TransformModule[Bits, Bits] {
 
-      val cores = Seq.tabulate(repetition.spaceFactor, repetition.timeFactor)((_, _) => base.implHBits)
-      val example = cores.head.head
-      val widthIn = example.dataIn.fragment.head.getBitsWidth
-      val widthOut = example.dataOut.fragment.head.getBitsWidth
+      val cores = Seq.tabulate(repetition.spaceFactor, repetition.timeFactor)((_, _) => base.implH)
+      val wrappers = cores.map(_.map(_.getWrapper()))
+      val inBitWidth = wrappers.head.head._1.fragment.head.getBitsWidth
+      val outBitWidth = wrappers.head.head._2.fragment.head.getBitsWidth
 
       override val config = meshConfig
-      override val dataIn = slave Flow Fragment(Vec(Bits(widthIn bits), size._1))
-      override val dataOut = master Flow Fragment(Vec(Bits(widthOut bits), size._2))
+      override val dataIn = slave Flow Fragment(Vec(Bits(inBitWidth bits), size._1))
+      override val dataOut = master Flow Fragment(Vec(Bits(outBitWidth bits), size._2))
 
       val dataIns = repetition.divide(dataIn.fragment)
-      cores.zip(dataIns).foreach { case (row, data) =>
-        row.head.dataIn.fragment.assignFromBits(Vec(data).asBits)
-        row.head.dataIn.valid := dataIn.valid
-        row.head.dataIn.last := dataIn.last
+      wrappers.zip(dataIns).foreach { case (row, data) =>
+        val segment = ChainsawFlow(Vec(data.map(_.asBits)), dataIn.valid, dataIn.last)
+        row.head._1 << segment
+        row.prevAndNext { case (prev, next) => next._1 << prev._2 }
       }
-      cores.foreach { row =>
-        row.prevAndNext { case (prev, next) =>
-          next.dataIn.fragment.assignFromBits(prev.dataIn.fragment.asBits)
-          next.dataIn.valid := prev.dataIn.valid
-          next.dataIn.last := prev.dataIn.last
-        }
-      }
-      println(cores.length)
-      println(size._2)
-      dataOut.fragment.zip(cores.flatMap(_.last.dataOut.fragment))
-        .foreach{ case (out, core) => out := core}
+      dataOut.fragment.zip(wrappers.flatMap(_.last._2.fragment))
+        .foreach { case (out, core) => out.assignFromBits(core) }
+
       autoLast()
       autoValid()
     }
   }
-
-  override def implHBits = implH
 }
 
 object TransformMesh extends App {
+
   import breeze.math._
+
   val dataType = HardType(SFix(2 exp, -13 exp))
-  val coeffs = Seq(Complex(1,0), Complex(2,0))
+  val coeffs = Seq(Complex(1, 0), Complex(2, 0))
   val config = arithmetic.ComplexLUTConfig(coeffs, dataType)
-  val data = Array(0,1).map(BigInt(_))
+  val data = Array(0, 1).map(BigInt(_))
 
   val mesh = config ⊗ 2
-  println((config ⊗ 2).impl(data).mkString(" "))
 
-  SpinalConfig().generateSystemVerilog((config ⊗ 2).implH)
-  TransformTest.test(mesh.implH,data)
+  SpinalConfig(netlistFileName = "lut.sv").generateSystemVerilog((config ⊗ 2).implForTest(UInt(1 bits), ComplexFix(dataType)))
+  TransformTest.test(mesh.implForTest(UInt(1 bits), ComplexFix(dataType)), data)
+  VivadoSynth(mesh.implForTest(UInt(1 bits), ComplexFix(dataType)))
 }

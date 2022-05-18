@@ -78,16 +78,11 @@ case class BenesNetworkConfig(N: Int, bitWidth: Int, permutations: Seq[Seq[Int]]
 
   override val spaceFold = p
 
-  println(inputFlow)
-  println(outputFlow)
-
   override def impl(dataIn: Seq[_]) =
     dataIn.asInstanceOf[Seq[BigInt]].grouped(N).toSeq.zip(permutations)
       .flatMap { case (data, perm) => perm.map(index => data(index)) }
 
   override def implH = BenesNetwork(this)
-  override def implHBits = TransformBitsWrapper(BenesNetwork(this))
-
 }
 
 /** periodic Benes network

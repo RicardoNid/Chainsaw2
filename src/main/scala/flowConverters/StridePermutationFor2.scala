@@ -51,8 +51,6 @@ case class StridePermutationFor2Config(n: Int, q: Int, s: Int, bitWidth: Int) ex
   override def impl(dataIn: Seq[_]) = dataIn.grouped(1 << s).toSeq.transpose.flatten
 
   override def implH = StridePermutationFor2(this)
-
-  override def implHBits = TransformBitsWrapper(StridePermutationFor2(this))
 }
 
 object StridePermutationFor2Config {
@@ -176,8 +174,6 @@ case class MTNConfig(q: Int, bitWidth: Int) extends TransformConfig {
   }
 
   override def implH = MTN(this)
-
-  override def implHBits = TransformBitsWrapper(MTN(this)       )
 }
 
 case class MTN(config: MTNConfig) extends TransformModule[Bits, Bits] {
@@ -240,8 +236,6 @@ case class SPNConfig(n: Int, s: Int, bitWidth: Int) extends TransformConfig {
   }
 
   override def implH = SPN(this)
-
-  override def implHBits = TransformBitsWrapper(SPN(this))
 }
 
 case class SPN(config: SPNConfig) extends TransformModule[Bits, Bits] {
