@@ -108,7 +108,7 @@ object TransformTest {
 
       if (firstTime != latency) logger.warn(s"latency is ${firstTime - 1}, while supposed to be $latency")
 
-      logger.info(s"\nfirst pair:${showError(yours.head, golden.head)}")
+      logger.info(s"first pair:\n${showError(yours.head, golden.head)}")
 
       yours.zip(golden).foreach { case (y, g) =>
         if (metric == null) assert(y == g, showError(y, g))
@@ -116,6 +116,20 @@ object TransformTest {
       }
 
       logger.info("test for transform module passed")
+    }
+  }
+
+  def testAllFolds[TIn <: Data, TOut <: Data, T](config: TransformConfig, data: Seq[T], metric: (Seq[T], Seq[T]) => Boolean = null, name: String = "temp") = {
+    if (config.spaceFolds.length == 1 && config.timeFolds.length == 1) test[TIn, TOut, T](config.implH.asInstanceOf[TransformModule[TIn, TOut]], data, metric, name)
+    else if (config.spaceFolds.length != 1) {
+      config.spaceFolds.foreach { sf =>
+        val configUnderTest = config.getConfigWithFoldsChanged(sf, config.timeFold)
+        println(configUnderTest.spaceFold)
+        test[TIn, TOut, T](configUnderTest.implH.asInstanceOf[TransformModule[TIn, TOut]], data, metric, s"${name}_sf_$sf")
+      }
+    } else {
+      config.timeFolds.foreach(tf =>
+        test[TIn, TOut, T](config.getConfigWithFoldsChanged(config.spaceFold, tf).implH.asInstanceOf[TransformModule[TIn, TOut]], data, metric, s"${name}_tf_$tf"))
     }
   }
 }

@@ -3,28 +3,22 @@ package org.datenlord
 import spinal.core._
 import spinal.lib._
 
-abstract class Transform {
-
-  val size: (Int, Int)
-  val timeFolds: Seq[Int]
-  val spaceFolds: Seq[Int]
-
-  def impl(dataIn: Seq[Any]): Seq[Any] = dataIn
-
-  def getConfig(timeFold: Int, spaceFold: Int): TransformConfig
-}
-
 abstract class TransformConfig {
 
-  // hardware-independent attributes
+  // fold-independent attributes
   val size: (Int, Int)
 
   def impl(dataIn: Seq[Any]): Seq[Any] = dataIn
 
-  // override only when folding is available
-  val timeFold: Int = 1
+  def ⊗(factor: Int, step: Int = -1) = TransformMesh(this, Repetition(Seq(SpaceRepetition(factor, step)), TimeRepetition(1)))
 
+  def ∏(factor: Int) = TransformMesh(this, Repetition(Seq(SpaceRepetition(1)), TimeRepetition(factor)))
+
+  // fold-dependent methods
   val spaceFold: Int = 1
+  def spaceFolds: Seq[Int] = factors(size._1)
+  val timeFold: Int = 1
+  def timeFolds: Seq[Int] = factors(size._1)
 
   def latency: Int
 
@@ -42,9 +36,7 @@ abstract class TransformConfig {
 
   def toTransformMesh = TransformMesh(this, Repetition.unit)
 
-  def ⊗(factor: Int, step: Int = -1) = TransformMesh(this, Repetition(Seq(SpaceRepetition(factor, step)), TimeRepetition(1)))
-
-  def ∏(factor: Int) = TransformMesh(this, Repetition(Seq(SpaceRepetition(1)), TimeRepetition(factor)))
+  def getConfigWithFoldsChanged(spaceFold: Int, timeFold: Int): TransformConfig = this
 }
 
 /** Transform with no implementations, for dataflow analysis only

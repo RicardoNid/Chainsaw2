@@ -21,18 +21,18 @@ class ComplexDiagonalMatrixTest extends AnyFlatSpec {
     val yourV = new DenseVector(yours.toArray)
     val goldenV = new DenseVector(golden.toArray)
     val errorV = yourV - goldenV
-    println(yourV)
-    println(goldenV)
-    println(errorV)
     errorV.forall(_.abs < 10e-3)
   }
 
-  "ComplexDiagonalMatrix" should "work" in {
-    val folds = Seq(1, 2, 5, 10)
-    folds.foreach { i =>
-      val config = ComplexDiagonalMatrixConfig(coeffs, i, dataType = dataType, coeffType = coeffType)
-      TransformTest.test(ComplexDiagonalMatrix(config), data, metric)
-    }
+  "ComplexDiagonalMatrix" should "work for all folds" in {
+    //    val folds = Seq(1, 2, 5, 10)
+    //    folds.foreach { i =>
+    //      val config = ComplexDiagonalMatrixConfig(coeffs, i, dataType = dataType, coeffType = coeffType)
+    //      TransformTest.test(ComplexDiagonalMatrix(config), data, metric)
+    //    }
+
+    val config = ComplexDiagonalMatrixConfig(coeffs, 1, dataType = dataType, coeffType = coeffType)
+    TransformTest.testAllFolds(config, data, metric)
   }
 
 }

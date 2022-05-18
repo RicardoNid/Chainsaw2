@@ -190,5 +190,5 @@ package object datenlord {
     def :=(that:Seq[T]) = vec.zip(that).foreach{ case (port, data) => port := data}
   }
 
-
+  def factors(value: Int) = (1 to value).filter(value % _ == 0)
 }

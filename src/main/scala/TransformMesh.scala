@@ -9,7 +9,9 @@ import scala.reflect.ClassTag
 /** transform with repetition
  *
  */
-case class TransformMesh(base: TransformConfig, repetition: Repetition) extends TransformConfig {
+case class TransformMesh(trans: TransformConfig, repetition: Repetition) extends TransformConfig {
+
+  val base = trans.getConfigWithFoldsChanged(1, 1)
 
   override val size = repetition.expand(base.size)
 

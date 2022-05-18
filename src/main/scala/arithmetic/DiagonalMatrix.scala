@@ -24,6 +24,8 @@ case class DiagonalMatrixConfig(coeffs: Seq[BigInt], override val spaceFold: Int
   override def impl(dataIn: Seq[Any]) = dataIn.asInstanceOf[Seq[BigInt]].zip(coeffs).map { case (a, b) => a * b }
 
   override def implH = DiagonalMatrix(this)
+
+  override def getConfigWithFoldsChanged(spaceFold: Int, timeFold: Int) = DiagonalMatrixConfig(coeffs, spaceFold, bitWidthIn, bitWidthCoeff, bitWidthOut, baseMult, baseLatency)
 }
 
 case class DiagonalMatrix(config: DiagonalMatrixConfig) extends TransformModule[Bits, Bits] {
