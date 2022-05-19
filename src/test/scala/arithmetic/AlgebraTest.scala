@@ -17,5 +17,4 @@ class AlgebraTest extends AnyFlatSpec {
 
     TransformTest.testAllFolds(config, data, metric)
   }
-
 }
