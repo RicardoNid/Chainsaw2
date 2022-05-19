@@ -108,7 +108,7 @@ object TransformTest {
 
   // run this when folding is available/natural, otherwise, run test()
   def testAllFolds[TIn <: Data, TOut <: Data, T]
-  (config: BaseTransformConfig, data: Seq[T],
+  (config: TransformBase, data: Seq[T],
    metric: (Seq[T], Seq[T]) => Boolean = null, name: String = "temp"): Unit = {
     if (config.spaceFolds.length == 1 && config.timeFolds.length == 1) test[TIn, TOut, T](config.implH.asInstanceOf[TransformModule[TIn, TOut]], data, metric, name)
     else if (config.spaceFolds.length != 1) {

@@ -1,33 +1,26 @@
 package org.datenlord
 
-case class PeriodicFlow(transform: TransformConfig, repetition: Repetition, reuse: Reuse) {
+case class PeriodicFlow(transform: TransformBase, repetition: Repetition, reuse: Reuse) {
 
   type Slice = Seq[Int]
 
   // repetition: base vector -> expanded vector
 
-  import transform._
+  val baseSizeIn = transform.size._1
+  val baseSizeOut = transform.size._2
+  val inPortWidth = baseSizeIn * repetition.spaceFactor / reuse.spaceReuse / reuse.spaceFold
+  val outPortWidth = baseSizeOut * repetition.spaceFactor / reuse.spaceReuse / reuse.spaceFold
 
-  val inPortWidth = size._1 * repetition.spaceFactor / reuse.spaceReuse / reuse.spaceFold
-  val outPortWidth = size._2 * repetition.spaceFactor / reuse.spaceReuse / reuse.spaceFold
+  val (inputSegments, outputSegments) = repetition.getSegmentsExpanded(transform.size)
 
-  val inputSize = repetition.expand(size)._1
-  val outputSize = repetition.expand(size)._2
-
-  val inputRange = (0 until inputSize)
-  val outputRange = (0 until outputSize)
-
-  val inputSegments  = repetition.divide(inputRange)
-  val outputSegments = outputRange.divide(repetition.spaceFactor)
-
-  // reuse - vector -> array
-  val iterationLatency = {
-    val wait = repetition.timeFactor / reuse.timeReuse * latency
-    val queue = reuse.spaceReuse * reuse.timeFold * reuse.spaceFold
-    // when queue > wait, need fifo
-    // util = queue / wait
-    wait max queue
-  }
+  val queue = repetition.timeFactor / reuse.timeReuse * transform.latency
+  val inQueue = reuse.spaceReuse * reuse.timeFold * reuse.spaceFold
+  // when inQueue > queue, need fifo
+  val iterationLatency = inQueue max queue
+  val fifoLength = (inQueue - queue) max 0
+  // when inQueue < queue, util < 1
+  val util = inQueue.toDouble / iterationLatency
+  val latency = reuse.timeReuse * iterationLatency
 
   def segments2Iteration(segments: Seq[Slice], portWidth: Int) = {
     val noBubble = segments
@@ -81,9 +74,9 @@ object PeriodicFlow { // examples
     println(PeriodicFlow(basic, noRepeat, timeFold).outputFlow)
 
     // complex
-    val config0: TransformConfig = TransformConfigForTest((2, 2), 3)
-    val config1: TransformConfig = TransformConfigForTest((2, 2), 4)
-    val config2: TransformConfig = TransformConfigForTest((2, 2), 5)
+    val config0 = TransformConfigForTest((2, 2), 3)
+    val config1 = TransformConfigForTest((2, 2), 4)
+    val config2 = TransformConfigForTest((2, 2), 5)
 
     val repeat = Repetition(Seq(SpaceRepetition(2, 1), SpaceRepetition(2)), TimeRepetition(2))
     val reuse0 = Reuse(2, 2, 2, 1)

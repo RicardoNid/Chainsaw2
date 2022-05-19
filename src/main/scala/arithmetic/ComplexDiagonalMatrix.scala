@@ -11,7 +11,7 @@ import scala.language.postfixOps
 
 case class ComplexDiagonalMatrixConfig(coeffs: Seq[Complex], override val spaceFold: Int,
                                        dataType: HardType[SFix], coeffType: HardType[SFix])
-  extends BaseTransformConfig {
+  extends TransformBase {
 
   val N = coeffs.length
   require(N % spaceFold == 0)

@@ -3,72 +3,7 @@ package org.datenlord
 import spinal.core._
 import spinal.lib._
 
-abstract class TransformConfig {
-
-  // fold-independent attributes
-  def impl(dataIn: Seq[Any]): Seq[Any] = dataIn
-
-  def ⊗(factor: Int, step: Int = -1): TransformConfig
-
-  def ∏(factor: Int): TransformConfig
-
-  // user-defined
-  val size: (Int, Int)
-
-  def latency: Int
-
-  def flowFormat: PeriodicFlow
-
-  def implH: TransformModule[_, _]
-
-  // auto
-  def inputFlow: DataFlow = flowFormat.inputFlow
-
-  def outputFlow: DataFlow = flowFormat.outputFlow
-
-  def inputWidth = inputFlow.portWidth
-
-  def outputWidth = inputFlow.portWidth
-}
-
-abstract class BaseTransformConfig extends TransformConfig {
-
-  // override when folding is available/natural, otherwise, just leave it here
-  val spaceFold: Int = 1
-
-  def spaceFolds: Seq[Int] = Seq(1)
-
-  val timeFold: Int = 1
-
-  def timeFolds: Seq[Int] = Seq(1)
-
-  // repetition operations
-  def ⊗(factor: Int, step: Int = -1) = TransformMesh(this, Repetition(Seq(SpaceRepetition(factor, step)), TimeRepetition(1)))
-
-  def ∏(factor: Int) = TransformMesh(this, Repetition(Seq(SpaceRepetition(1)), TimeRepetition(factor)))
-
-  def toTransformMesh = TransformMesh(this, Repetition.unit)
-
-  def getConfigWithFoldsChanged(spaceFold: Int, timeFold: Int): BaseTransformConfig = this
-
-  def flowFormat = PeriodicFlow(this, Repetition.unit, Reuse(1, 1, spaceFold, timeFold))
-}
-
-/** Transform with no implementations, for dataflow analysis / simulation
- *
- */
-object TransformConfigForTest {
-  def apply(theSize: (Int, Int), theLatency: Int, repetition: Repetition = Repetition.unit, reuse: Reuse = Reuse.unit) =
-    new BaseTransformConfig {
-      override val size = theSize
-
-      override def latency = theLatency
-
-      override def flowFormat = PeriodicFlow(this, repetition, reuse)
-
-      override def implH = null
-    }
-}
+import scala.language.postfixOps
 
 abstract class TransformModule[TIn <: Data, TOut <: Data] extends Component {
 

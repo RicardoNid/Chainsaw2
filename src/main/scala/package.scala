@@ -80,7 +80,7 @@ package object datenlord {
   }
 
   implicit class seqUtil[T: ClassTag](seq: Seq[T]) {
-    def divide(group: Int) = seq.grouped(seq.length / group).toArray
+    def divide(group: Int) = seq.grouped(seq.length / group).toSeq
 
     def prevAndNext(f: ((T, T)) => Unit) = seq.init.zip(seq.tail).foreach(f)
 

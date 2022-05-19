@@ -6,7 +6,7 @@ import spinal.core._
 import spinal.lib._
 
 case class LUTConfig[TSoft, THard <: Data](coeffs: Seq[TSoft], dataType: HardType[THard])
-  extends BaseTransformConfig {
+  extends TransformBase {
 
   val inputBitWidth = log2Up(coeffs.length)
 

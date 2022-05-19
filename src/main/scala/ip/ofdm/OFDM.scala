@@ -13,7 +13,7 @@ import scala.util.Random
 
 // TODO: this should be a system, rather than a Transform
 case class OFDMConfig(override val spaceFold: Int)
-  extends BaseTransformConfig {
+  extends TransformBase {
 
   override val size = (128, 64)
 
@@ -27,6 +27,8 @@ case class OFDMConfig(override val spaceFold: Int)
   val ifftConfig = PeaseFftConfig(64, 2, 16, 12, inverse = true, spaceFold, 1)
 
   // TODO: reference model
+
+  override def impl(dataIn: Seq[Any]) = null
 }
 
 case class OFDM(config: OFDMConfig) extends TransformModule[Bool, ComplexFix] {

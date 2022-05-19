@@ -21,7 +21,7 @@ import scala.language.postfixOps
  * @see ''Stride Permutation Networks for Array Processors'', Tuomas J¨arvinen Perttu Salmela Harri Sorokin Jarmo Takala
  */
 case class StridePermutationFor2Config(n: Int, q: Int, s: Int, bitWidth: Int)
-  extends BaseTransformConfig {
+  extends TransformBase {
 
   val N = 1 << n
   val Q = 1 << q
@@ -158,7 +158,7 @@ object StridePermutationFor2 {
 }
 
 case class MTNConfig(q: Int, bitWidth: Int)
-  extends BaseTransformConfig {
+  extends TransformBase {
 
   val Q = 1 << q
   val N = Q * Q
@@ -215,7 +215,7 @@ case class MTN(config: MTNConfig) extends TransformModule[Bits, Bits] {
 }
 
 case class SPNConfig(n: Int, s: Int, bitWidth: Int)
-  extends BaseTransformConfig {
+  extends TransformBase {
 
   val N = 1 << n
   val S = 1 << s

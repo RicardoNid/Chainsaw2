@@ -1,6 +1,5 @@
 package org.datenlord
 
-import org.datenlord.TransformMesh.config
 import spinal.core._
 import spinal.lib._
 
@@ -10,26 +9,22 @@ import scala.reflect.ClassTag
 /** transform with repetition
  *
  */
-case class TransformMesh(trans: BaseTransformConfig, repetition: Repetition)
+case class TransformMesh(trans: TransformBase, repetition: Repetition)
   extends TransformConfig {
 
   val base = trans.getConfigWithFoldsChanged(1, 1)
 
-  override val size = repetition.expand(base.size)
+  def ⊗(factor: Int, step: Int = -1) = TransformMesh(base, repetition.⊗(factor, step))
 
-  override def ⊗(factor: Int, step: Int = -1) = TransformMesh(base, repetition.⊗(factor, step))
+  def ∏(factor: Int) = TransformMesh(base, repetition.∏(factor))
 
-  override def ∏(factor: Int) = TransformMesh(base, repetition.∏(factor))
+  override def impl(dataIn: Seq[Any]) = repetition.getImplExpanded(base.impl)(dataIn)
 
-  override def impl(dataIn: Seq[Any]) = repetition.divide(dataIn).flatMap { segment =>
-    var temp = segment
-    (0 until repetition.timeFactor).foreach(_ => temp = base.impl(temp))
-    temp
-  }
-
-  override def latency = base.latency * repetition.timeFactor
+  override val size = repetition.getSizeExpanded(base.size)
 
   override def flowFormat = PeriodicFlow(base, repetition, Reuse.unit)
+
+  override def latency: Int = flowFormat.latency
 
   def implForTest[Tin <: Data : ClassTag, TOut <: Data : ClassTag](typeIn: HardType[Tin], typeOut: HardType[TOut]) = {
     val meshConfig = this
@@ -48,16 +43,16 @@ case class TransformMesh(trans: BaseTransformConfig, repetition: Repetition)
     val meshConfig = this
     new TransformModule[Bits, Bits] {
 
-      val cores = Seq.tabulate(repetition.spaceFactor, repetition.timeFactor)((_, _) => base.implH)
-      val wrappers = cores.map(_.map(_.getWrapper()))
+      val mesh = Seq.tabulate(repetition.spaceFactor, repetition.timeFactor)((_, _) => base.implH)
+      val wrappers = mesh.map(_.map(_.getWrapper()))
       val inBitWidth = wrappers.head.head._1.fragment.head.getBitsWidth
       val outBitWidth = wrappers.head.head._2.fragment.head.getBitsWidth
 
       override val config = meshConfig
-      override val dataIn = slave Flow Fragment(Vec(Bits(inBitWidth bits), size._1))
-      override val dataOut = master Flow Fragment(Vec(Bits(outBitWidth bits), size._2))
+      override val dataIn = slave Flow Fragment(Vec(Bits(inBitWidth bits), flowFormat.inPortWidth))
+      override val dataOut = master Flow Fragment(Vec(Bits(outBitWidth bits), flowFormat.outPortWidth))
 
-      val dataIns = repetition.divide(dataIn.fragment)
+      val dataIns = dataIn.fragment.divide(repetition.spaceFactor)
       wrappers.zip(dataIns).foreach { case (row, data) =>
         val segment = ChainsawFlow(Vec(data.map(_.asBits)), dataIn.valid, dataIn.last)
         row.head._1 << segment
@@ -70,19 +65,14 @@ case class TransformMesh(trans: BaseTransformConfig, repetition: Repetition)
       autoValid()
     }
   }
-
-  def implWithReuse(reuse: Reuse) = {
-    val newConfig = TransformConfigForTest(size, latency, repetition, reuse)
-  }
 }
 
 object TransformMesh extends App {
 
-  val config = flowConverters.PermutationByRamConfig(Seq(1, 2, 3, 0), 4, 4)
-  val data = Seq(0, 1, 2, 3, 4, 5, 6, 7).map(BigInt(_))
-  val mesh = config ⊗ 2 ∏ 2
+  val config0 = flowConverters.PermutationByRamConfig(Seq(1, 2, 3, 0), 4, 4)
+  val data0 = Seq(0, 1, 2, 3, 4, 5, 6, 7).map(BigInt(_))
+  val mesh0 = config0 ⊗ 2 ∏ 2
 
   // test for a 2 * 2 mesh
-  TransformTest.test(mesh.implForTest(UInt(4 bits), UInt(4 bits)), data)
-
+  TransformTest.test(mesh0.implForTest(UInt(4 bits), UInt(4 bits)), data0)
 }

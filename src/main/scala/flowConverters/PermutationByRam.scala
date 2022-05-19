@@ -15,7 +15,7 @@ import scala.collection.mutable.ArrayBuffer
  * @see ''Automatic Generation of Streaming Datapaths for Arbitrary Fixed Permutations, Peter A. Milder, James C. Hoe, and Markus P¨uschel''
  */
 case class PermutationByRamConfig(permutation: Seq[Int], override val spaceFold: Int, bitWidth: Int)
-  extends BaseTransformConfig {
+  extends TransformBase {
 
   require(N % spaceFold == 0)
   val N = permutation.length

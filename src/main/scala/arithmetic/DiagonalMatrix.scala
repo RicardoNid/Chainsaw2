@@ -11,7 +11,7 @@ import scala.language.postfixOps
 case class DiagonalMatrixConfig(coeffs: Seq[BigInt], override val spaceFold: Int,
                                 bitWidthIn: Int, bitWidthCoeff: Int, bitWidthOut: Int,
                                 baseMult: (Bits, Bits) => Bits, baseLatency: Int)
-  extends BaseTransformConfig {
+  extends TransformBase {
 
   val N = coeffs.length
   require(N % spaceFold == 0)
