@@ -21,8 +21,8 @@ case class DiagonalConfig[TSoft, THard <: Data]
 
   override def spaceFolds = factors(n)
 
-  override def latency = dataType() match {
-    case _: ComplexFix => ComplexMult.latency
+  override def latency = coeffs.head match {
+    case _: Complex => ComplexMult.latency
     case _ => 1
   }
 

@@ -18,7 +18,7 @@ abstract class TransformBase extends TransformConfig {
 
   def toTransformMesh = TransformMesh(this, Repetition.unit)
 
-  def getConfigWithFoldsChanged(spaceFold: Int, timeFold: Int): TransformBase = this
+  def getConfigWithFoldsChanged(spaceFold: Int, timeFold: Int): TransformBase = throw new IllegalArgumentException("this transform is not foldable")
 
   def flowFormat = PeriodicFlow(this, Repetition.unit, Reuse(1, 1, spaceFold, timeFold))
 }

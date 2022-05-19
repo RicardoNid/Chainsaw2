@@ -13,7 +13,6 @@ class KaratsubaTest extends AnyFlatSpec {
 
   val testCount = 1000
   val width = 256
-
   val data = (0 until testCount * 2).map(_ => Random.nextBigInt(width))
 
   // configuration
@@ -26,8 +25,8 @@ class KaratsubaTest extends AnyFlatSpec {
 
   val config = KaratusbaConfig(width, 34, baseMult, baseMultLatency = KaratsubaForXilinx.latency)
 
-  "Karatsuba Multiplier " should "work" in {
+  "Karatsuba Multiplier" should "work" in {
     TransformTest.test(config.implH, data)
-    VivadoSynth(config.implH)
+    //    VivadoSynth(config.implH)
   }
 }

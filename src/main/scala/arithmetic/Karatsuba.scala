@@ -20,7 +20,6 @@ case class KaratusbaConfig(width: Int, baseWidth: Int = 34, baseMult: (UInt, UIn
     val additionLatency = 3
     baseMultLatency + (layers - 1) * additionLatency
   }
-
   override def implH = KaratsubaBigMultiplier(this)
 }
 

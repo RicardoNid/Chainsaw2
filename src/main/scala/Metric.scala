@@ -1,5 +1,4 @@
 package org.datenlord
-package arithmetic
 
 import breeze.linalg.DenseVector
 import breeze.math.Complex

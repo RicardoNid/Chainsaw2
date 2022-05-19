@@ -23,8 +23,8 @@ abstract class TransformModule[TIn <: Data, TOut <: Data] extends Component {
   }
 
   def autoInputCounter() = {
-    val counter = Counter(config.inputFlow.period)
-    when(dataIn.valid)(counter.increment())
+    val counter = CounterFreeRun(config.inputFlow.period)
+    // TODO: implement "valid free" mode as it is useless for control
     when(dataIn.last)(counter.clear())
     counter
   }

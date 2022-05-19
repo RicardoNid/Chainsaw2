@@ -17,6 +17,8 @@ case class AlgebraConfig[TSoft, THard <: Data]
 
   override def timeFolds = factors(m)
 
+  override def getConfigWithFoldsChanged(spaceFold: Int, timeFold: Int) = AlgebraConfig(matrix, dataType, coeffType, timeFold)
+
   val lMult = matrix(0, 0) match {
     case _: Complex => ComplexMult.latency
     case _ => 1
@@ -61,13 +63,18 @@ case class Algebra[TSoft, THard <: Data]
   if (timeFold > 1) {
     val coeffGroups = coeffHard.grouped(m * n / timeFold).toSeq.map(Vec(_))
     val counter = autoInputCounter()
+    val dataInReg = RegNextWhen(dataIn.fragment, counter.value === 0)
+    val dataInHold = Mux(counter.value === 0, dataIn.fragment, dataInReg)
+    dataInHold.setName("dataInHold")
     val rom = Mem(coeffGroups)
     val currentCoeffs = rom.readAsync(counter.value)
-    val afterMult = currentCoeffs.grouped(n).toSeq.map(coeff => Util.mult(dataIn.fragment, Vec(coeff), dataType))
+    val afterMult = currentCoeffs.grouped(n).toSeq.map(coeff => Util.mult(dataInHold, Vec(coeff), dataType))
     val afterSum = Vec(afterMult.map(Util.sum))
+    afterSum.setName("afterSum")
     val delayedControl = counter.value.d(lSOP % timeFold)
-    val delayed = (0 until timeFold).flatMap(i => RegNextWhen(afterSum, delayedControl === i))
-    dataOut.fragment := delayed
+    delayedControl.setName(s"delayedCount")
+    val delayed: Seq[Vec[THard]] = (0 until timeFold - 1).map(i => RegNextWhen(afterSum, delayedControl === i)) :+ afterSum
+    dataOut.fragment := delayed.flatten
   } else {
     val afterMult = coeffHard.grouped(n).toSeq.map(coeff => Util.mult(dataIn.fragment, Vec(coeff), dataType))
     val afterSum = Vec(afterMult.map(Util.sum))

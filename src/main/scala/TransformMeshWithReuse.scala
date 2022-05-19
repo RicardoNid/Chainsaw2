@@ -1,10 +1,12 @@
 package org.datenlord
 
+import breeze.linalg.DenseMatrix
 import spinal.core._
 import spinal.lib._
 
 import scala.language.postfixOps
 import scala.reflect.ClassTag
+import scala.util.Random
 
 /** transform with repetition
  *
@@ -95,14 +97,46 @@ case class TransformMeshWithReuse(trans: TransformBase, repetition: Repetition, 
 
 object TransformMeshWithReuse {
   def main(args: Array[String]): Unit = {
-    val config0 = flowConverters.PermutationByRamConfig(Seq(1, 2, 3, 0), 4, 4)
-    val data0 = Seq(0, 1, 2, 3, 4, 5, 6, 7).map(BigInt(_))
-    val mesh0 = TransformMeshWithReuse(config0, Repetition(Seq(SpaceRepetition(2)), TimeRepetition(2)), Reuse.unit)
-    val mesh1 = TransformMeshWithReuse(config0, Repetition(Seq(SpaceRepetition(2)), TimeRepetition(2)), Reuse(2, 2, 1, 1))
 
-    // test for a 2 * 2 mesh
-    //    TransformTest.test(mesh0.implForTest(UInt(4 bits), UInt(4 bits)), data0)
-    TransformTest.test(mesh1.implForTest(UInt(4 bits), UInt(4 bits)), data0)
+    // space reuse + time reuse + space fold
+    val data0 = Random.RandomSequences(1, 12, Random.nextComplex).head
+    val dataType0 = HardType(ComplexFix(3 exp, -12 exp))
+    val coeff0 = Random.RandomSequences(1, 2, Random.nextComplex).head
+    val config0 = arithmetic.DiagonalConfig(coeff0, dataType0, dataType0, spaceFold = 1)
+
+    // fifo, no bubble
+    val repetition0 = Repetition(Seq(SpaceRepetition(2, 1), SpaceRepetition(2)), TimeRepetition(2))
+    val reuse0 = Reuse(4, 2, 2, 1)
+    val mesh0 = TransformMeshWithReuse(config0, repetition0, reuse0)
+    assert(mesh0.flowFormat.queue < mesh0.flowFormat.inQueue)
+    TransformTest.test(mesh0.implForTest(dataType0, dataType0), data0, Metric.ComplexAbs(1e-2))
+    // bubble, no fifo
+    val repetition1 = Repetition(Seq(SpaceRepetition(2, 1), SpaceRepetition(2)), TimeRepetition(4))
+    val reuse1 = Reuse(2, 2, 2, 1)
+    val mesh1 = TransformMeshWithReuse(config0, repetition1, reuse1)
+    assert(mesh1.flowFormat.queue > mesh1.flowFormat.inQueue)
+    assert(mesh1.flowFormat.util < 1)
+    TransformTest.test(mesh1.implForTest(dataType0, dataType0), data0, Metric.ComplexAbs(1e-2))
+
+    // space reuse + time reuse + time fold
+    val data1 = Random.RandomSequences(1, 20, Random.nextDouble).head
+    val dataType1 = HardType(SFix(4 exp, -11 exp))
+    val coeff1 = DenseMatrix.rand[Double](4, 4)
+    val config1 = arithmetic.AlgebraConfig(coeff1, dataType1, dataType1, timeFold = 1) // latency = 3
+
+    // fifo, no bubble
+    val reuse2 = Reuse(4, 2, 1, 2)
+    val mesh2 = TransformMeshWithReuse(config1, repetition0, reuse2)
+    assert(mesh2.flowFormat.queue < mesh2.flowFormat.inQueue)
+    TransformTest.test(mesh2.implForTest(dataType1, dataType1), data1, Metric.DoubleAbs(1e-2))
+    // bubble, no fifo
+    val reuse3 = Reuse(2, 2, 1, 2)
+    val mesh3 = TransformMeshWithReuse(config1, repetition1, reuse3)
+    assert(mesh3.flowFormat.queue > mesh3.flowFormat.inQueue)
+    assert(mesh3.flowFormat.util < 1)
+    TransformTest.test(mesh3.implForTest(dataType1, dataType1), data1, Metric.DoubleAbs(1e-1))
+
+
   }
 }
 

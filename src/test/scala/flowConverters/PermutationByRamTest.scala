@@ -8,10 +8,10 @@ import scala.util.Random
 class PermutationByRamTest extends AnyFlatSpec {
 
   "StreamPermutationTest" should "work for a simple case" in {
-    val n = 12
+    val n = 4
     val data = (0 until n).toList
     val perm = Random.shuffle(data)
-    val config = PermutationByRamConfig(perm, 3, 4)
+    val config = PermutationByRamConfig(perm, 2, 4)
     TransformTest.test(config.implH, (data ++ data).map(BigInt(_)))
   }
 
@@ -25,7 +25,7 @@ class PermutationByRamTest extends AnyFlatSpec {
     val data = (0 until n).toList
     val perm = Random.shuffle(data)
     val config = PermutationByRamConfig(perm, 1, 4)
-    TransformTest.testAllFolds(config, (data ++ data).map(BigInt(_)))
+    TransformTest.testAllFolds(config, (data ++ data ++ data).map(BigInt(_)))
   }
 
 
