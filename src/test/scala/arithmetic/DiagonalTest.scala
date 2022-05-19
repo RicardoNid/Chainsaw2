@@ -13,10 +13,10 @@ class DiagonalTest extends AnyFlatSpec {
 
   "ComplexDiagonalMatrix" should "work for all folds" in {
 
-    val coeffs = Random.RandomComplexSequences(1, 100).head
-    val data = Random.RandomComplexSequences(1, 100).head
-    val dataType = HardType(ComplexFix(0 exp, -15 exp))
-    val coeffType = HardType(ComplexFix(1 exp, -10 exp))
+    val coeffs = Random.RandomComplexSequences(1, 10).head
+    val data = Random.RandomComplexSequences(1, 10 * 4).head
+    val dataType = HardType(ComplexFix(3 exp, -12 exp))
+    val coeffType = HardType(ComplexFix(3 exp, -12 exp))
 
     // TODO: implement common metrics in an object Metric
     def metric(yours: Seq[Complex], golden: Seq[Complex]) = {
@@ -46,6 +46,4 @@ class DiagonalTest extends AnyFlatSpec {
     val configDouble = DiagonalConfig(coeffsDouble, dataTypeDouble, coeffTypeDouble, 1)
     TransformTest.test(configDouble.implH,dataDouble,metricDouble)
   }
-
-
 }

@@ -91,7 +91,7 @@ object TransformTest {
         .grouped(outputFlow.period).toSeq
         .map(outputFlow.toRawData)
 
-      val golden = data.grouped(outputFlow.rawDataCount).toSeq.map(impl).map(_.asInstanceOf[Seq[T]])
+      val golden = data.grouped(inputFlow.rawDataCount).toSeq.map(impl).map(_.asInstanceOf[Seq[T]])
 
       if (firstTime != latency) logger.warn(s"latency is ${firstTime - 1}, while supposed to be $latency")
 

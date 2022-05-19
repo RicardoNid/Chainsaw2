@@ -33,7 +33,7 @@ case class LUT[TSoft, THard <: Data]
   override val dataIn = slave Flow Fragment(Vec(UInt(inputBitWidth bits)))
   override val dataOut = master Flow Fragment(Vec(dataType, 1))
 
-  val coeffHard = GetCoeff(dataType, coeffs)
+  val coeffHard = Util.getCoeff(dataType, coeffs)
   val ROM = Mem(coeffHard)
   dataOut.fragment := Vec(ROM.readSync(dataIn.fragment.head))
 
