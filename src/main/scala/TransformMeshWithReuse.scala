@@ -31,7 +31,6 @@ case class TransformMeshWithReuse(trans: TransformBase, repetition: Repetition, 
       //  prove that valid is not necessary for control, valid is for clearness
       //  only one valid for each transform
       //  only one group of counters for each transform
-
       val coresInRow = repetition.timeFactor / reuse.timeReuse
       val coresInColumn = repetition.spaceFactor / reuse.spaceReuse
       logger.info(s"mesh size: $coresInColumn, $coresInRow")

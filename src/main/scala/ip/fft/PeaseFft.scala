@@ -1,7 +1,7 @@
 package org.datenlord
 package ip.fft
 
-import arithmetic.{ComplexDiagonalMatrix, ComplexDiagonalMatrixConfig}
+import arithmetic.{Diagonal, DiagonalConfig}
 import algos.Matrices.{digitReversalPermutation, stridePermutation}
 import flowConverters._
 
@@ -94,14 +94,14 @@ case class PeaseFft(config: PeaseFftConfig) extends TransformModule[ComplexFix, 
   import algos.Dft.diagC
   import config._
 
-  val dataType = HardType(SFix(0 exp, -(dataWidth - 1) exp))
-  val coeffType = HardType(SFix(1 exp, -(coeffWidth - 2) exp))
+  val dataType = HardType(ComplexFix(0 exp, -(dataWidth - 1) exp))
+  val coeffType = HardType(ComplexFix(1 exp, -(coeffWidth - 2) exp))
 
   val innerMax = (n + 1) / 2 + 1
-  val innerType = HardType(SFix(innerMax exp, -(dataWidth - innerMax - 1) exp))
+  val innerType = HardType(ComplexFix(innerMax exp, -(dataWidth - innerMax - 1) exp))
 
-  override val dataIn = slave Flow Fragment(Vec(ComplexFix(dataType), portWidth))
-  override val dataOut = master Flow Fragment(Vec(ComplexFix(innerType), portWidth))
+  override val dataIn = slave Flow Fragment(Vec(dataType, portWidth))
+  override val dataOut = master Flow Fragment(Vec(innerType, portWidth))
 
   val iterLatencyCounter = CounterFreeRun(iterativeLatency max spaceReuse)
   when(dataIn.last)(iterLatencyCounter.clear())
@@ -115,17 +115,17 @@ case class PeaseFft(config: PeaseFftConfig) extends TransformModule[ComplexFix, 
     // multipliers
     val Cs = iters.map(l => diagC(N, l, radix, inverse))
     val coeffs = Cs.flatMap(_.diag.toArray)
-    val cdmConfig = ComplexDiagonalMatrixConfig(coeffs, spaceReuse * timeReuse, innerType, coeffType)
-    val mults = ComplexDiagonalMatrix(cdmConfig)
+    val cdmConfig: DiagonalConfig[Complex, ComplexFix] = DiagonalConfig(coeffs, innerType, coeffType, spaceReuse * timeReuse)
+    val mults = Diagonal(cdmConfig)
     mults.dataIn << iterIn
     if (timeReuse > 1) {
       mults.dataIn.last.allowOverride
       mults.dataIn.last := dataIn.last
     }
-    val afterMult = mults.dataOut.fragment.map(_.truncated(innerType))
+    val afterMult = mults.dataOut.fragment.map(_.truncated(innerType().sfixType))
 
     // dfts
-    val afterDft = Vec(afterMult.grouped(radix).toSeq.flatMap(seq => dft(Vec(seq)).map(_.truncated(innerType))))
+    val afterDft = Vec(afterMult.grouped(radix).toSeq.flatMap(seq => dft(Vec(seq)).map(_.truncated(innerType().sfixType))))
 
     // permutation
     val permConfig = StridePermutationFor2Config(n, q, r, innerType.getBitsWidth * 2)
@@ -138,7 +138,7 @@ case class PeaseFft(config: PeaseFftConfig) extends TransformModule[ComplexFix, 
     ChainsawFlow(afterPerm, permutation.dataOut.valid, permutation.dataOut.last)
   }
 
-  val dataInTruncated = dataIn.withFragment(dataIn.fragment.map(_.truncated(innerType)))
+  val dataInTruncated = dataIn.withFragment(dataIn.fragment.map(_.truncated(innerType().sfixType)))
   val iterStart = cloneOf(dataInTruncated)
 
   val dataPath = ArrayBuffer[Flow[Fragment[Vec[ComplexFix]]]](iterStart)
@@ -154,7 +154,7 @@ case class PeaseFft(config: PeaseFftConfig) extends TransformModule[ComplexFix, 
   (0 until iterativeCount).reverse.map { i =>
     val coeffSet = (0 until timeReuse).map(j => j * iterativeCount + i).reverse
     val next = iterativeBox(dataPath.last, coeffSet)
-    val normalized = next.fragment.map(_ >> shifts(i)).map(_.truncated(innerType))
+    val normalized = next.fragment.map(_ >> shifts(i)).map(_.truncated(innerType().sfixType))
     dataPath += next.withFragment(normalized)
   }
 
@@ -171,7 +171,7 @@ case class PeaseFft(config: PeaseFftConfig) extends TransformModule[ComplexFix, 
   }
   else iterStart << dataInTruncated
 
-  dataOut.fragment := (if (timeReuse == 1) iterEnd.fragment else Vec(iterEnd.fragment.map(_ << compensateShift).map(_.truncated(innerType))))
+  dataOut.fragment := (if (timeReuse == 1) iterEnd.fragment else Vec(iterEnd.fragment.map(_ << compensateShift).map(_.truncated(innerType().sfixType))))
   autoValid()
   autoLast()
 }
