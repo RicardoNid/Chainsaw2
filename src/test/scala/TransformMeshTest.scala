@@ -50,4 +50,13 @@ class TransformMeshTest extends AnyFlatSpec {
     assert(mesh.flowFormat.queue > mesh.flowFormat.inQueue && mesh.flowFormat.util < 1)
     TransformTest.test(mesh.implForTest(dataType1, dataType1), mesh.getRandomDataIn(Random.nextDouble), Metric.DoubleAbs(5e-1))
   }
+
+  "searching algorithm" should "be able to find best reuse parameters" in {
+    val mesh = configTF.⊗(2, 1).⊗(2).∏(4).withReuse(Reuse(2,2,1,2))
+    val target = 0.5
+    val optimized = mesh.fitTo(target)
+    assert(optimized.flowFormat.throughput >= target)
+    TransformTest.test(optimized.implForTest(dataType1, dataType1), optimized.getRandomDataIn(Random.nextDouble), Metric.DoubleAbs(5e-1))
+  }
+
 }

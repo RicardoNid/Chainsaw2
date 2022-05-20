@@ -13,7 +13,7 @@ abstract class TransformConfig {
 
   def latency: Int
 
-  def flowFormat: PeriodicFlow
+  def flowFormat: MeshFlow
 
   def implH: TransformModule[_, _]
 

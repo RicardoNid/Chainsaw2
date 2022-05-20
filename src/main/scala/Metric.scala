@@ -22,5 +22,4 @@ object Metric {
       logger.info(s"errorMax = ${max(errorV)}, errormean${mean(errorV)}")
       errorV.forall(_.abs < epsilon)
     }
-
 }

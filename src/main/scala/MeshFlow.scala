@@ -1,6 +1,6 @@
 package org.datenlord
 
-case class PeriodicFlow(transform: TransformBase, repetition: Repetition, reuse: Reuse) {
+case class MeshFlow(transform: TransformBase, repetition: Repetition, reuse: Reuse) {
 
   type Slice = Seq[Int]
 
@@ -19,7 +19,9 @@ case class PeriodicFlow(transform: TransformBase, repetition: Repetition, reuse:
   val iterationLatency = inQueue max queue
   val fifoLength = (inQueue - queue) max 0
   // when inQueue < queue, util < 1
-  val util = inQueue.toDouble / iterationLatency
+  val util = if(reuse.timeReuse > 1) inQueue.toDouble / iterationLatency else 1
+  println(s" $util / (${reuse.timeReuse * reuse.spaceReuse * reuse.timeFold * reuse.spaceFold})")
+  val throughput = util / (reuse.timeReuse * reuse.spaceReuse * reuse.timeFold * reuse.spaceFold)
   val latency = reuse.timeReuse * iterationLatency
 
   def segments2Iteration(segments: Seq[Slice], portWidth: Int) = {
@@ -57,7 +59,7 @@ case class PeriodicFlow(transform: TransformBase, repetition: Repetition, reuse:
   def drawOutput(): Unit = outputFlow.generateWaveform("output", "y")
 }
 
-object PeriodicFlow { // examples
+object MeshFlow { // examples
 
   def main(args: Array[String]): Unit = {
 
@@ -69,9 +71,9 @@ object PeriodicFlow { // examples
     val noRepeat = Repetition.unit
 
     println("basic")
-    println(PeriodicFlow(basic, noRepeat, noReuse).inputFlow)
-    println(PeriodicFlow(basic, noRepeat, spaceFold).inputFlow)
-    println(PeriodicFlow(basic, noRepeat, timeFold).outputFlow)
+    println(MeshFlow(basic, noRepeat, noReuse).inputFlow)
+    println(MeshFlow(basic, noRepeat, spaceFold).inputFlow)
+    println(MeshFlow(basic, noRepeat, timeFold).outputFlow)
 
     // complex
     val config0 = TransformConfigForTest((2, 2), 3)
@@ -83,23 +85,23 @@ object PeriodicFlow { // examples
     val reuse1 = Reuse(2, 2, 1, 2)
     val reuse2 = Reuse(2, 2, 1, 1)
     // no bubble, fifo
-    println(PeriodicFlow(config0, repeat, reuse0).inputFlow)
-    println(PeriodicFlow(config0, repeat, reuse0).outputFlow)
+    println(MeshFlow(config0, repeat, reuse0).inputFlow)
+    println(MeshFlow(config0, repeat, reuse0).outputFlow)
     // no bubble, no fifo
-    println(PeriodicFlow(config1, repeat, reuse0).inputFlow)
-    println(PeriodicFlow(config1, repeat, reuse0).outputFlow)
+    println(MeshFlow(config1, repeat, reuse0).inputFlow)
+    println(MeshFlow(config1, repeat, reuse0).outputFlow)
     // bubble, fifo
-    println(PeriodicFlow(config2, repeat, reuse0).inputFlow)
-    println(PeriodicFlow(config2, repeat, reuse0).outputFlow)
+    println(MeshFlow(config2, repeat, reuse0).inputFlow)
+    println(MeshFlow(config2, repeat, reuse0).outputFlow)
     // no bubble, fifo
-    println(PeriodicFlow(config0, repeat, reuse1).inputFlow)
-    println(PeriodicFlow(config0, repeat, reuse1).outputFlow)
+    println(MeshFlow(config0, repeat, reuse1).inputFlow)
+    println(MeshFlow(config0, repeat, reuse1).outputFlow)
     // no bubble, no fifo
-    println(PeriodicFlow(config1, repeat, reuse1).inputFlow)
-    println(PeriodicFlow(config1, repeat, reuse1).outputFlow)
+    println(MeshFlow(config1, repeat, reuse1).inputFlow)
+    println(MeshFlow(config1, repeat, reuse1).outputFlow)
     // bubble, fifo
-    println(PeriodicFlow(config2, repeat, reuse1).inputFlow)
-    println(PeriodicFlow(config2, repeat, reuse1).inputFlow)
+    println(MeshFlow(config2, repeat, reuse1).inputFlow)
+    println(MeshFlow(config2, repeat, reuse1).inputFlow)
   }
 
 }

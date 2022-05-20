@@ -12,7 +12,7 @@ object TransformConfigForTest {
 
       override def latency = theLatency
 
-      override def flowFormat = PeriodicFlow(this, repetition, reuse)
+      override def flowFormat = MeshFlow(this, repetition, reuse)
 
       override def implH = null
 
