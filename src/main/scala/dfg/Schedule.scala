@@ -17,7 +17,7 @@ case class Schedule(time: Array[Int], period: Int) {
 
 object Schedule {
 
-  def main(args: Array[String]): Unit = {
+  def main(args: Array[String]): Unit = { // examples
     println(Schedule(Array(0,1),3))
     println(Schedule(Array(0,1), 3) + Schedule(Array(4), 6))
   }

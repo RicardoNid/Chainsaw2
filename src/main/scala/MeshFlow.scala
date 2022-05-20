@@ -20,7 +20,6 @@ case class MeshFlow(transform: TransformBase, repetition: Repetition, reuse: Reu
   val fifoLength = (inQueue - queue) max 0
   // when inQueue < queue, util < 1
   val util = if(reuse.timeReuse > 1) inQueue.toDouble / iterationLatency else 1
-  println(s" $util / (${reuse.timeReuse * reuse.spaceReuse * reuse.timeFold * reuse.spaceFold})")
   val throughput = util / (reuse.timeReuse * reuse.spaceReuse * reuse.timeFold * reuse.spaceFold)
   val latency = reuse.timeReuse * iterationLatency
 
@@ -57,51 +56,4 @@ case class MeshFlow(transform: TransformBase, repetition: Repetition, reuse: Reu
   def drawInput(): Unit = inputFlow.generateWaveform("input", "x")
 
   def drawOutput(): Unit = outputFlow.generateWaveform("output", "y")
-}
-
-object MeshFlow { // examples
-
-  def main(args: Array[String]): Unit = {
-
-    // basic
-    val basic = TransformConfigForTest((2, 2), 1)
-    val spaceFold = Reuse(1, 1, 2, 1)
-    val timeFold = Reuse(1, 1, 1, 2)
-    val noReuse = Reuse.unit
-    val noRepeat = Repetition.unit
-
-    println("basic")
-    println(MeshFlow(basic, noRepeat, noReuse).inputFlow)
-    println(MeshFlow(basic, noRepeat, spaceFold).inputFlow)
-    println(MeshFlow(basic, noRepeat, timeFold).outputFlow)
-
-    // complex
-    val config0 = TransformConfigForTest((2, 2), 3)
-    val config1 = TransformConfigForTest((2, 2), 4)
-    val config2 = TransformConfigForTest((2, 2), 5)
-
-    val repeat = Repetition(Seq(SpaceRepetition(2, 1), SpaceRepetition(2)), TimeRepetition(2))
-    val reuse0 = Reuse(2, 2, 2, 1)
-    val reuse1 = Reuse(2, 2, 1, 2)
-    val reuse2 = Reuse(2, 2, 1, 1)
-    // no bubble, fifo
-    println(MeshFlow(config0, repeat, reuse0).inputFlow)
-    println(MeshFlow(config0, repeat, reuse0).outputFlow)
-    // no bubble, no fifo
-    println(MeshFlow(config1, repeat, reuse0).inputFlow)
-    println(MeshFlow(config1, repeat, reuse0).outputFlow)
-    // bubble, fifo
-    println(MeshFlow(config2, repeat, reuse0).inputFlow)
-    println(MeshFlow(config2, repeat, reuse0).outputFlow)
-    // no bubble, fifo
-    println(MeshFlow(config0, repeat, reuse1).inputFlow)
-    println(MeshFlow(config0, repeat, reuse1).outputFlow)
-    // no bubble, no fifo
-    println(MeshFlow(config1, repeat, reuse1).inputFlow)
-    println(MeshFlow(config1, repeat, reuse1).outputFlow)
-    // bubble, fifo
-    println(MeshFlow(config2, repeat, reuse1).inputFlow)
-    println(MeshFlow(config2, repeat, reuse1).inputFlow)
-  }
-
 }

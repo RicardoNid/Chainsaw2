@@ -13,25 +13,13 @@ class PeaseFftTest extends AnyFlatSpec {
 
   val data = Random.RandomComplexSequences(1, 512).head.map(_ * Complex(0.9, 0))
 
-  def metric(yours: Seq[Complex], golden: Seq[Complex]) = {
-    val yourV = new DenseVector(yours.toArray)
-    val goldenV = new DenseVector(golden.toArray)
-    val errorV = yourV - goldenV
-    println(s"yours : $yourV")
-    println(s"golden: $goldenV")
-    println(s"error : $errorV")
-    println(mean(errorV.map(_.abs)))
-    println(max(errorV.map(_.abs)))
-    errorV.forall(_.abs < 1e-2)
-  }
-
   "Pease Fft" should "show the reuse space" in {
     Seq.tabulate(2, 1) { (space, time) =>
       val config = PeaseFftConfig(
         N = 64, radix = 2,
         dataWidth = 16, coeffWidth = 16,
         inverse = true, spaceReuse = 1 << (space + 2), timeReuse = 1 << time)
-      TransformTest.test(PeaseFft(config), data, metric)
+      TransformTest.test(PeaseFft(config), data, Metric.ComplexAbs(1e-2))
     }
   }
 
@@ -42,7 +30,7 @@ class PeaseFftTest extends AnyFlatSpec {
         dataWidth = 20, coeffWidth = 12,
         inverse = true, spaceReuse = 128, timeReuse = 8)
     }
-    spaceConfigs.foreach { config => TransformTest.test(PeaseFft(config), data, metric) }
+    spaceConfigs.foreach { config => TransformTest.test(PeaseFft(config), data, Metric.ComplexAbs(1e-2)) }
   }
 
   it should "work with time reuse" in {
@@ -52,7 +40,7 @@ class PeaseFftTest extends AnyFlatSpec {
         N = 256, radix = 2,
         dataWidth = 20, coeffWidth = 12,
         inverse = true, spaceReuse = 128, timeReuse = 8))
-    timeConfigs.foreach { config => TransformTest.test(PeaseFft(config), data, metric) }
+    timeConfigs.foreach { config => TransformTest.test(PeaseFft(config), data, Metric.ComplexAbs(1e-2)) }
   }
   //
 
