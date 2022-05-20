@@ -102,6 +102,7 @@ package object datenlord {
 
   implicit class RandomUtil(rand: Random) {
 
+    def RandomSequence[T: ClassTag](length: Int, randGen: () => T) = (0 until length).map(_ => randGen())
     def RandomSequences[T: ClassTag](count: Int, length: Int, randGen: () => T) = (0 until count).map(_ => (0 until length).map(_ => randGen()))
 
     def RandomVectors[T: ClassTag](count: Int, length: Int, randGen: () => T) =

@@ -5,6 +5,7 @@ import spinal.core._
 import spinal.core.sim.{SimConfig, _}
 
 import scala.collection.mutable.ArrayBuffer
+import scala.reflect.ClassTag
 
 object TransformTest {
 
@@ -39,9 +40,9 @@ object TransformTest {
 
   def showError[T](yours: Seq[T], golden: Seq[T]) = s"yours:\n${yours.mkString(" ")}\ngolden:\n${golden.mkString(" ")}"
 
-  def test[TIn <: Data, TOut <: Data, T]
-  (transformModule: => TransformModule[TIn, TOut], data: Seq[T],
-   metric: (Seq[T], Seq[T]) => Boolean = null, name: String = "temp") = {
+  def test[TIn <: Data, TOut <: Data, TSoft]
+  (transformModule: => TransformModule[TIn, TOut], data: Seq[TSoft],
+   metric: (Seq[TSoft], Seq[TSoft]) => Boolean = null, name: String = "temp") = {
     SimConfig.workspaceName(name).withFstWave.compile(transformModule).doSim { dut =>
 
       import dut.{clockDomain, config, dataIn, dataOut}
@@ -62,7 +63,7 @@ object TransformTest {
       val valid = dataflows.flatMap(_._2)
       val last = dataflows.flatMap(_._3)
 
-      val dataRecord = ArrayBuffer[Seq[T]]()
+      val dataRecord = ArrayBuffer[Seq[TSoft]]()
       val lastRecord = ArrayBuffer[Boolean]()
 
       // peek and poke
@@ -70,14 +71,14 @@ object TransformTest {
         pokeWhatever(dataIn.fragment, dataFlow(i))
         dataIn.valid #= valid(i)
         dataIn.last #= last(i)
-        dataRecord += peekWhatever(dataOut.fragment).asInstanceOf[Seq[T]]
+        dataRecord += peekWhatever(dataOut.fragment).asInstanceOf[Seq[TSoft]]
         lastRecord += dataOut.last.toBoolean
         clockDomain.waitSampling()
       }
 
       // peek only
       (0 until latency + 1).foreach { i =>
-        dataRecord += peekWhatever(dataOut.fragment).asInstanceOf[Seq[T]]
+        dataRecord += peekWhatever(dataOut.fragment).asInstanceOf[Seq[TSoft]]
         lastRecord += dataOut.last.toBoolean
         dataIn.valid #= valid(i % inputFlow.period)
         dataIn.last #= last(i % inputFlow.period)
@@ -91,7 +92,7 @@ object TransformTest {
         .grouped(outputFlow.period).toSeq
         .map(outputFlow.toRawData)
 
-      val golden = data.grouped(inputFlow.rawDataCount).toSeq.map(impl).map(_.asInstanceOf[Seq[T]])
+      val golden = data.grouped(inputFlow.rawDataCount).toSeq.map(impl).map(_.asInstanceOf[Seq[TSoft]])
 
       if (firstTime != latency) logger.warn(s"latency is ${firstTime - 1}, while supposed to be $latency")
 

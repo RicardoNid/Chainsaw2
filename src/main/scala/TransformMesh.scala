@@ -9,70 +9,102 @@ import scala.reflect.ClassTag
 /** transform with repetition
  *
  */
-case class TransformMesh(trans: TransformBase, repetition: Repetition)
+case class TransformMesh(trans: TransformBase, repetition: Repetition, reuse: Reuse)
   extends TransformConfig {
 
-  val base = trans.getConfigWithFoldsChanged(1, 1)
+  def ⊗(factor: Int, step: Int = -1) = TransformMesh(trans, repetition.⊗(factor, step), reuse)
 
-  def ⊗(factor: Int, step: Int = -1) = TransformMesh(base, repetition.⊗(factor, step))
+  def ∏(factor: Int) = TransformMesh(trans, repetition.∏(factor), reuse)
 
-  def ∏(factor: Int) = TransformMesh(base, repetition.∏(factor))
+  def withReuse(reuse: Reuse): TransformMesh = TransformMesh(trans, repetition, reuse)
+
+  require(trans.spaceFolds.contains(reuse.spaceFold), s"invalid space fold: candidates {${trans.spaceFolds.mkString(" ")}} doesn't contain ${reuse.spaceFold}")
+  require(trans.timeFolds.contains(reuse.timeFold), s"invalid time fold: candidates {${trans.timeFolds.mkString(" ")}} doesn't contain ${reuse.timeFold}")
+
+  val base = trans.getConfigWithFoldsChanged(reuse.spaceFold, reuse.timeFold)
 
   override def impl(dataIn: Seq[Any]) = repetition.getImplExpanded(base.impl)(dataIn)
 
   override val size = repetition.getSizeExpanded(base.size)
 
-  override def flowFormat = PeriodicFlow(base, repetition, Reuse.unit)
+  override def flowFormat = PeriodicFlow(base, repetition, reuse)
 
-  override def latency: Int = flowFormat.latency
+  override def latency = flowFormat.latency
+
+  override def implH: TransformModule[Bits, Bits] = {
+    val meshConfig = this
+    new TransformModule[Bits, Bits] {
+      // TODO: "valid free" mode
+      //  val counterForBase = CounterFreeRun(reuse.spaceFold * reuse.timeFold)
+      //  prove that valid is not necessary for control, valid is for clearness
+      //  only one valid for each transform
+      //  only one group of counters for each transform
+      val coresInRow = repetition.timeFactor / reuse.timeReuse
+      val coresInColumn = repetition.spaceFactor / reuse.spaceReuse
+      logger.info(s"mesh size: $coresInColumn, $coresInRow")
+      val mesh = Seq.tabulate(coresInColumn, coresInRow)((_, _) => base.implH)
+      val wrappers = mesh.map(_.map(_.getWrapper()))
+      val inBitWidth = wrappers.head.head._1.fragment.head.getBitsWidth
+      val outBitWidth = wrappers.head.head._2.fragment.head.getBitsWidth
+
+      // I/O
+      override val config = meshConfig
+      override val dataIn = slave Flow Fragment(Vec(Bits(inBitWidth bits), flowFormat.inPortWidth))
+      override val dataOut = master Flow Fragment(Vec(Bits(outBitWidth bits), flowFormat.outPortWidth))
+
+      // datapath
+      // the mesh
+      val meshInput = cloneOf(dataIn.fragment)
+      meshInput.setName("meshInput")
+      val meshOutput = cloneOf(dataOut.fragment)
+      val meshIns = meshInput.divide(coresInColumn)
+      wrappers.zip(meshIns).foreach { case (row, data) =>
+        val segment = ChainsawFlow(Vec(data.map(_.asBits)), dataIn.valid, dataIn.last)
+        row.head._1 << segment
+        row.prevAndNext { case (prev, next) => next._1 << prev._2 }
+      }
+      // TODO: use ram-based FIFO for BigData
+      meshOutput := Vec(wrappers.flatMap(_.last._2.fragment)).d(flowFormat.fifoLength)
+      // the feedback path
+      if (reuse.timeReuse > 1) {
+        // controls
+        val counterForIter = CounterFreeRun(flowFormat.iterationLatency)
+        val counterForMux = Counter(reuse.timeReuse)
+        when(dataIn.last) {
+          counterForIter.clear()
+          counterForMux.clear()
+        }
+        when(counterForIter.willOverflow)(counterForMux.increment())
+        meshInput := Mux(counterForMux.value === 0, dataIn.fragment, meshOutput)
+      } else {
+        meshInput := dataIn.fragment
+      }
+      dataOut.fragment := meshOutput
+      logger.info(s"iteration latency ${flowFormat.iterationLatency}")
+      logger.info(s"total latency $latency")
+      autoLast()
+      autoValid()
+    }
+  }
 
   def implForTest[Tin <: Data : ClassTag, TOut <: Data : ClassTag](typeIn: HardType[Tin], typeOut: HardType[TOut]) = {
     val meshConfig = this
     new TransformModule[Tin, TOut] {
       override val config = meshConfig
-      override val dataIn = slave Flow Fragment(Vec(typeIn, size._1))
-      override val dataOut = master Flow Fragment(Vec(typeOut, size._2))
+      override val dataIn = slave Flow Fragment(Vec(typeIn, flowFormat.inPortWidth))
+      override val dataOut = master Flow Fragment(Vec(typeOut, flowFormat.inPortWidth))
 
       val core: TransformModule[Bits, Bits] = implH
       core.dataIn.assignFromBits(dataIn.asBits)
       dataOut.assignFromBits(core.dataOut.asBits)
     }
   }
+}
 
-  override def implH: TransformModule[Bits, Bits] = {
-    val meshConfig = this
-    new TransformModule[Bits, Bits] {
+object TransformMesh {
+  def main(args: Array[String]): Unit = {
 
-      val mesh = Seq.tabulate(repetition.spaceFactor, repetition.timeFactor)((_, _) => base.implH)
-      val wrappers = mesh.map(_.map(_.getWrapper()))
-      val inBitWidth = wrappers.head.head._1.fragment.head.getBitsWidth
-      val outBitWidth = wrappers.head.head._2.fragment.head.getBitsWidth
-
-      override val config = meshConfig
-      override val dataIn = slave Flow Fragment(Vec(Bits(inBitWidth bits), flowFormat.inPortWidth))
-      override val dataOut = master Flow Fragment(Vec(Bits(outBitWidth bits), flowFormat.outPortWidth))
-
-      val dataIns = dataIn.fragment.divide(repetition.spaceFactor)
-      wrappers.zip(dataIns).foreach { case (row, data) =>
-        val segment = ChainsawFlow(Vec(data.map(_.asBits)), dataIn.valid, dataIn.last)
-        row.head._1 << segment
-        row.prevAndNext { case (prev, next) => next._1 << prev._2 }
-      }
-      dataOut.fragment.zip(wrappers.flatMap(_.last._2.fragment))
-        .foreach { case (out, core) => out.assignFromBits(core) }
-
-      autoLast()
-      autoValid()
-    }
   }
 }
 
-object TransformMesh extends App {
 
-  val config0 = flowConverters.PermutationByRamConfig(Seq(1, 2, 3, 0), 4, 4)
-  val data0 = Seq(0, 1, 2, 3, 4, 5, 6, 7).map(BigInt(_))
-  val mesh0 = config0 ⊗ 2 ∏ 2
-
-  // test for a 2 * 2 mesh
-  TransformTest.test(mesh0.implForTest(UInt(4 bits), UInt(4 bits)), data0)
-}

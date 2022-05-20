@@ -12,11 +12,11 @@ abstract class TransformBase extends TransformConfig {
   def timeFolds: Seq[Int] = Seq(1)
 
   // repetition operations
-  def ⊗(factor: Int, step: Int = -1) = TransformMesh(this, Repetition(Seq(SpaceRepetition(factor, step)), TimeRepetition(1)))
+  def ⊗(factor: Int, step: Int = -1) = TransformMesh(this, Repetition(Seq(SpaceRepetition(factor, step)), TimeRepetition(1)), Reuse.unit)
 
-  def ∏(factor: Int) = TransformMesh(this, Repetition(Seq(SpaceRepetition(1)), TimeRepetition(factor)))
+  def ∏(factor: Int) = TransformMesh(this, Repetition(Seq(SpaceRepetition(1)), TimeRepetition(factor)), Reuse.unit)
 
-  def toTransformMesh = TransformMesh(this, Repetition.unit)
+  def toTransformMesh = TransformMesh(this, Repetition.unit, Reuse.unit)
 
   def getConfigWithFoldsChanged(spaceFold: Int, timeFold: Int): TransformBase = throw new IllegalArgumentException("this transform is not foldable")
 

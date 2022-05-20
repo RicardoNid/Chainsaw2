@@ -1,7 +1,8 @@
 package org.datenlord
 
-import breeze.linalg.DenseVector
+import breeze.linalg.{DenseVector, max}
 import breeze.math.Complex
+import breeze.stats.mean
 
 object Metric {
 
@@ -17,7 +18,8 @@ object Metric {
     (yours: Seq[Double], golden: Seq[Double]) => {
       val yourV = new DenseVector(yours.toArray)
       val goldenV = new DenseVector(golden.toArray)
-      val errorV = yourV - goldenV
+      val errorV = (yourV - goldenV).map(_.abs)
+      logger.info(s"errorMax = ${max(errorV)}, errormean${mean(errorV)}")
       errorV.forall(_.abs < epsilon)
     }
 
