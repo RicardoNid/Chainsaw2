@@ -1,25 +1,24 @@
 package org.datenlord
 
-case class MeshFlow(transform: TransformBase, repetition: Repetition, reuse: Reuse) {
+case class MeshFormat(baseSize: (Int, Int), baseLatency: Int, repetition: Repetition, reuse: Reuse) {
 
   type Slice = Seq[Int]
 
   // repetition: base vector -> expanded vector
-
-  val baseSizeIn = transform.size._1
-  val baseSizeOut = transform.size._2
+  val baseSizeIn = baseSize._1
+  val baseSizeOut = baseSize._2
   val inPortWidth = baseSizeIn * repetition.spaceFactor / reuse.spaceReuse / reuse.spaceFold
   val outPortWidth = baseSizeOut * repetition.spaceFactor / reuse.spaceReuse / reuse.spaceFold
 
-  val (inputSegments, outputSegments) = repetition.getSegmentsExpanded(transform.size)
+  val (inputSegments, outputSegments) = repetition.getSegmentsExpanded(baseSize)
 
-  val queue = repetition.timeFactor / reuse.timeReuse * transform.latency
+  val queue = repetition.timeFactor / reuse.timeReuse * baseLatency
   val inQueue = reuse.spaceReuse * reuse.timeFold * reuse.spaceFold
   // when inQueue > queue, need fifo
   val iterationLatency = inQueue max queue
   val fifoLength = (inQueue - queue) max 0
   // when inQueue < queue, util < 1
-  val util = if(reuse.timeReuse > 1) inQueue.toDouble / iterationLatency else 1
+  val util = if (reuse.timeReuse > 1) inQueue.toDouble / iterationLatency else 1
   val throughput = util / (reuse.timeReuse * reuse.spaceReuse * reuse.timeFold * reuse.spaceFold)
   val latency = reuse.timeReuse * iterationLatency
 
@@ -56,4 +55,11 @@ case class MeshFlow(transform: TransformBase, repetition: Repetition, reuse: Reu
   def drawInput(): Unit = inputFlow.generateWaveform("input", "x")
 
   def drawOutput(): Unit = outputFlow.generateWaveform("output", "y")
+}
+
+object MeshFormat {
+  def apply(transform: TransformBase, repetition: Repetition, reuse: Reuse): MeshFormat =
+    MeshFormat(transform.size, transform.latency, repetition, reuse)
+
+  def dontCare = MeshFormat((1,1), 1, Repetition.unit, Reuse.unit)
 }

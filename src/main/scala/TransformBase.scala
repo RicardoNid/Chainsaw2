@@ -20,5 +20,5 @@ abstract class TransformBase extends TransformConfig {
 
   def getConfigWithFoldsChanged(spaceFold: Int, timeFold: Int): TransformBase = throw new IllegalArgumentException("this transform is not foldable")
 
-  def flowFormat = MeshFlow(this, Repetition.unit, Reuse(1, 1, spaceFold, timeFold))
+  def flowFormat = MeshFormat(this, Repetition.unit, Reuse(1, 1, spaceFold, timeFold))
 }

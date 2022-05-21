@@ -38,7 +38,7 @@ object TransformTest {
     }
   }
 
-  def showError[T](yours: Seq[T], golden: Seq[T]) = s"yours:\n${yours.mkString(" ")}\ngolden:\n${golden.mkString(" ")}"
+  def showData[T](yours: Seq[T], golden: Seq[T], index: Int) = s"\n$index-th pair: \nyours:\n${yours.mkString(" ")}\ngolden:\n${golden.mkString(" ")}"
 
   def test[TIn <: Data, TOut <: Data, TSoft]
   (transformModule: => TransformModule[TIn, TOut], data: Seq[TSoft],
@@ -96,11 +96,11 @@ object TransformTest {
 
       if (firstTime != latency) logger.warn(s"latency is ${firstTime - 1}, while supposed to be $latency")
 
-      logger.info(s"first pair:\n${showError(yours.head, golden.head)}")
+      logger.info(s"${showData(yours.head, golden.head, 0)}")
 
-      yours.zip(golden).foreach { case (y, g) =>
-        if (metric == null) assert(y == g, showError(y, g))
-        else assert(metric(y, g), showError(y, g))
+      yours.zip(golden).zipWithIndex.foreach { case ((y, g), i) =>
+        if (metric == null) assert(y == g, showData(y, g, i))
+        else assert(metric(y, g), showData(y, g, i))
       }
 
       logger.info("test for transform module passed")

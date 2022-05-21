@@ -10,9 +10,9 @@ object Example extends App {
   val noRepeat = Repetition.unit
 
   println("basic")
-  println(MeshFlow(basic, noRepeat, noReuse).inputFlow)
-  println(MeshFlow(basic, noRepeat, spaceFold).inputFlow)
-  println(MeshFlow(basic, noRepeat, timeFold).outputFlow)
+  println(MeshFormat(basic, noRepeat, noReuse).inputFlow)
+  println(MeshFormat(basic, noRepeat, spaceFold).inputFlow)
+  println(MeshFormat(basic, noRepeat, timeFold).outputFlow)
 
   // complex mesh flow behavior
   val config0: TransformBase = TransformConfigForTest((2, 2), 3)
@@ -24,25 +24,35 @@ object Example extends App {
   val reuse1 = Reuse(2, 2, 1, 2)
   val reuse2 = Reuse(2, 2, 1, 1)
   // no bubble, fifo
-  println(MeshFlow(config0, repeat, reuse0).inputFlow)
-  println(MeshFlow(config0, repeat, reuse0).outputFlow)
+  println(MeshFormat(config0, repeat, reuse0).inputFlow)
+  println(MeshFormat(config0, repeat, reuse0).outputFlow)
   // no bubble, no fifo
-  println(MeshFlow(config1, repeat, reuse0).inputFlow)
-  println(MeshFlow(config1, repeat, reuse0).outputFlow)
+  println(MeshFormat(config1, repeat, reuse0).inputFlow)
+  println(MeshFormat(config1, repeat, reuse0).outputFlow)
   // bubble, fifo
-  println(MeshFlow(config2, repeat, reuse0).inputFlow)
-  println(MeshFlow(config2, repeat, reuse0).outputFlow)
+  println(MeshFormat(config2, repeat, reuse0).inputFlow)
+  println(MeshFormat(config2, repeat, reuse0).outputFlow)
   // no bubble, fifo
-  println(MeshFlow(config0, repeat, reuse1).inputFlow)
-  println(MeshFlow(config0, repeat, reuse1).outputFlow)
+  println(MeshFormat(config0, repeat, reuse1).inputFlow)
+  println(MeshFormat(config0, repeat, reuse1).outputFlow)
   // no bubble, no fifo
-  println(MeshFlow(config1, repeat, reuse1).inputFlow)
-  println(MeshFlow(config1, repeat, reuse1).outputFlow)
+  println(MeshFormat(config1, repeat, reuse1).inputFlow)
+  println(MeshFormat(config1, repeat, reuse1).outputFlow)
   // bubble, fifo
-  println(MeshFlow(config2, repeat, reuse1).inputFlow)
-  println(MeshFlow(config2, repeat, reuse1).inputFlow)
+  println(MeshFormat(config2, repeat, reuse1).inputFlow)
+  println(MeshFormat(config2, repeat, reuse1).inputFlow)
 
   // life cycles of registers in dataflow conversions
-  println(flowConverters.FlowConversion(MeshFlow(config0, repeat, reuse0).outputFlow, MeshFlow(config0, repeat, reuse1).inputFlow).toKaTex)
+  val repeat1 = Repetition(Seq(SpaceRepetition(4)), TimeRepetition(2))
+  val formatA = MeshFormat(config0, repeat1, reuse0)
+  val formatB = MeshFormat(config0, repeat1, reuse1)
+  val formatC = MeshFormat(config0, repeat1, reuse2)
+  val reuse3 = Reuse(4,1,1,1)
+  val formatD = MeshFormat(config0, repeat1, reuse3)
+  println(flowConverters.FlowConversion(formatA, formatB).toKaTex)
+  println(flowConverters.FlowConversion(formatB, formatC).toKaTex)
+  println(flowConverters.FlowConversion(formatC, formatD).toKaTex)
 
+  import flowConverters.{FlowConversion, RegisterAllocator, RegisterAllocation}
+  println(RegisterAllocator(FlowConversion(formatC, formatD)))
 }

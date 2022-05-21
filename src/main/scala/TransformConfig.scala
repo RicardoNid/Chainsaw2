@@ -13,7 +13,7 @@ abstract class TransformConfig {
 
   def latency: Int
 
-  def flowFormat: MeshFlow
+  def flowFormat: MeshFormat
 
   def implH: TransformModule[_, _]
 
@@ -27,6 +27,6 @@ abstract class TransformConfig {
   def outputWidth = inputFlow.portWidth
 
   def getRandomDataIn[T:ClassTag](randGen: () => T): Seq[T] =
-    Random.RandomSequence(10 * flowFormat.inputFlow.rawDataCount, randGen)
+    Random.RandomSequence(10 * inputFlow.rawDataCount, randGen)
 
 }

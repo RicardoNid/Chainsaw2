@@ -72,6 +72,9 @@ abstract class DataFlow() {
     require(rawDataTemp.forall(valuesForSameIndex => valuesForSameIndex.distinct.length == valuesForSameIndex.length))
     rawDataTemp.map(_.head)
   }
+
+  def emptyRow = Seq.fill(flow.head.length)(-1)
+  def padTo(period:Int) = BasicDataFlow(flow.padTo(period, emptyRow))
 }
 
 object DataFlow { // examples

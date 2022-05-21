@@ -13,6 +13,10 @@ case class FlowConversion(flowIn: DataFlow, flowOut: DataFlow) {
 
   val period = flowIn.period max flowOut.period
 
+  def flowInPadded = flowIn.padTo(period)
+
+  def flowOutPadded = flowOut.padTo(period)
+
   def tIns = (0 until rawDataCount).map(flowIn.getTime)
 
   def tZlOuts = (0 until rawDataCount).map(flowOut.getTime)
@@ -40,4 +44,8 @@ case class FlowConversion(flowIn: DataFlow, flowOut: DataFlow) {
     val contents = (0 until rawDataCount).map(index => s"\\text { $index } & ${tIns(index)} & ${tZlOuts(index)} & ${tDiff(index)} & ${tOuts(index)} & ${tOuts(index) - tIns(index)} & ${tIns(index)} \\rightarrow ${tOuts(index)} \\\\").mkString("\n")
     Seq(head, header, contents, last).mkString(" ")
   }
+}
+
+object FlowConversion {
+  def apply(prev: MeshFormat, next: MeshFormat): FlowConversion = new FlowConversion(prev.outputFlow, next.inputFlow)
 }
