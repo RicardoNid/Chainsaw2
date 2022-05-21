@@ -5,18 +5,18 @@ import spinal.core._
 import spinal.lib._
 
 // TODO: implement this by DFG
-case class BenesNetworkCore(N: Int, bitWidth: Int, stagesPerCycle: Int) extends Component {
+case class BenesNetworkCore[T <: Data](N: Int, stagesPerCycle: Int, dataType: HardType[T])
+  extends Component {
 
   require(isPow2(N))
 
-  val elemType = HardType(Bits(bitWidth bits))
   val controlType = HardType(Bits(N / 2 bits))
 
-  val dataIn = in Vec(elemType, N)
-  val dataOut = out Vec(elemType, N)
+  val dataIn = in Vec(dataType, N)
+  val dataOut = out Vec(dataType, N)
   val controlIn = in Vec(controlType, 2 * log2Up(N) - 1)
 
-  def switch22(a: Bits, b: Bits, switch: Bool) = {
+  def switch22(a: T, b: T, switch: Bool) = {
     val (retA, retB) = (cloneOf(a), cloneOf(b))
     when(switch) {
       retA := b
@@ -28,7 +28,7 @@ case class BenesNetworkCore(N: Int, bitWidth: Int, stagesPerCycle: Int) extends 
     Vec(retA, retB)
   }
 
-  def doBenes(dataIn: Seq[Bits], controlIn: Seq[Seq[Bool]]): Seq[Bits] = {
+  def doBenes(dataIn: Seq[T], controlIn: Seq[Seq[Bool]]): Seq[T] = {
 
     val n = dataIn.size
     val currentStage = log2Up(n) - 1 // stage number, start from the last stage
@@ -67,7 +67,7 @@ case class BenesNetworkCore(N: Int, bitWidth: Int, stagesPerCycle: Int) extends 
  * @param stagesPerCycle number of cascaded switches in between pipeline registers
  * @see ''MATHEMATICS FOR COMPUTER SCIENCE'' Chapter 11
  */
-case class BenesNetworkConfig(N: Int, bitWidth: Int, permutations: Seq[Seq[Int]], stagesPerCycle: Int)
+case class BenesNetworkConfig[T <: Data](N: Int, permutations: Seq[Seq[Int]], stagesPerCycle: Int, dataType: HardType[T])
   extends TransformBase {
 
   val p = permutations.length
@@ -87,16 +87,17 @@ case class BenesNetworkConfig(N: Int, bitWidth: Int, permutations: Seq[Seq[Int]]
 
 /** periodic Benes network
  */
-case class BenesNetwork(config: BenesNetworkConfig) extends TransformModule[Bits, Bits] {
+case class BenesNetwork[T <: Data](config: BenesNetworkConfig[T])
+  extends TransformModule[T, T] {
 
   import config._
 
   val period = permutations.length
 
-  override val dataIn = slave Flow Fragment(Vec(Bits(bitWidth bits), N))
-  override val dataOut = master Flow Fragment(Vec(Bits(bitWidth bits), N))
+  override val dataIn = slave Flow Fragment(Vec(dataType, N))
+  override val dataOut = master Flow Fragment(Vec(dataType, N))
 
-  val core = BenesNetworkCore(N, bitWidth, stagesPerCycle)
+  val core = BenesNetworkCore(N, stagesPerCycle, dataType)
   val controlROM = Mem(permutations.map(Benes.getControlForHard))
 
   val counter = CounterFreeRun(period)

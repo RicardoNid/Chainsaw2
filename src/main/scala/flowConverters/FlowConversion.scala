@@ -1,9 +1,24 @@
 package org.datenlord
 package flowConverters
 
-import scala.math.ceil
+import spinal.core._
+import spinal.core.sim._
+import spinal.lib._
+import spinal.lib.fsm._
 
+object ConversionMode extends Enumeration {
+  val Forward, PermByRAM = Value
+  type ConversionMode = Value
+}
+
+/** Define and analyse flow conversion, select a converter scheme
+ *
+ * @param flowIn  format of input flow
+ * @param flowOut format of output flow
+ */
 case class FlowConversion(flowIn: DataFlow, flowOut: DataFlow) {
+
+  import ConversionMode._
 
   require(flowIn.rawDataCount == flowOut.rawDataCount)
 
@@ -17,35 +32,32 @@ case class FlowConversion(flowIn: DataFlow, flowOut: DataFlow) {
 
   def flowOutPadded = flowOut.padTo(period)
 
+  val isCompact = flowInPadded.isCompact && flowOutPadded.isCompact
+
+  /** Analyse the dataflow pattern and select a scheme for format converter implementation
+   *
+   * @return format converter implementation mode
+   */
+  def conversionMode = {
+    if (isUnique && isCompact) PermByRAM
+    else Forward
+  }
+
   def tIns = (0 until rawDataCount).map(flowIn.getTime)
 
   def tZlOuts = (0 until rawDataCount).map(flowOut.getTime)
 
-  def tDiff = tZlOuts.zip(tIns).map { case (a, b) => a - b }
+  def lifeTimeTable = LifeTimeTable(tIns, tZlOuts)
 
-  def latency = tDiff.min.abs
+  def permutation = flowOut.flow.flatten.map(flowIn.flow.flatten.indexOf(_))
 
-  def tOuts = tZlOuts.map(_ + latency)
-
-  def lifeCycles = tOuts.zip(tIns).map { case (a, b) => a - b }
-
-  def positive(value: Double) = if (value > 0) value else 0
-
-  def dataAlive(time: Int) =
-    tIns.map(tIn => ceil(positive(time - tIn.toDouble) / period)).sum.toInt -
-      tOuts.map(tOut => ceil(positive(time - tOut.toDouble) / period)).sum.toInt
-
-  def minimizedRegisterCount = (latency until latency + period).map(dataAlive).max
-
-  def toKaTex = {
-    val head = "\\begin{array}{crrrrrc}"
-    val last = "\\hline\\end{array}"
-    val header = "\\hline \\text { Variable }(v) & T_{\\text {input }} & T_{\\text {zlout }} & T_{\\text {diff }} & T_{\\text {out }} & L(v) & \\text { Life Period } \\\\ \\hline"
-    val contents = (0 until rawDataCount).map(index => s"\\text { $index } & ${tIns(index)} & ${tZlOuts(index)} & ${tDiff(index)} & ${tOuts(index)} & ${tOuts(index) - tIns(index)} & ${tIns(index)} \\rightarrow ${tOuts(index)} \\\\").mkString("\n")
-    Seq(head, header, contents, last).mkString(" ")
+  def getConverterConfig[T <: Data](dataType: HardType[T]) = conversionMode match {
+    case Forward => ForwardRegisterConverterConfig(this, dataType)
+    case PermByRAM => PermutationByRamConfig(permutation, period, dataType)
   }
 }
 
 object FlowConversion {
-  def apply(prev: MeshFormat, next: MeshFormat): FlowConversion = new FlowConversion(prev.outputFlow, next.inputFlow)
+  def apply(prev: MeshFormat, next: MeshFormat): FlowConversion =
+    new FlowConversion(prev.outputFlow, next.inputFlow)
 }

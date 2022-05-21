@@ -17,6 +17,8 @@ abstract class DataFlow() {
 
   def isUnique = rawData.length == rawData.distinct.length
 
+  def isCompact = flow.flatten.forall(_ != -1)
+
   def getTime(elem: Int) = flow.flatten.indexWhere(_ == elem) / portWidth
 
   def getPort(elem: Int) = flow.flatten.indexWhere(_ == elem) % portWidth

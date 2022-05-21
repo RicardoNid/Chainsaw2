@@ -1,6 +1,11 @@
 package org.datenlord
 package flowConverters
 
+import spinal.core._
+import spinal.core.sim._
+import spinal.lib._
+import spinal.lib.fsm._
+
 import intel.QuartusFlow
 
 import org.scalatest.flatspec.AnyFlatSpec
@@ -13,7 +18,8 @@ class BenesNetworkTest extends AnyFlatSpec {
   val perms = data.map(seq => Random.shuffle(seq.toList).map(_.toInt))
   println(perms.mkString("\n"))
 
-  val config = BenesNetworkConfig(8, 3, perms, 5)
+  val dataType = HardType(UInt(3 bits))
+  val config = BenesNetworkConfig(8, perms, 5, dataType)
 
   "Benes network" should "work" in {
     TransformTest.test(BenesNetwork(config), data.flatten)

@@ -8,13 +8,15 @@ import scala.util.Random
 
 class TransformMeshTest extends AnyFlatSpec {
 
+  val dataType = HardType(UInt(4 bits))
+
   "mesh" should "work with no reuse" in {
-    val config = flowConverters.PermutationByRamConfig(Seq(1, 2, 3, 0), 4, 4)
+    val config = flowConverters.PermutationByRamConfig(Seq(1, 2, 3, 0), 4, dataType)
     val data = Seq(0, 1, 2, 3, 4, 5, 6, 7).map(BigInt(_))
     val mesh = config ⊗ 2 ∏ 2
 
     // test for a 2 * 2 mesh
-    TransformTest.test(mesh.implForTest(UInt(4 bits), UInt(4 bits)), data)
+    TransformTest.test(mesh.implForTest(dataType, dataType), data)
   }
 
   // base which is space foldable, latency = 3

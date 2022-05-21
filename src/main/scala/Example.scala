@@ -49,10 +49,10 @@ object Example extends App {
   val formatC = MeshFormat(config0, repeat1, reuse2)
   val reuse3 = Reuse(4,1,1,1)
   val formatD = MeshFormat(config0, repeat1, reuse3)
-  println(flowConverters.FlowConversion(formatA, formatB).toKaTex)
-  println(flowConverters.FlowConversion(formatB, formatC).toKaTex)
-  println(flowConverters.FlowConversion(formatC, formatD).toKaTex)
+  println(flowConverters.FlowConversion(formatA, formatB).lifeTimeTable)
+  println(flowConverters.FlowConversion(formatB, formatC).lifeTimeTable)
+  println(flowConverters.FlowConversion(formatC, formatD).lifeTimeTable)
 
-  import flowConverters.{FlowConversion, RegisterAllocator, RegisterAllocation}
-  println(RegisterAllocator(FlowConversion(formatC, formatD)))
+  import flowConverters.{FlowConversion, ForwardRegisterAllocator, RegisterAllocation}
+  println(ForwardRegisterAllocator(FlowConversion(formatC, formatD)))
 }

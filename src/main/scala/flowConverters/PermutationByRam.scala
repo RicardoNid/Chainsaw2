@@ -14,7 +14,7 @@ import scala.collection.mutable.ArrayBuffer
  * @param bitWidth    bit width of elements in input & output vector
  * @see ''Automatic Generation of Streaming Datapaths for Arbitrary Fixed Permutations, Peter A. Milder, James C. Hoe, and Markus P¨uschel''
  */
-case class PermutationByRamConfig(permutation: Seq[Int], override val spaceFold: Int, bitWidth: Int)
+case class PermutationByRamConfig[T <: Data](permutation: Seq[Int], override val spaceFold: Int, dataType: HardType[T])
   extends TransformBase {
 
   require(N % spaceFold == 0)
@@ -29,13 +29,14 @@ case class PermutationByRamConfig(permutation: Seq[Int], override val spaceFold:
 
   val (permutations, readAddr, writeAddr) = if (N > w) getControls else (null, null, null)
 
-  val networkConfig = if (N > w) BenesNetworkConfig(w, bitWidth, permutations, 2) else null
+  val networkConfig = if (N > w) BenesNetworkConfig(w, permutations, 2, dataType) else null
 
   override def latency = if (N > w) period * 2 + networkConfig.latency else 1
 
   override def spaceFolds = factors(N)
 
-  override def getConfigWithFoldsChanged(spaceFold: Int, timeFold: Int) = PermutationByRamConfig(permutation, spaceFold, bitWidth)
+  override def getConfigWithFoldsChanged(spaceFold: Int, timeFold: Int) =
+    PermutationByRamConfig(permutation, spaceFold, dataType)
 
   override def impl(dataIn: Seq[Any]) = {
     val data = dataIn.asInstanceOf[Seq[BigInt]]
@@ -112,18 +113,15 @@ case class PermutationByRamConfig(permutation: Seq[Int], override val spaceFold:
   override def implH = PermutationByRam(this)
 }
 
-case class PermutationByRam(config: PermutationByRamConfig)
-  extends TransformModule[Bits, Bits] {
+case class PermutationByRam[T <: Data](config: PermutationByRamConfig[T])
+  extends TransformModule[T, T] {
 
   import config._
 
   // I/O
-  override val dataIn = slave Flow Fragment(Vec(Bits(bitWidth bits), w))
-  override val dataOut = master Flow Fragment(Vec(Bits(bitWidth bits), w))
+  override val dataIn = slave Flow Fragment(Vec(dataType, w))
+  override val dataOut = master Flow Fragment(Vec(dataType, w))
   if (N > w) {
-    // types
-    val addrType = HardType(UInt(addrWidth bits))
-    val dataType = HardType(Bits(bitWidth bits))
     // components
     val network = BenesNetwork(networkConfig)
     val R = Mem(readAddr.map(seq => Vec(seq.map(U(_, addrWidth bits)))))
