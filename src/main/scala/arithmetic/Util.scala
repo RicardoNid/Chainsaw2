@@ -1,7 +1,7 @@
 package org.datenlord
 package arithmetic
 
-import ComplexMult.complexMult
+import org.datenlord.device.ComplexMult.complexMult
 
 import breeze.math.Complex
 import spinal.core._

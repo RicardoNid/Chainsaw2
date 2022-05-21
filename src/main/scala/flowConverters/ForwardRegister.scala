@@ -9,19 +9,24 @@ object ForwardRegisterAllocator {
     val lifeCycleTable = conversion.lifeTimeTable
     val timeRange = lifeCycleTable.latency + conversion.period
     val period = conversion.period
-    val allocation = RegisterAllocation(timeRange, period)
+    val allocation = RegisterAllocation(timeRange + 1, period)
+    println(lifeCycleTable)
+    println(s"range: $timeRange")
+    println(s"period: $period")
 
-    def allocForward(initTime: Int, initReg: Int, data: Int) =
+    def allocForward(initTime: Int, initReg: Int, data: Int): Unit =
       (0 until lifeCycleTable.lifeLengths(data))
         .foreach(i => allocation.set(initTime + i, initReg + i, data))
 
     (0 until period).foreach { time =>
+      println(time)
       val dataIns = (0 until conversion.rawDataCount)
         .filter(conversion.tIns(_) == time)
         .sortBy(lifeCycleTable.lifeLengths(_))
       val regs = (0 until allocation.occupation(time).length + dataIns.length)
         .filter(allocation.get(time + 1, _) == -1) // available regs
         .take(dataIns.length) // first w_{in} available regs
+      println(allocation)
       dataIns.zip(regs).foreach { case (data, reg) => allocForward(time + 1, reg, data) }
     }
 
@@ -93,7 +98,7 @@ case class ForwardRegisterConverter[T <: Data]
   // controls
   switch(counter.value) {
     conversion.flowOut.validCycles.foreach(time => is(time)(dataOut.valid := True))
-    default(dataOut.valid := False)
+    if(conversion.flowOut.validCycles.length < conversion.period) default(dataOut.valid := False)
   }
   autoLast()
 }

@@ -16,7 +16,7 @@ class StridePermutationFor2Test extends AnyFlatSpec {
   }
 
   "SPN" should "work for square matrix transpose" in {
-    val widths = (1 to 6)
+    val widths = (1 to 4)
     val configs = widths.map(width => SPNConfig(2 * width, width, 2 * width))
     configs.foreach { config =>
       val data = (0 until config.N).map(BigInt(_))
@@ -26,7 +26,7 @@ class StridePermutationFor2Test extends AnyFlatSpec {
   }
 
   "SPN" should "work for non-square matrix transpose" in {
-    val widths = (2 to 6)
+    val widths = (2 to 4)
     val configs = widths.map(width => SPNConfig(2 * width, width - 1, 2 * width))
     configs.foreach { config =>
       val data = (0 until config.N).map(BigInt(_))

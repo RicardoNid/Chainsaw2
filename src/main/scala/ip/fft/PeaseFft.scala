@@ -8,6 +8,7 @@ import flowConverters._
 import breeze.linalg.DenseVector
 import breeze.math.Complex
 import breeze.numerics.ceil
+import org.datenlord.device.ComplexMult
 import spinal.core._
 import spinal.lib._
 

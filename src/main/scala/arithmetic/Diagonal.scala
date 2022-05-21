@@ -2,6 +2,7 @@ package org.datenlord
 package arithmetic
 
 import breeze.math._
+import org.datenlord.device.ComplexMult
 import spinal.core._
 import spinal.lib._
 
@@ -61,7 +62,6 @@ case class Diagonal[TSoft, THard <: Data]
 
   if (spaceFold > 1) {
     val counter = autoInputCounter()
-    // TODO: implement "BigMem"
     val coeffGroups = coeffHard.grouped(portWidth).toSeq.map(Vec(_))
     val rom = Mem(coeffGroups)
     currentCoeffs := Vec(rom.readAsync(counter.value))
