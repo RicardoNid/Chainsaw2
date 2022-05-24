@@ -48,9 +48,12 @@ case class MeshFormat(baseSize: (Int, Int), baseLatency: Int, repetition: Repeti
   val inputSequence = iteration2Sequence(segments2Iteration(inputSegments, inPortWidth))
   val outputSequence = iteration2Sequence(segments2Iteration(outputSegments, outPortWidth))
 
-  def inputFlow = BasicDataFlow(inputSequence.map(_.toSeq).toSeq)
+  def inputFlow = BasicDataFlow(inputSequence.map(_.toSeq))
 
-  def outputFlow = BasicDataFlow(outputSequence.map(_.toSeq).toSeq)
+  def outputFlow = BasicDataFlow(outputSequence.map(_.toSeq))
+
+  // TODO: better definition
+  def period = inputFlow.period
 
   def drawInput(): Unit = inputFlow.generateWaveform("input", "x")
 

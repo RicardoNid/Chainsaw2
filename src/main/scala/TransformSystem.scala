@@ -39,9 +39,11 @@ case class TransformSystem(meshes: Seq[TransformMesh]) extends TransformConfig {
 
   override def flowFormat = MeshFormat.dontCare
 
-  override def inputFlow = meshes.head.inputFlow
+  def period = meshes.map(_.flowFormat.period).max
 
-  override def outputFlow = meshes.last.outputFlow
+  override def inputFlow = meshes.head.inputFlow.padTo(period)
+
+  override def outputFlow = meshes.last.outputFlow.padTo(period)
 
   override def implH = {
     val systemConfig = this

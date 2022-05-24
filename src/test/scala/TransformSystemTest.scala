@@ -6,6 +6,7 @@ import breeze.math.Complex
 import org.scalatest.flatspec.AnyFlatSpec
 import spinal.core._
 
+import scala.language.postfixOps
 import scala.util.Random
 
 class TransformSystemTest extends AnyFlatSpec {
@@ -17,6 +18,7 @@ class TransformSystemTest extends AnyFlatSpec {
   val lut = arithmetic.LUTConfig((0 until 16).map(Complex(_, 0)), complexType)
 
   val system = (lut ⊗ 4) ° perm
+  val data = system.getRandomDataIn(() => Random.nextBigInt(4))
 
   "system" should "work" in {
     val data = system.getRandomDataIn(() => Random.nextBigInt(4))
@@ -26,8 +28,14 @@ class TransformSystemTest extends AnyFlatSpec {
 
   "system folded" should "work" in {
     val systemFolded = system.fitTo(0.5)
-    val dataFolded = systemFolded.getRandomDataIn(() => Random.nextBigInt(4))
-    systemFolded.implStageByStage(dataFolded.take(4))
-    TransformTest.test(systemFolded.implForTest(uintType, complexType), dataFolded)
+    systemFolded.implStageByStage(data.take(4))
+    TransformTest.test(systemFolded.implForTest(uintType, complexType), data)
   }
+
+  "system folded" should "work for incompatible modules" in {
+    val systemIncompatible = (lut ⊗ 4).withReuse(Reuse(2,1,1,1)) ° perm
+    systemIncompatible.implStageByStage(data.take(4))
+    TransformTest.test(systemIncompatible.implForTest(uintType, complexType), data)
+  }
+
 }
