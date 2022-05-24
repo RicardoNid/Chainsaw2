@@ -22,5 +22,7 @@ class KaratsubaTest extends AnyFlatSpec {
       Karatsuba.multTimes = 0
     }
 
+    Karatsuba
+
   }
 }

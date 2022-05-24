@@ -14,10 +14,8 @@ case class LUTConfig[TSoft, THard <: Data]
 
   override def latency = 1
 
-  override def impl(dataIn: Seq[Any]) = {
-    println(coeffs.mkString(" "))
+  override def impl(dataIn: Seq[Any]) =
     Seq(coeffs(dataIn.head.asInstanceOf[BigInt].toInt))
-  }
 
   override def implH = LUT(this)
 

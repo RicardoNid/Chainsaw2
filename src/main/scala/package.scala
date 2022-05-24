@@ -30,7 +30,7 @@ package object datenlord {
 
     def withFragment(fragment: Seq[T]): ChainsawFlow[T] = withFragment(Vec(fragment))
 
-    def d(cycle:Int) = ChainsawFlow(flow.fragment.d(cycle), flow.valid.d(cycle), flow.last.d(cycle))
+    def d(cycle: Int) = ChainsawFlow(flow.fragment.d(cycle), flow.valid.d(cycle), flow.last.d(cycle))
 
   }
 
@@ -82,7 +82,7 @@ package object datenlord {
   implicit class seqUtil[T: ClassTag](seq: Seq[T]) {
     def divide(group: Int) = seq.grouped(seq.length / group).toSeq
 
-    def prevAndNext(f: ((T, T)) => Unit) = seq.init.zip(seq.tail).foreach(f)
+    def prevAndNext[TOut](f: ((T, T)) => TOut) = seq.init.zip(seq.tail).map(f)
 
     def padToLeft(len: Int, elem: T) = seq.reverse.padTo(len, elem).reverse
   }
@@ -103,6 +103,7 @@ package object datenlord {
   implicit class RandomUtil(rand: Random) {
 
     def RandomSequence[T: ClassTag](length: Int, randGen: () => T) = (0 until length).map(_ => randGen())
+
     def RandomSequences[T: ClassTag](count: Int, length: Int, randGen: () => T) = (0 until count).map(_ => (0 until length).map(_ => randGen()))
 
     def RandomVectors[T: ClassTag](count: Int, length: Int, randGen: () => T) =
@@ -188,8 +189,12 @@ package object datenlord {
   }
 
   implicit class VecUtil[T <: Data](vec: Vec[T]) {
-    def :=(that:Seq[T]) = vec.zip(that).foreach{ case (port, data) => port := data}
+    def :=(that: Seq[T]) = vec.zip(that).foreach { case (port, data) => port := data }
   }
 
   def factors(value: Int) = (1 to value).filter(value % _ == 0)
+
+  implicit def base2transform(base: TransformBase) = base.toTransformMesh
+
+  implicit def mesh2system(mesh: TransformMesh) = mesh.toSystem
 }

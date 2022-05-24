@@ -45,6 +45,13 @@ abstract class TransformModule[TIn <: Data, TOut <: Data] extends Component {
     (dataInBits, dataOutBits)
   }
 
+  def inBitWidth = dataIn.fragment.head.getBitsWidth
+
+  def outBitWidth = dataOut.fragment.head.getBitsWidth
+
+  def inSize = dataIn.fragment.length
+
+  def outSize = dataOut.fragment.length
 }
 
 // TODO: make generated code shorter

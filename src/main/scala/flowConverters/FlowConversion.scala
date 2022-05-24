@@ -7,7 +7,7 @@ import spinal.lib._
 import spinal.lib.fsm._
 
 object ConversionMode extends Enumeration {
-  val Forward, PermByRAM = Value
+  val Pass, Forward, PermByRAM = Value
   type ConversionMode = Value
 }
 
@@ -20,7 +20,7 @@ case class FlowConversion(flowIn: DataFlow, flowOut: DataFlow) {
 
   import ConversionMode._
 
-  require(flowIn.rawDataCount == flowOut.rawDataCount)
+  require(flowIn.rawDataCount == flowOut.rawDataCount, s"${flowIn.rawDataCount} != ${flowOut.rawDataCount}")
 
   val rawDataCount = flowIn.rawDataCount
 
@@ -34,12 +34,15 @@ case class FlowConversion(flowIn: DataFlow, flowOut: DataFlow) {
 
   val isCompact = flowInPadded.isCompact && flowOutPadded.isCompact
 
+  val isPass = flowInPadded.flow.flatten.equals(flowOutPadded.flow.flatten)
+
   /** Analyse the dataflow pattern and select a scheme for format converter implementation
    *
    * @return format converter implementation mode
    */
   def conversionMode = {
-    if (isUnique && isCompact) PermByRAM
+    if (isPass) Pass
+    else if (isUnique && isCompact) PermByRAM
     else Forward
   }
 
@@ -55,9 +58,17 @@ case class FlowConversion(flowIn: DataFlow, flowOut: DataFlow) {
     case Forward => ForwardRegisterConverterConfig(this, dataType)
     case PermByRAM => PermutationByRamConfig(permutation, period, dataType)
   }
+
+  def latency: Int = conversionMode match {
+    case Pass => 0
+    case _ => getConverterConfig(HardType(Bool())).latency
+  }
 }
 
 object FlowConversion {
   def apply(prev: MeshFormat, next: MeshFormat): FlowConversion =
+    new FlowConversion(prev.outputFlow, next.inputFlow)
+
+  def apply(prev: TransformMesh, next: TransformMesh): FlowConversion =
     new FlowConversion(prev.outputFlow, next.inputFlow)
 }

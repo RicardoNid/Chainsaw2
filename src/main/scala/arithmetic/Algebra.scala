@@ -1,9 +1,10 @@
 package org.datenlord
 package arithmetic
 
+import device.ComplexMult
+
 import breeze.linalg.{DenseMatrix, _}
 import breeze.math._
-import org.datenlord.device.ComplexMult
 import spinal.core._
 import spinal.lib._
 
