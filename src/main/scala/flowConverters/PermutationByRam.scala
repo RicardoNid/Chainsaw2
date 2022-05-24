@@ -38,10 +38,7 @@ case class PermutationByRamConfig[T <: Data](permutation: Seq[Int], override val
   override def getConfigWithFoldsChanged(spaceFold: Int, timeFold: Int) =
     PermutationByRamConfig(permutation, spaceFold, dataType)
 
-  override def impl(dataIn: Seq[Any]) = {
-    val data = dataIn.asInstanceOf[Seq[BigInt]]
-    permutation.map(i => data(i))
-  }
+  override def impl(dataIn: Seq[Any]) = permutation.map(dataIn(_))
 
   def getMappingMatrix = {
     val mappingMatrixContent = Array.tabulate(w, w) { (i, j) =>

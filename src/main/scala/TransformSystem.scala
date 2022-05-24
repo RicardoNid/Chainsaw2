@@ -8,9 +8,13 @@ import flowConverters.ConversionMode._
 
 import scala.reflect.ClassTag
 
-case class System(meshes: TransformMesh*) extends TransformConfig {
+case class TransformSystem(meshes: Seq[TransformMesh]) extends TransformConfig {
 
-  def °(that: TransformMesh) = System(that +: meshes: _*)
+  def °(that: TransformMesh) = TransformSystem(that +: meshes)
+
+  def fitTo(targetThroughput: Double) = {
+    TransformSystem(meshes.map(_.fitTo(targetThroughput)))
+  }
 
   override def impl(dataIn: Seq[Any]) = {
     var temp = dataIn
@@ -20,10 +24,9 @@ case class System(meshes: TransformMesh*) extends TransformConfig {
 
   def implStageByStage(dataIn: Seq[Any]) = {
     var temp = dataIn
-    meshes.foreach { mesh =>
+    meshes.zipWithIndex.foreach { case (mesh, i) =>
       temp = mesh.impl(temp)
-      println("gap")
-      println(temp.mkString(" "))
+      println(s"stage ${i + 1}, ${temp.mkString(" ")}")
     }
     temp
   }
