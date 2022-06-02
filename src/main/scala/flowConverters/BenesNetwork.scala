@@ -8,7 +8,7 @@ import spinal.lib._
 case class BenesNetworkCore[T <: Data](N: Int, stagesPerCycle: Int, dataType: HardType[T])
   extends Component {
 
-  require(isPow2(N))
+  require(isPow2(N), s"$N is not a power of 2")
 
   val controlType = HardType(Bits(N / 2 bits))
 
