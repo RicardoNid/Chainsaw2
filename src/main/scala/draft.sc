@@ -1,5 +1,10 @@
-import org.datenlord.ChainsawFlow
-import org.datenlord._
-import scala.util.Random
+import cc.redberry.rings
 
-Seq(1,2,3).sortBy(_.abs)
+import rings.poly.PolynomialMethods._
+import rings.scaladsl._
+import syntax._
+import rings.primes._
+
+val zp23 = Zp64(23)
+
+zp23.divide(-3, 6)
