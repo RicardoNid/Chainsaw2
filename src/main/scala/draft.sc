@@ -5,6 +5,9 @@ import rings.scaladsl._
 import syntax._
 import rings.primes._
 
-val zp23 = Zp64(23)
+// MNT4753 parameters
 
-zp23.divide(-3, 6)
+val a: IntZ = Zp(BigInt(5))(3)
+val b: IntZ = Zp(BigInt(5))(3)
+
+a + b

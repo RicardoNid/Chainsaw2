@@ -23,5 +23,6 @@ class BenesNetworkTest extends AnyFlatSpec {
 
   "Benes network" should "work" in {
     TransformTest.test(BenesNetwork(config), data.flatten)
+    new QuartusFlow(BenesNetwork(config)).impl()
   }
 }

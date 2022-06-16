@@ -1,7 +1,7 @@
 package org.datenlord
+package ip.das
 
 import spinal.core._
-import spinal.lib._
 
 import scala.language.postfixOps
 
