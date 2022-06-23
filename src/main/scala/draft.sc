@@ -5,9 +5,11 @@ import rings.scaladsl._
 import syntax._
 import rings.primes._
 
-// MNT4753 parameters
+val x  = BigInt("1110000", 2)
+val y  = BigInt("1111100", 2)
 
-val a: IntZ = Zp(BigInt(5))(3)
-val b: IntZ = Zp(BigInt(5))(3)
+val overlap =  x.toString(2).reverse.zip(y.toString(2).reverse).dropWhile(_ == ('0', '0')).length
 
-a + b
+import org.datenlord.algos.MSM.scalarModulus
+
+scalarModulus.toString(10)

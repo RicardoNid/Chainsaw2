@@ -51,5 +51,6 @@ class KaratsubaForXilinxTest extends AnyFlatSpec {
     }
   }
 
+  it should "synth" in VivadoSynth(KaratsubaForXilinx())
 
 }

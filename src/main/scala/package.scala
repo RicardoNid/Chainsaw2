@@ -2,20 +2,17 @@ package org
 
 import breeze.linalg._
 import breeze.math._
+import cc.redberry.rings
+import cc.redberry.rings.scaladsl._
 import org.datenlord.xilinx._
 import org.slf4j.LoggerFactory
 import spinal.core._
-import spinal.core.sim.setLong
+import spinal.core.sim._
 import spinal.lib.{Delay, _}
 
-import scala.collection.immutable
 import scala.math.{BigDecimal, BigInt}
 import scala.reflect.ClassTag
 import scala.util.Random
-import spinal.core._
-import spinal.core.sim._
-import spinal.lib._
-import spinal.lib.fsm._
 
 
 package object datenlord {
@@ -197,4 +194,8 @@ package object datenlord {
   implicit def base2transform(base: TransformBase) = base.toTransformMesh
 
   implicit def mesh2system(mesh: TransformMesh) = mesh.toSystem
+
+  implicit class normalOps(intZ: IntZ) {
+    def toBigInt = BigInt(intZ.toByteArray)
+  }
 }

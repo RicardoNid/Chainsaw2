@@ -1,12 +1,11 @@
 package org.datenlord
 package ip.das
 
+import org.datenlord.intel.{AlteraFIFO, AlteraPll}
 import spinal.core._
 import spinal.lib._
 
 import scala.language.postfixOps
-
-
 
 case class DcFifoTest() extends Component {
 

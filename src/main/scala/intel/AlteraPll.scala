@@ -1,9 +1,10 @@
 package org.datenlord
-package ip.das
+package intel
 
-import spinal.core._
+import spinal.core.{BlackBox, Bool, in, out}
 
 /** Altera Pll IP blackbox
+ *
  * @param outClockCount
  */
 case class AlteraPll(outClockCount: Int) extends BlackBox {

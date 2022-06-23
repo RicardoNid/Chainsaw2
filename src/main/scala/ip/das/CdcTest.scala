@@ -1,6 +1,7 @@
 package org.datenlord
 package ip.das
 
+import org.datenlord.intel.{AlteraFIFO, AlteraPll}
 import spinal.core._
 import spinal.lib._
 

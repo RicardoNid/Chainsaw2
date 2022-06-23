@@ -9,7 +9,16 @@ import java.nio.file.Paths
 import scala.io.Source
 import scala.language.postfixOps
 
-case class VivadoUtil(lut: Int, ff: Int, dsp: Int, bram36: Int)
+case class VivadoUtil(lut: Int, ff: Int, dsp: Int, bram36: Int) {
+  def +(that: VivadoUtil) = VivadoUtil(lut + that.lut, ff + that.ff, dsp + that.dsp, bram36 + that.bram36)
+
+  def *(k: Int) = VivadoUtil(lut * k, ff * k, dsp * k, bram36 * k)
+
+  // to get percentage
+  def /(that: VivadoUtil) =
+    (lut.toDouble / that.lut, ff.toDouble / that.ff,
+      dsp.toDouble / that.dsp, bram36.toDouble / that.bram36)
+}
 
 class VivadoReport(
                     workspacePath: String,

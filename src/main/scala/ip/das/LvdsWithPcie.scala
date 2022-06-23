@@ -1,6 +1,7 @@
 package org.datenlord
 package ip.das
 
+import org.datenlord.intel.{AlteraLvdsRx, AlteraPll}
 import spinal.core._
 import spinal.lib._
 
@@ -61,7 +62,7 @@ case class LvdsWithPcie() extends Component {
   pcieInterface <> xillybus.pcie
   // lvds
   // as the ADC output is in DDR format, factor here is actual desFactor multiplied by 2
-  val lvdsA, lvdsB = AltLvdsRx(7, desFactor * 2)
+  val lvdsA, lvdsB = AlteraLvdsRx(7, desFactor * 2)
   lvdsA.setDefinitionName("LVDS14")
   lvdsB.setDefinitionName("LVDS14")
 
