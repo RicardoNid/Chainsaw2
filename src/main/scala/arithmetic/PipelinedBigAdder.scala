@@ -8,27 +8,47 @@ import scala.collection.mutable.ArrayBuffer
 import scala.language.postfixOps
 import scala.math.ceil
 
-case class PipelinedBigAdderConfig(addWidth: Int, baseWidthMax: Int = 66) {
-  def latency = (addWidth + baseWidthMax - 1) / baseWidthMax
-}
-
 /**
  * @param addWidth
- * @param baseWidthMax
+ * @param baseWidth
  */
-case class PipelinedBigAdder(config: PipelinedBigAdderConfig) extends Component {
+case class PipelinedBigAdderConfig(addWidth: Int, baseWidth: Int = 127, minus: Boolean = false) extends TransformBase {
+  override def impl(dataIn: Seq[Any]) = {
+    val bigInts = dataIn.asInstanceOf[Seq[BigInt]]
+    if (!minus) Seq(bigInts.sum)
+    else {
+      assert(bigInts.head > bigInts.last, s"this module is for UInt and thus works only when x > y, for x - y")
+      Seq(bigInts.head - bigInts.last)
+    }
+  }
+
+  override val size = (2, 1)
+
+  override def latency = (addWidth + baseWidth - 1) / baseWidth
+
+  override def implH = PipelinedBigAdder(this)
+
+  def asOperator = (x: UInt, y: UInt) => {
+    val core = implH
+    core.dataIn.fragment := Vec(x.resized, y.resized)
+    core.skipControl()
+    core.dataOut.fragment.head
+  }
+}
+
+case class PipelinedBigAdder(config: PipelinedBigAdderConfig) extends TransformModule[UInt, UInt] {
 
   import config._
 
-  val N = ceil(addWidth.toDouble / baseWidthMax).toInt
+  val N = ceil(addWidth.toDouble / baseWidth).toInt
 
-  val dataIn = slave Flow Vec(UInt(addWidth bits), 2)
-  val dataOut = master Flow UInt(addWidth + 1 bits)
+  val dataIn = slave Flow Fragment(Vec(UInt(addWidth bits), 2))
+  val dataOut = master Flow Fragment(Vec(UInt(addWidth + 1 bits)))
 
-  val Seq(x, y) = dataIn.payload
+  val Seq(x, y) = dataIn.fragment
 
-  val xLow2High = x.subdivideIn(baseWidthMax bits, strict = false)
-  val yLow2High = y.subdivideIn(baseWidthMax bits, strict = false)
+  val xLow2High = x.subdivideIn(baseWidth bits, strict = false)
+  val yLow2High = y.subdivideIn(baseWidth bits, strict = false)
 
   val xDelayed = xLow2High.zipWithIndex.map { case (x, delay) => x.d(delay) }
   val yDelayed = yLow2High.zipWithIndex.map { case (y, delay) => y.d(delay) }
@@ -45,6 +65,7 @@ case class PipelinedBigAdder(config: PipelinedBigAdderConfig) extends Component 
   val alignedSums = sums.reverse.zipWithIndex.map { case (segment, i) => segment.d(i) } // high2low
   val ret = carrys.last.asUInt(1 bits) @@ alignedSums.reduce(_ @@ _)
 
-  dataOut.payload := ret
-  dataOut.valid := dataIn.valid.validAfter(config.latency)
+  dataOut.fragment := Vec(ret)
+  autoValid()
+  autoLast()
 }

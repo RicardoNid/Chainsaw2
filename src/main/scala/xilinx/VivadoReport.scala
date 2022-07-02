@@ -9,15 +9,15 @@ import java.nio.file.Paths
 import scala.io.Source
 import scala.language.postfixOps
 
-case class VivadoUtil(lut: Int, ff: Int, dsp: Int, bram36: Int) {
-  def +(that: VivadoUtil) = VivadoUtil(lut + that.lut, ff + that.ff, dsp + that.dsp, bram36 + that.bram36)
+case class VivadoUtil(lut: Int, ff: Int, dsp: Int, bram36: Int, carry8: Int = 0) {
+  def +(that: VivadoUtil) = VivadoUtil(lut + that.lut, ff + that.ff, dsp + that.dsp, bram36 + that.bram36, this.carry8 + that.carry8)
 
-  def *(k: Int) = VivadoUtil(lut * k, ff * k, dsp * k, bram36 * k)
+  def *(k: Int) = VivadoUtil(lut * k, ff * k, dsp * k, bram36 * k, carry8 * k)
 
   // to get percentage
   def /(that: VivadoUtil) =
     (lut.toDouble / that.lut, ff.toDouble / that.ff,
-      dsp.toDouble / that.dsp, bram36.toDouble / that.bram36)
+      dsp.toDouble / that.dsp, bram36.toDouble / that.bram36, carry8.toDouble / that.carry8)
 }
 
 class VivadoReport(
@@ -33,7 +33,12 @@ class VivadoReport(
 
   private def getIntAfter(pattern: String) = {
     try {
-      intFind.findFirstIn(s"${pattern}[ ]*\\|[ ]*(\\d+,?)+".r.findFirstIn(report).get).get.toInt
+      val line = s"${pattern}[ ]*\\|[ ]*(\\d+,?)+".r
+        .findFirstIn(report).get
+        .replace(pattern, "")
+      intFind
+        .findFirstIn(line).get
+        .toInt
     }
     catch {
       case e: Exception => -1
@@ -65,14 +70,15 @@ class VivadoReport(
 
   val DSP = getIntAfter("DSPs")
   val BRAM = getIntAfter("Block RAM Tile")
+  val CARRY8 = getIntAfter("CARRY8")
 
   private val targetPeriod = fmax.toTime.toDouble
   private val slack = getDoubleBefore("required time - arrival time") * 1e-9 //
   val Frequency = 1.0 / (targetPeriod - slack) // 1 / (T - WNS)
 
-  val util = VivadoUtil(LUT, FF, DSP, BRAM)
+  val util = VivadoUtil(LUT, FF, DSP, BRAM, CARRY8)
 
-  def printArea(): Unit = logger.info(s"\nLUT: ${LUT}\nFF: ${FF}\nDSP: ${DSP}\nBRAM: ${BRAM}\n")
+  def printArea(): Unit = logger.info(s"\nLUT: ${LUT}\nFF: ${FF}\nDSP: ${DSP}\nBRAM: ${BRAM}\nCARRY8: ${CARRY8}\n")
 
   def printFMax(): Unit = logger.info(s"\nfmax = 1.0 / ($targetPeriod s - $slack s) = ${Frequency / 1E6} MHz\n")
 

@@ -12,6 +12,7 @@ import spinal.lib.{Delay, _}
 
 import scala.math.{BigDecimal, BigInt}
 import scala.reflect.ClassTag
+import scala.sys.process.Process
 import scala.util.Random
 
 
@@ -59,6 +60,15 @@ package object datenlord {
      */
     def splitAt(lowWidth: Int) = (bi >> lowWidth, bi % (BigInt(1) << lowWidth))
 
+    /**
+     * @example 10100.slice(3 downto 1) = 010
+     */
+    def slice(range:Range.Inclusive) = {
+      val from = bi.bitLength - range.head - 1
+      val until = bi.bitLength - range.last
+      BigInt(bi.toString(2).slice(from, until), 2)
+    }
+
     def toWords(wordWidth: Int) = bi.toString(2)
       .reverse.grouped(wordWidth).toSeq
       .map(digits => BigInt(digits.reverse, 2))
@@ -74,6 +84,8 @@ package object datenlord {
 
   implicit class StringUtil(s: String) {
     def padToLeft(len: Int, elem: Char) = s.reverse.padTo(len, elem).reverse
+
+    def repeat(times: Int) = Seq.fill(times)(s).reduce(_ + _)
   }
 
   implicit class seqUtil[T: ClassTag](seq: Seq[T]) {
@@ -101,7 +113,7 @@ package object datenlord {
 
     def RandomSequence[T: ClassTag](length: Int, randGen: () => T) = (0 until length).map(_ => randGen())
 
-    def RandomSequences[T: ClassTag](count: Int, length: Int, randGen: () => T) = (0 until count).map(_ => (0 until length).map(_ => randGen()))
+    def RandomSequences[T: ClassTag](count: Int, length: Int, randGen: () => T) = (0 until count).map(_ => RandomSequence(length, randGen))
 
     def RandomVectors[T: ClassTag](count: Int, length: Int, randGen: () => T) =
       RandomSequences(count, length, randGen).map(seq => new DenseVector(seq.toArray))
@@ -197,5 +209,14 @@ package object datenlord {
 
   implicit class normalOps(intZ: IntZ) {
     def toBigInt = BigInt(intZ.toByteArray)
+  }
+
+  def doCmd(command: String, path: String): Unit = { // do cmd at the workSpace
+    println(command)
+    val isWindows = System.getProperty("os.name").toLowerCase().contains("win")
+    if (isWindows)
+      Process("cmd /C " + command, new java.io.File(path)) !
+    else
+      Process(command, new java.io.File(path)) !
   }
 }

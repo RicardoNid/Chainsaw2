@@ -20,12 +20,12 @@ case class PippengerProblem[T](scalars: Seq[BigInt], points: Seq[T], add: (T, T)
   }
 
   def doAdd(a: T, b: T) = {
-    addCount += 1;
+    addCount += 1
     add(a, b)
   }
 
   def doDbl(a: T) = {
-    dblCount += 1;
+    dblCount += 1
     dbl(a)
   }
 
@@ -112,7 +112,7 @@ object PippengerProblem {
 
     def search() = {
       val randBig: Seq[BigInt] = (0 until 1000).map(_ => Random.nextBigInt(10))
-      val randScalar: Seq[BigInt] = (0 until 1000).map(_ => Random.nextBigInt(253) % MSM.scalarModulus)
+      val randScalar: Seq[BigInt] = (0 until 1000).map(_ => Random.nextBigInt(253) % ZPrizeMSM.scalarModulus)
       val problem = PippengerProblem(randScalar, randBig, add, dbl, BigInt(0))
       val bitCandidate = 1 to 8
       val pointCandidate = (1 to 10).map(_ * 100)
@@ -131,7 +131,7 @@ object PippengerProblem {
 
     def evaluate(size: Int, lut: Int) = {
       val randBig: Seq[BigInt] = (0 until size).map(_ => Random.nextBigInt(10))
-      val randScalar: Seq[BigInt] = (0 until size).map(_ => Random.nextBigInt(253) % MSM.scalarModulus)
+      val randScalar: Seq[BigInt] = (0 until size).map(_ => Random.nextBigInt(253) % ZPrizeMSM.scalarModulus)
       val problem = PippengerProblem(randScalar, randBig, add, dbl, BigInt(0))
       problem.testWindow(3, size, lut)
     }

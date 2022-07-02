@@ -88,6 +88,5 @@ class QuartusFlow[T <: Component](dut: => T, workspace: String = "quartusWorkspa
         println(e)
         Array("")
     }
-
   }
 }

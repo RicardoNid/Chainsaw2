@@ -66,6 +66,7 @@ object Dft {
     }
   }
 
+
   def main(args: Array[String]): Unit = {
     val data = DenseVector((0 until 8).map(i => Complex(i, 0)).toArray)
     val golden = dftMatrix(8, true) * data

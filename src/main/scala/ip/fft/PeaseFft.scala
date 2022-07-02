@@ -129,7 +129,7 @@ case class PeaseFft(config: PeaseFftConfig) extends TransformModule[ComplexFix, 
     val afterDft = Vec(afterMult.grouped(radix).toSeq.flatMap(seq => dft(Vec(seq)).map(_.truncated(innerType().sfixType))))
 
     // permutation
-    val permConfig = StridePermutationFor2Config(n, q, r, innerType.getBitsWidth * 2)
+    val permConfig = StridePermutationFor2Config(n, q, r, innerType.getBitsWidth)
     val permutation = StridePermutationFor2(permConfig)
     val flowAfterDft = ChainsawFlow(Vec(afterDft.map(_.asBits)), iterIn.valid.validAfter(dftLatency + multLatency), iterIn.last.validAfter(dftLatency + multLatency))
     permutation.dataIn << flowAfterDft
@@ -158,7 +158,6 @@ case class PeaseFft(config: PeaseFftConfig) extends TransformModule[ComplexFix, 
     val normalized = next.fragment.map(_ >> shifts(i)).map(_.truncated(innerType().sfixType))
     dataPath += next.withFragment(normalized)
   }
-
 
   val padLatency = if (iterativeLatency < spaceReuse && timeReuse > 1) spaceReuse - iterativeLatency else 0
 

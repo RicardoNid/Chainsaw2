@@ -1,7 +1,7 @@
 package org.datenlord
 package algos
 
-import algos.MSM.baseModulus
+import algos.ZPrizeMSM.baseModulus
 
 import cc.redberry.rings.scaladsl._
 import cc.redberry.rings.scaladsl.syntax._
@@ -33,11 +33,12 @@ case class MontField(modulus: IntZ) {
   def montRedc(x: IntZ) = {
     val golden = zp.multiply(x, RInverse)
 
-    val T = x
+    val T = x // full multiplication when using montMult
     val TLow = T % R
-    val m = (TLow * NPrime) % R
-    val t = (T + m * modulus) / R
+    val m = (TLow * NPrime) % R // low-bits multiplication + constant multiplication
+    val t = (T + m * modulus) / R // constant multiplication(modulus is a constant)
 
+    // TODO: find an algo to skip this
     val det = t - modulus
     val ret = if (det >= 0) det else t // t \in [0, 2N)
 
@@ -57,10 +58,10 @@ case class MontField(modulus: IntZ) {
 }
 
 object MontField {
-  def testMont() = {
-    implicit val baseField = MontField(baseModulus)
+  def testMont(): Unit = {
+    implicit val baseField: MontField = MontField(baseModulus)
 
-    def test(a: BigInt, b: BigInt) = {
+    def test(a: BigInt, b: BigInt): Unit = {
       val montA = baseField(a)
       val montB = baseField(b)
       val ret0 = (a * b) % baseModulus

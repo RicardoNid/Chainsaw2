@@ -1,15 +1,10 @@
-import cc.redberry.rings
+import spinal.core._
+import spinal.core.sim._
+import spinal.lib._
+import spinal.lib.fsm._
 
-import rings.poly.PolynomialMethods._
-import rings.scaladsl._
-import syntax._
-import rings.primes._
+import collection.mutable
 
-val x  = BigInt("1110000", 2)
-val y  = BigInt("1111100", 2)
+val m = mutable.Map[Int, Int]()
 
-val overlap =  x.toString(2).reverse.zip(y.toString(2).reverse).dropWhile(_ == ('0', '0')).length
-
-import org.datenlord.algos.MSM.scalarModulus
-
-scalarModulus.toString(10)
+m += 1 -> 1

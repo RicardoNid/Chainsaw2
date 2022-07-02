@@ -2,12 +2,12 @@ package org.datenlord
 package algos
 
 import arithmetic.KaratsubaConfig
-import device.KaratsubaForXilinx
+import device.MultiplicationByDsp
 
 import cc.redberry.rings.scaladsl._
 import spinal.core._
 
-object MSM {
+object ZPrizeMSM {
 
   val scalarModulus = BigInt("12ab655e9a2ca55660b44d1e5c37b00159aa76fed00000010a11800000000001", 16)
   val scalarRoot = BigInt("0d1ba211c5cc349cd7aacc7c597248269a14cda3ec99772b3c3d3ca739381fb2", 16)
@@ -17,25 +17,23 @@ object MSM {
 
   val a = asBigInteger(0)
   val b = asBigInteger(1)
-  implicit val ec = EccGroup(baseModulus, a, b)
+  implicit val ec = EcGroup(baseModulus, a, b) // y^2 = x^3 + 1
 
-  def msm(k: Seq[IntZ], p: Seq[EccPointAffine]) = {
-    val add = (a: EccPointAffine, b: EccPointAffine) => a + b
-    val dbl = (a: EccPointAffine) => a + a
-    val problem = PippengerProblem(k.map(_.toBigInt), p, add, dbl, EccZeroAffine)
+  def msmOptimized(k: Seq[IntZ], p: Seq[EcPointAffine]) = {
+    val add = (a: EcPointAffine, b: EcPointAffine) => a + b
+    val dbl = (a: EcPointAffine) => a + a
+    val problem = PippengerProblem(k.map(_.toBigInt), p, add, dbl, EcZeroAffine)
     problem.solveByOriginal._1
+  }
+
+  def msm(k: Seq[IntZ], p: Seq[EcPointAffine]) = {
+    p.zip(k).map { case (affine, z) => affine * z }.reduce(_ + _)
   }
 
   import xilinx.VivadoUtil
 
   def estimateUtil() = {
 
-    def baseMult(x: UInt, y: UInt) = {
-      val core = KaratsubaForXilinx()
-      core.dataIn.payload := Vec(x.resized, y.resized)
-      core.dataIn.valid := True
-      core.dataOut.payload
-    }
 
     def lutMult(x: UInt, y: UInt) = {
       val product = x * y
@@ -66,6 +64,8 @@ object MSM {
   }
 
   def main(args: Array[String]): Unit = {
-    estimateUtil()
+    //    estimateUtil()
+    println(baseModulus.toString(2).grouped(31).map(BigInt(_, 2)).mkString(" "))
+    println(baseModulus.toString(2).grouped(31).map(_.count(_ == '1')).sum)
   }
 }
