@@ -7,4 +7,7 @@ import collection.mutable
 
 val m = mutable.Map[Int, Int]()
 
-m += 1 -> 1
+Seq(1,2,3).scan(0)(_ + _)
+
+Seq.iterate(0, 3)
+

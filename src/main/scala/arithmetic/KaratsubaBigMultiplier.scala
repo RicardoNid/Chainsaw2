@@ -109,7 +109,7 @@ case class KaratsubaBigMultiplier(config: KaratsubaConfig)
       val (yHighBits, yLowBits) = y.splitAt(split)
       val Seq(xHigh, xLow, yHigh, yLow) = Seq(xHighBits, xLowBits, yHighBits, yLowBits).map(_.asUInt)
 
-      val (cHigh, cLow) = BigIntUtil(c).splitAt(split)
+      val (cHigh, cLow) = BigIntUtil(c).split(split)
 
       mode match {
         case Full =>

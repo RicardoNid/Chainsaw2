@@ -43,7 +43,7 @@ case class MultiplicationByDspConfig(mode: MultiplierMode) extends TransformBase
     core.dataOut.fragment.head
   }
 
-  def asNode = (dataIn: Seq[UInt]) => {
+  def asNode: Seq[UInt] => Seq[UInt] = (dataIn: Seq[UInt]) => {
     val Seq(x, y) = dataIn
     require(x.getBitsWidth <= baseWidth && y.getBitsWidth <= baseWidth, s"x: ${x.getBitsWidth}, y" {
       y.getBitsWidth
@@ -51,7 +51,7 @@ case class MultiplicationByDspConfig(mode: MultiplierMode) extends TransformBase
     val core = implH
     core.dataIn.fragment := Vec(x.resized, y.resized)
     core.skipControl()
-    core.dataOut.fragment.head
+    core.dataOut.fragment
   }
 }
 

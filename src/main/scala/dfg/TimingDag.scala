@@ -4,8 +4,7 @@ package dfg
 import optimus.optimization._
 import optimus.optimization.enums.SolverLib
 import optimus.optimization.model.MPFloatVar
-import org.jgrapht._
-import org.jgrapht.alg.shortestpath.FloydWarshallShortestPaths
+import org.jgrapht.Graphs
 import org.jgrapht.graph._
 
 import scala.collection.JavaConversions._
@@ -13,23 +12,13 @@ import scala.collection.mutable
 
 class ChainsawVertex(val name: String)
 
-class TimingVertex(val latency: Int, name: String) extends ChainsawVertex(name)
-
-class DummyVertex(name: String) extends TimingVertex(0, name)
-
-class VariableVertex(name: String) extends TimingVertex(0, name) {
-  def -(that: VariableVertex) = Inequality(this, that, 0)
-
-  override def toString = s"variable $name"
-}
-
-case class Inequality(target: VariableVertex, source: VariableVertex, value: Double) {
-  def <=(value: Double) = Inequality(target, source, value)
-}
-
 class ChainsawEdge
 
-class TimingDag extends SimpleDirectedWeightedGraph[TimingVertex, ChainsawEdge](classOf[ChainsawEdge]) {
+class TimingVertex(name: String, val latency: Int) extends ChainsawVertex(name)
+
+class DummyVertex(name: String) extends TimingVertex(name, 0)
+
+class TimingDag extends DirectedWeightedMultigraph[TimingVertex, ChainsawEdge](classOf[ChainsawEdge]) {
 
   override def addEdge(source: TimingVertex, target: TimingVertex) = {
     val e = new ChainsawEdge
@@ -51,8 +40,8 @@ class TimingDag extends SimpleDirectedWeightedGraph[TimingVertex, ChainsawEdge](
     }
   }
 
-  // validate the DFG with minimum registers
-  def validate = {
+  // validate the DFG with minimum registers in place
+  def validate() = {
     // build graph with dummy vertices
     val originalEdges = edgeSet().toSeq
     val edgeWeights = mutable.Map[ChainsawEdge, Double]()
@@ -75,10 +64,10 @@ class TimingDag extends SimpleDirectedWeightedGraph[TimingVertex, ChainsawEdge](
     implicit val model: MPModel = MPModel(SolverLib.oJSolver)
     // declare variables
     val vertices = vertexSet().toSeq
-    val variables = vertices.map(v => MPFloatVar(v.name, -20, 20))
+    val variables: Seq[MPFloatVar] = vertices.map(v => MPFloatVar(v.name, -20, 20))
     val variableMap = Map(vertices.zip(variables): _*)
     // construct cost
-    val coeffs = vertices.map { v =>
+    val coeffs: Seq[Double] = vertices.map { v =>
       incomingEdgesOf(v).map(e => edgeWeights.getOrElse(e, 1.0)).sum -
         outgoingEdgesOf(v).map(e => edgeWeights.getOrElse(e, 1.0)).sum
     }
@@ -94,87 +83,47 @@ class TimingDag extends SimpleDirectedWeightedGraph[TimingVertex, ChainsawEdge](
       //      println(s"$inequality")
       add(inequality)
     }
+    // set linear programming problem and solve it
     minimize(expr)
     start()
-
     val solution = variableMap.map(pair => pair._1 -> pair._2.value.get.toInt)
     retiming(solution)
-
     release()
-
+    // remove dummy vertices
     vertexSet().filter(_.isInstanceOf[DummyVertex]).foreach(removeVertex)
+    this
   }
 
   override def toString = {
-    val vertices = vertexSet().map(_.name).mkString(", ")
-    val edges = edgeSet().map(e => s"${getEdgeSource(e).name} -> ${getEdgeTarget(e).name} : ${getEdgeWeight(e)}").mkString(" , ")
-    s"vertices: $vertices\nedges: $edges"
+    val vertices = vertexSet().toSeq.map(_.name).mkString("\n")
+    val edges = edgeSet().toSeq.map(e => s"${getEdgeSource(e).name} -> ${getEdgeTarget(e).name} : ${getEdgeWeight(e)}").mkString("\n")
+    s"vertices:\n$vertices\nedges:\n$edges"
   }
 }
 
-class ConstraintGraph extends TimingDag {
+object TimingDag extends App {
+  val testGraph = new TimingDag
 
-  val referenceVertex = new VariableVertex("reference")
-  addVertex(referenceVertex)
+  val vertices = (0 until 3).map(i => new TimingVertex(s"add$i", 1))
+  val Seq(add0, add1, add2) = vertices
+  val in = new TimingVertex("in", 0)
+  val out = new TimingVertex("out", 0)
 
-  def addVariable(v: VariableVertex): Unit = {
-    if (!vertexSet().contains(v)) {
-      addVertex(v)
-      addEdgeWithWeight(referenceVertex, v, 0)
-    }
-  }
+  testGraph.addVertex(in)
+  vertices.foreach(testGraph.addVertex)
+  testGraph.addVertex(out)
 
-  def addConstraint(target: VariableVertex, source: VariableVertex, value: Double): Unit = {
-    addVariable(target)
-    addVariable(source)
-    addEdgeWithWeight(source, target, value)
-  }
+  Graphs.addIncomingEdges(testGraph, add0, Seq(in))
+  Graphs.addIncomingEdges(testGraph, add1, Seq(in, add0))
+  Graphs.addIncomingEdges(testGraph, add2, Seq(in, add1))
+  Graphs.addIncomingEdges(testGraph, out, Seq(add0, add1, add2))
 
-  def addInequality(inequality: Inequality): Unit =
-    addConstraint(inequality.target, inequality.source, inequality.value)
-
-  def getSolution = {
-    val algo = new FloydWarshallShortestPaths(this)
-    val paths = algo.getPaths(referenceVertex)
-    vertexSet().toSeq.map(v => v -> paths.getWeight(v))
-  }
-}
-
-object ConstraintGraph {
-  def main(args: Array[String]): Unit = {
-    //    val Seq(r1, r2, r3, r4) = (0 until 4).map(i => new VariableVertex(s"r$i"))
-    //    val cg = new ConstraintGraph
-    //    cg.addInequality(r1 - r2 <= 0)
-    //    cg.addInequality(r3 - r1 <= 5)
-    //    cg.addInequality(r4 - r1 <= 4)
-    //    cg.addInequality(r4 - r3 <= -1)
-    //    cg.addInequality(r3 - r2 <= 2)
-    //    println(cg.getSolution.mkString("\n"))
-
-    val testGraph = new TimingDag
-
-    val vertices = (0 until 3).map(i => new TimingVertex(1, s"add$i"))
-    val Seq(add0, add1, add2) = vertices
-    val in = new TimingVertex(0, "in")
-    val out = new TimingVertex(0, "out")
-
-    testGraph.addVertex(in)
-    vertices.foreach(testGraph.addVertex)
-    testGraph.addVertex(out)
-
-    Graphs.addIncomingEdges(testGraph, add0, Seq(in))
-    Graphs.addIncomingEdges(testGraph, add1, Seq(in, add0))
-    Graphs.addIncomingEdges(testGraph, add2, Seq(in, add1))
-    Graphs.addIncomingEdges(testGraph, out, Seq(add0, add1, add2))
-
-    println(testGraph)
-    // example0
-    //    testGraph.validate
-    //    println(testGraph)
-    // example1
-    testGraph.outgoingEdgesOf(out).foreach(testGraph.setEdgeWeight(_, 10))
-    testGraph.validate
-    println(testGraph)
-
-  }
+  // example0
+  //  testGraph.validate
+  //  println(testGraph)
+  // example1
+  testGraph.incomingEdgesOf(out).foreach(testGraph.setEdgeWeight(_, 10))
+  println(testGraph)
+  testGraph.validate
+  println(testGraph)
 }

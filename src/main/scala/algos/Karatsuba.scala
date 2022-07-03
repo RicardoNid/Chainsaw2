@@ -61,8 +61,8 @@ object Karatsuba {
         val widthHigh = width - split
         val widthLow = split
         val widthCorss = widthHigh max widthLow
-        val (xHigh, xLow) = x.splitAt(split)
-        val (yHigh, yLow) = y.splitAt(split)
+        val (xHigh, xLow) = x.split(split)
+        val (yHigh, yLow) = y.split(split)
         mode match {
           case "mult" =>
             val ac = recursiveTask(widthHigh, xHigh, yHigh)
@@ -111,11 +111,11 @@ object Karatsuba {
         val widthLow = split
         val widthCorss = widthHigh max widthLow
 
-        val xSplits = x.map(_._1.splitAt(split))
+        val xSplits = x.map(_._1.split(split))
         val xHigh = xSplits.map(_._1)
         val xLow = xSplits.map(_._2)
 
-        val ySplits = y.map(_._1.splitAt(split))
+        val ySplits = y.map(_._1.split(split))
         val yHigh = ySplits.map(_._1)
         val yLow = ySplits.map(_._2)
 

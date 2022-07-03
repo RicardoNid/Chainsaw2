@@ -10,6 +10,7 @@ import spinal.core._
 import spinal.core.sim._
 import spinal.lib.{Delay, _}
 
+import scala.collection.mutable.ArrayBuffer
 import scala.math.{BigDecimal, BigInt}
 import scala.reflect.ClassTag
 import scala.sys.process.Process
@@ -32,7 +33,6 @@ package object datenlord {
 
   }
 
-
   def VivadoImpl[T <: Component](gen: => T, name: String = "temp", xdcPath: String = null) = {
     val report = VivadoFlow(design = gen, taskType = IMPL, topModuleName = name, workspacePath = s"./$name").doFlow()
     report.printArea()
@@ -51,6 +51,18 @@ package object datenlord {
     def d(cycle: Int): T = Delay(data, cycle)
 
     def validAfter(cycle: Int) = Delay(data, cycle, init = False).asInstanceOf[Bool]
+
+    def split(splitPoints: Seq[Int]): Seq[Bits] = {
+      var current = data.asBits
+      val ret = ArrayBuffer[Bits]()
+      splitPoints.foreach{ point =>
+        val (high, low) = current.splitAt(point)
+        ret += high
+        current = low
+      }
+      ret += current
+      ret
+    }
   }
 
   implicit class BigIntUtil(bi: BigInt) {
@@ -58,12 +70,24 @@ package object datenlord {
     /**
      * @example 10100.splitAt(3) = (10,100), not (101,11)
      */
-    def splitAt(lowWidth: Int) = (bi >> lowWidth, bi % (BigInt(1) << lowWidth))
+    def split(lowWidth: Int) = (bi >> lowWidth, bi % (BigInt(1) << lowWidth))
+
+    def split(splitPoints: Seq[Int]): Seq[BigInt] = {
+      var current = bi
+      val ret = ArrayBuffer[BigInt]()
+      splitPoints.foreach{ point =>
+        val (high, low) = current.split(point)
+        ret += high
+        current = low
+      }
+      ret += current
+      ret
+    }
 
     /**
      * @example 10100.slice(3 downto 1) = 010
      */
-    def slice(range:Range.Inclusive) = {
+    def slice(range: Range.Inclusive) = {
       val from = bi.bitLength - range.head - 1
       val until = bi.bitLength - range.last
       BigInt(bi.toString(2).slice(from, until), 2)
