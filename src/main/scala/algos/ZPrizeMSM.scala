@@ -66,6 +66,6 @@ object ZPrizeMSM {
   def main(args: Array[String]): Unit = {
     //    estimateUtil()
     println(baseModulus.toString(2).grouped(31).map(BigInt(_, 2)).mkString(" "))
-    println(baseModulus.toString(2).grouped(31).map(_.count(_ == '1')).sum)
+    println(baseModulus.toString(2).count(_ == '1'))
   }
 }

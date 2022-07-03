@@ -8,11 +8,49 @@ import scala.collection.mutable.ArrayBuffer
 import scala.language.postfixOps
 import scala.math.ceil
 
+import dfg._
+
+// TODO: minus
+// TODO: use "computer arithmetic" as reference
 /**
- * @param addWidth
+ * @param addWidt`h
  * @param baseWidth
  */
 case class PipelinedBigAdderConfig(addWidth: Int, baseWidth: Int = 127, minus: Boolean = false) extends TransformBase {
+
+  def bigAdderGraph = {
+
+    implicit val graph: RingDag = new RingDag
+    val x = graph.setInput("x", addWidth)
+    val y = graph.setInput("y", addWidth)
+    val z = graph.setOutput("z", addWidth + 1)
+
+    val splitPoints = (0 until (addWidth - 1) / baseWidth).reverse.map(i => (i + 1) * baseWidth)
+    val xs = x.split(splitPoints).reverse // low -> high
+    val ys = y.split(splitPoints).reverse
+
+    logger.info(s"x segments: ${xs.length}")
+
+    val carries = ArrayBuffer[RingPort]()
+    val sums = ArrayBuffer[RingPort]()
+
+    xs.zip(ys).foreach { case (x, y) =>
+      val (carry, sum) =
+        if (carries.nonEmpty) x.+^(y, carries.last)
+        else x +^ y
+      carries += carry
+      sums += sum
+    }
+
+    val ret = carries.last.merge(sums.reverse) // high -> low
+    graph.addEdge(ret, z)
+
+    graph.validate()
+    graph
+  }
+
+  val graph = bigAdderGraph
+
   override def impl(dataIn: Seq[Any]) = {
     val bigInts = dataIn.asInstanceOf[Seq[BigInt]]
     if (!minus) Seq(bigInts.sum)
@@ -24,7 +62,7 @@ case class PipelinedBigAdderConfig(addWidth: Int, baseWidth: Int = 127, minus: B
 
   override val size = (2, 1)
 
-  override def latency = (addWidth + baseWidth - 1) / baseWidth
+  override def latency = graph.latency
 
   override def implH = PipelinedBigAdder(this)
 
@@ -45,27 +83,9 @@ case class PipelinedBigAdder(config: PipelinedBigAdderConfig) extends TransformM
   val dataIn = slave Flow Fragment(Vec(UInt(addWidth bits), 2))
   val dataOut = master Flow Fragment(Vec(UInt(addWidth + 1 bits)))
 
-  val Seq(x, y) = dataIn.fragment
+  val hardAlgo = graph.implH
+  dataOut.fragment := Vec(hardAlgo(dataIn.fragment))
 
-  val xLow2High = x.subdivideIn(baseWidth bits, strict = false)
-  val yLow2High = y.subdivideIn(baseWidth bits, strict = false)
-
-  val xDelayed = xLow2High.zipWithIndex.map { case (x, delay) => x.d(delay) }
-  val yDelayed = yLow2High.zipWithIndex.map { case (y, delay) => y.d(delay) }
-
-  val carrys = ArrayBuffer[Bool](False)
-  val sums = ArrayBuffer[UInt]()
-
-  xDelayed.zip(yDelayed).foreach { case (x, y) =>
-    val ret = ((x +^ y) + carrys.last.asUInt(1 bits)).d(1)
-    carrys += ret.msb
-    sums += ret.takeLow(ret.getBitsWidth - 1).asUInt
-  }
-
-  val alignedSums = sums.reverse.zipWithIndex.map { case (segment, i) => segment.d(i) } // high2low
-  val ret = carrys.last.asUInt(1 bits) @@ alignedSums.reduce(_ @@ _)
-
-  dataOut.fragment := Vec(ret)
   autoValid()
   autoLast()
 }

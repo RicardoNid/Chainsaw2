@@ -6,6 +6,7 @@ import optimus.optimization.enums.SolverLib
 import optimus.optimization.model.MPFloatVar
 import org.jgrapht.Graphs
 import org.jgrapht.graph._
+import org.jgrapht.alg.shortestpath.DijkstraShortestPath
 
 import scala.collection.JavaConversions._
 import scala.collection.mutable

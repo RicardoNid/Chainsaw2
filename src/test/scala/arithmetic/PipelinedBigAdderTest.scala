@@ -1,6 +1,7 @@
 package org.datenlord
 package arithmetic
 
+import org.datenlord.dfg.RingInt
 import org.scalatest.flatspec.AnyFlatSpec
 import spinal.core._
 
@@ -15,6 +16,11 @@ class PipelinedBigAdderTest extends AnyFlatSpec {
   val data = (0 until testCount * 2).map(_ => Random.nextBigInt(width))
   val config = PipelinedBigAdderConfig(width, baseWidth)
 
+  "PipelinedBigAdder" should "work by algo" in {
+    val algo = config.graph.implS
+    assert(algo(data.take(2).map(RingInt(_, width))).head.value == data.take(2).sum)
+  }
+
   "PipelinedBigAdder" should "work" in TransformTest.test(config.implH, data)
 
   case class BaseAddition(width: Int) extends Component {
@@ -28,8 +34,8 @@ class PipelinedBigAdderTest extends AnyFlatSpec {
     val config0 = PipelinedBigAdderConfig(377, 127)
     val config1 = PipelinedBigAdderConfig(377, 128)
     //    VivadoSynth(BaseAddition(377), "bigAdd_377_base")
-    Seq(31, 63, 95, 127, 159, 191, 223, 255).foreach(i => VivadoSynth(BaseAddition(i), s"bigAdd_${i}_base"))
-    //    VivadoSynth(config0.implH, "bigAdd_377_127")
+    //    Seq(31, 63, 95, 127, 159, 191, 223, 255).foreach(i => VivadoSynth(BaseAddition(i), s"bigAdd_${i}_base"))
+    VivadoSynth(config0.implH, "bigAdd_377_127")
     //    VivadoSynth(config1.implH, "bigAdd_377_128")
   }
 }

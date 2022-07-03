@@ -6,6 +6,7 @@ import spinal.core.sim._
 import spinal.lib._
 import spinal.lib.fsm._
 import org.jgrapht._
+import org.jgrapht.alg.shortestpath.DijkstraShortestPath
 import org.jgrapht.graph._
 import org.jgrapht.graph.builder._
 import org.jgrapht.traverse._
@@ -20,7 +21,9 @@ class ImplVertex[TSoft, THard <: Data](
                                         override val latency: Int,
                                         val implS: Seq[TSoft] => Seq[TSoft] = (data: Seq[TSoft]) => data,
                                         val implH: Seq[THard] => Seq[THard] = (data: Seq[THard]) => data
-                                      ) extends TimingVertex(name, latency)
+                                      ) extends TimingVertex(name, latency) {
+  def port(order:Int) = ImplPort(this, order)
+}
 
 class ImplEdge(val inOrder: Int, val outOrder: Int) extends ChainsawEdge
 
@@ -73,11 +76,40 @@ class ImplDag[TSoft, THard <: Data] extends TimingDag {
     e
   }
 
+
   def sourcesOf(v: Vertex) = incomingEdgesOf(v).map(getEdgeSource)
+
+  def sourcePortsOf(v: Vertex) = incomingEdgesOf(v).map { e =>
+    val edge = e.asInstanceOf[ImplEdge]
+    ImplPort(getEdgeSource(edge).asInstanceOf[Vertex], edge.outOrder)
+  }
 
   def targetsOf(v: Vertex) = outgoingEdgesOf(v).map(getEdgeTarget)
 
-  def implH = (dataIns: Seq[THard]) => {
+  def targetPortsOf(v: Vertex) = outgoingEdgesOf(v).map { e =>
+    val edge = e.asInstanceOf[ImplEdge]
+    ImplPort(getEdgeTarget(edge).asInstanceOf[Vertex], edge.inOrder)
+  }
+
+  def addGraphBetween(graph: ImplDag[TSoft, THard], inputs: Seq[Port], outputs: Seq[Port]): Unit = {
+    require(graph.inputs.length == inputs.length)
+    require(graph.outputs.length == outputs.length)
+    Graphs.addGraph(this, graph) // add all vertices and edges of that to this
+    // replace input ports
+    inputs.zip(graph.inputs).foreach { case (port, in) =>
+      targetPortsOf(in).foreach(targetPort => addEdgeWithWeight(port, targetPort, 0))
+    }
+    outputs.zip(graph.outputs).foreach { case (port, out) =>
+      sourcePortsOf(out).foreach(sourcePort => addEdgeWithWeight(sourcePort, port, 0))
+    }
+    // remove IOs
+    graph.inputs.foreach(removeVertex)
+    graph.outputs.foreach(removeVertex)
+  }
+
+  def implH: Seq[THard] => Seq[THard] = (dataIns: Seq[THard]) => {
+
+    validate()
 
     val signalMap = mutable.Map[Vertex, Seq[THard]]()
 
@@ -91,8 +123,11 @@ class ImplDag[TSoft, THard <: Data] extends TimingDag {
     def nextStage: Seq[Vertex] = remained.filter(v => sourcesOf(v).forall(implemented.contains(_)))
 
     def implVertex(target: Vertex): Unit = {
-      val incomingEdges = incomingEdgesOf(target).asInstanceOf[Seq[Edge]].sortBy(_.inOrder)
-      val dataIns = incomingEdges.map(e => signalMap(getEdgeSource(e).asInstanceOf[Vertex])(e.outOrder))
+      val incomingEdges = incomingEdgesOf(target).toSeq.asInstanceOf[Seq[Edge]].sortBy(_.inOrder)
+      val dataIns = incomingEdges.map { e =>
+        val signal = signalMap(getEdgeSource(e).asInstanceOf[Vertex])(e.outOrder)
+        signal.d(getEdgeWeight(e).toInt - getEdgeSource(e).latency)
+      }
       val rets = target.implH(dataIns)
       signalMap += target -> rets
     }
@@ -121,7 +156,6 @@ class ImplDag[TSoft, THard <: Data] extends TimingDag {
     def nextStage: Seq[Vertex] = remained.filter(v => sourcesOf(v).forall(implemented.contains(_)))
 
     def implVertex(target: Vertex): Unit = {
-      println(s"implementing $target")
       val incomingEdges = incomingEdgesOf(target).toSeq.asInstanceOf[Seq[Edge]].sortBy(_.inOrder)
       val dataIns = incomingEdges.map(e => signalMap(getEdgeSource(e).asInstanceOf[Vertex])(e.outOrder))
       val rets = target.implS(dataIns)
@@ -136,6 +170,12 @@ class ImplDag[TSoft, THard <: Data] extends TimingDag {
     if (remained.nonEmpty) logger.warn(s"isolated nodes exist:\n${remained.mkString(" ")}")
 
     outputs.flatMap(signalMap(_))
+  }
+
+  def latency = {
+    val algo = new DijkstraShortestPath(this)
+    val path = algo.getPath(inputs.head, outputs.head)
+    path.getWeight.toInt + path.getVertexList.map(_.latency).sum
   }
 }
 
