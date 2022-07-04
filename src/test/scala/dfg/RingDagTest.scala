@@ -55,9 +55,9 @@ class RingDagTest extends AnyFlatSpec {
   val g1 = bigAdderGraph("g1", width)
   val g2 = bigAdderGraph("g2", width+1)
 
-  bigGraph.addGraphBetween(g0, inputs.take(2), Seq(mids(0).port(0)))
-  bigGraph.addGraphBetween(g1, inputs.takeRight(2), Seq(mids(1).port(0)))
-  bigGraph.addGraphBetween(g2, mids.map(_.port(0)), outputs)
+  bigGraph.addGraphBetween(g0, inputs.take(2), Seq(mids(0)(0)))
+  bigGraph.addGraphBetween(g1, inputs.takeRight(2), Seq(mids(1)(0)))
+  bigGraph.addGraphBetween(g2, mids.map(_.apply(0)), outputs)
 
   val algo = bigGraph.implS
 

@@ -3,6 +3,7 @@ package dfg
 
 import arithmetic.MultplierMode._
 
+import org.datenlord.dfg.OpType.OpType
 import spinal.core._
 
 import scala.collection.mutable.ArrayBuffer
@@ -10,7 +11,6 @@ import scala.util.Random
 import org.jgrapht._
 import org.jgrapht.graph._
 import org.jgrapht.graph.builder._
-
 import org.jgrapht.traverse._
 import org.jgrapht.generate._
 
@@ -51,8 +51,6 @@ object RingInt {
   def apply(constant: BigInt): RingInt = RingInt(constant, constant.bitLength)
 }
 
-import RingOpType._
-
 /** This is for crypto implementation on FPGAs of Ultrascale family, each child class of RingVertex has a corresponding hardware implementation on Ultrascale device
  *
  * @param opType     type of operation
@@ -62,9 +60,9 @@ class RingVertex
 (
   name: String, latency: Int,
   implS: Seq[RingInt] => Seq[RingInt], implH: Seq[UInt] => Seq[UInt],
-  val opType: OperatorType,
+  opType: OpType,
   val widthsIn: Seq[Int], val widthsOut: Seq[Int], val widthCheck: Seq[Int] => Boolean
-) extends ImplVertex[RingInt, UInt](name, latency, implS, implH) {
+) extends DagVertex[RingInt, UInt](name, latency, opType, implS, implH) {
 
   def doWidthCheck = assert(widthCheck(widthsIn), s"$opType vertex: widthsIn = ${widthsIn.mkString(" ")}, widthsOut = ${widthsOut.mkString(" ")}")
 
@@ -72,7 +70,7 @@ class RingVertex
 }
 
 
-class RingDag extends ImplDag[RingInt, UInt] {
+class RingDag extends Dag[RingInt, UInt]("ring") {
 
   def setInput(name: String, width: Int) = {
     val in = RingVarVertex(name, width)
@@ -88,28 +86,28 @@ class RingDag extends ImplDag[RingInt, UInt] {
     RingPort(out, 0)
   }
 
-  // eliminate intermediate variables
-  def eliminateIntermediates(): Unit = {
-    val inters = vertexSet().toSeq.asInstanceOf[Seq[RingVertex]]
-      .filter(_.opType == Var).filterNot(isIo)
-    inters.foreach{ inter =>
-      val source = sourcePortsOf(inter).head
-      val target = targetPortsOf(inter).head
-      val weight = getEdgeWeight(incomingEdgesOf(inter).head) + getEdgeWeight(outgoingEdgesOf(inter).head)
-      addEdgeWithWeight(source, target, weight)
-    }
-    inters.foreach(removeVertex)
-  }
-
-  def breakBundles() = {
-    eliminateIntermediates()
-    val candidates = vertexSet().toSeq.asInstanceOf[Seq[RingVertex]]
-      .filter(_.opType == Merge)
-      .filter(merge => targetsOf(merge).asInstanceOf[Seq[RingVertex]].length == 1 && targetsOf(merge).asInstanceOf[Seq[RingVertex]].head.opType == Split)
-    val pairs = candidates.map(merge => (merge, targetsOf(merge).head.asInstanceOf[RingVertex]))
-
-
-  }
+//  // eliminate intermediate variables
+//  def eliminateIntermediates(): Unit = {
+//    val inters = vertexSet().toSeq.asInstanceOf[Seq[RingVertex]]
+//      .filter(_.opType == Var).filterNot(isIo)
+//    inters.foreach{ inter =>
+//      val source = sourcePortsOf(inter).head
+//      val target = targetPortsOf(inter).head
+//      val weight = getEdgeWeight(incomingEdgesOf(inter).head) + getEdgeWeight(outgoingEdgesOf(inter).head)
+//      addEdgeWithWeight(source, target, weight)
+//    }
+//    inters.foreach(removeVertex)
+//  }
+//
+//  def breakBundles() = {
+//    eliminateIntermediates()
+//    val candidates = vertexSet().toSeq.asInstanceOf[Seq[RingVertex]]
+//      .filter(_.opType == Merge)
+//      .filter(merge => targetsOf(merge).asInstanceOf[Seq[RingVertex]].length == 1 && targetsOf(merge).asInstanceOf[Seq[RingVertex]].head.opType == Split)
+//    val pairs = candidates.map(merge => (merge, targetsOf(merge).head.asInstanceOf[RingVertex]))
+//
+//
+//  }
 
   def checkWidths(): Unit = vertexSet().toSeq.asInstanceOf[Seq[RingVertex]].foreach(_.doWidthCheck)
 }

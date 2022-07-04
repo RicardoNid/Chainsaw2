@@ -5,15 +5,10 @@ import arithmetic.MultplierMode.{Full, Low, Square}
 import device.MultiplicationByDspConfig
 import spinal.core.UInt
 
-object RingOpType extends Enumeration {
-  val FullMult, LowMult, SquareMult, ConstantMult, Add, Split, Merge, Var = Value
-  type OperatorType = Value
-}
-
-import dfg.RingOpType._
+import dfg.OpType._
 
 object MultVertex {
-  def apply(name: String, opType: OperatorType, widthsIn: Seq[Int]) = {
+  def apply(name: String, opType: OpType, widthsIn: Seq[Int]) = {
 
     val latency = opType match {
       case FullMult => 8
