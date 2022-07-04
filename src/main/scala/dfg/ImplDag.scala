@@ -22,10 +22,14 @@ class ImplVertex[TSoft, THard <: Data](
                                         val implS: Seq[TSoft] => Seq[TSoft] = (data: Seq[TSoft]) => data,
                                         val implH: Seq[THard] => Seq[THard] = (data: Seq[THard]) => data
                                       ) extends TimingVertex(name, latency) {
-  def port(order:Int) = ImplPort(this, order)
+  def port(order: Int) = ImplPort(this, order)
 }
 
-class ImplEdge(val inOrder: Int, val outOrder: Int) extends ChainsawEdge
+class ImplEdge(val inOrder: Int, val outOrder: Int) extends ChainsawEdge {
+
+  def weight(implicit ref: ImplDag[_, _]) = ref.getEdgeWeight(this)
+
+}
 
 class ImplPort[TSoft, THard <: Data](val vertex: ImplVertex[TSoft, THard], val order: Int)
 
@@ -33,13 +37,14 @@ object ImplPort {
   def apply[TSoft, THard <: Data](vertex: ImplVertex[TSoft, THard], order: Int): ImplPort[TSoft, THard] = new ImplPort(vertex, order)
 }
 
-
 object IoVertex {
   def apply[TSoft, THard <: Data](name: String) = new ImplVertex[TSoft, THard](name, 0)
 }
 
 // directed acyclic graph
 class ImplDag[TSoft, THard <: Data] extends TimingDag {
+
+  implicit val refGraph: ImplDag[TSoft, THard] = this
 
   type Vertex = ImplVertex[TSoft, THard]
   type Edge = ImplEdge
@@ -63,6 +68,8 @@ class ImplDag[TSoft, THard <: Data] extends TimingDag {
     out
   }
 
+  def isIo(v: Vertex) = inputs.contains(v) || outputs.contains(v)
+
   def addEdge(source: Port, target: Port) = {
     val e = new ImplEdge(target.order, source.order)
     super.addEdge(source.vertex, target.vertex, e)
@@ -75,7 +82,6 @@ class ImplDag[TSoft, THard <: Data] extends TimingDag {
     setEdgeWeight(e, weight)
     e
   }
-
 
   def sourcesOf(v: Vertex) = incomingEdgesOf(v).map(getEdgeSource)
 
@@ -95,12 +101,19 @@ class ImplDag[TSoft, THard <: Data] extends TimingDag {
     require(graph.inputs.length == inputs.length)
     require(graph.outputs.length == outputs.length)
     Graphs.addGraph(this, graph) // add all vertices and edges of that to this
+    graph.edgeSet().foreach(e => setEdgeWeight(e, graph.getEdgeWeight(e)))
     // replace input ports
     inputs.zip(graph.inputs).foreach { case (port, in) =>
-      targetPortsOf(in).foreach(targetPort => addEdgeWithWeight(port, targetPort, 0))
+      val originalWeights = graph.outgoingEdgesOf(in).map(e => graph.getEdgeWeight(e))
+      targetPortsOf(in).zip(originalWeights).foreach { case (targetPort, weight) =>
+        addEdgeWithWeight(port, targetPort, weight)
+      }
     }
     outputs.zip(graph.outputs).foreach { case (port, out) =>
-      sourcePortsOf(out).foreach(sourcePort => addEdgeWithWeight(sourcePort, port, 0))
+      val originalWeights = graph.incomingEdgesOf(out).map(e => graph.getEdgeWeight(e))
+      sourcePortsOf(out).zip(originalWeights).foreach { case (sourcePort, weight) =>
+        addEdgeWithWeight(sourcePort, port, weight)
+      }
     }
     // remove IOs
     graph.inputs.foreach(removeVertex)
@@ -172,10 +185,12 @@ class ImplDag[TSoft, THard <: Data] extends TimingDag {
     outputs.flatMap(signalMap(_))
   }
 
+
   def latency = {
     val algo = new DijkstraShortestPath(this)
     val path = algo.getPath(inputs.head, outputs.head)
-    path.getWeight.toInt + path.getVertexList.map(_.latency).sum
+    println(pathToString(path))
+    path.getWeight.toInt
   }
 }
 

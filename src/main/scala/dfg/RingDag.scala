@@ -1,12 +1,20 @@
 package org.datenlord
 package dfg
 
-import spinal.core._
 import arithmetic.MultplierMode._
 
-import scala.collection.JavaConversions._
+import spinal.core._
+
 import scala.collection.mutable.ArrayBuffer
 import scala.util.Random
+import org.jgrapht._
+import org.jgrapht.graph._
+import org.jgrapht.graph.builder._
+
+import org.jgrapht.traverse._
+import org.jgrapht.generate._
+
+import scala.collection.JavaConversions._
 
 case class RingInt(value: BigInt, width: Int) {
   require(value.bitLength <= width)
@@ -34,8 +42,6 @@ case class RingInt(value: BigInt, width: Int) {
   def split(splitPoints: Seq[Int]) = {
     val widthsOut = (width +: splitPoints).zip(splitPoints :+ 0).map { case (width, low) => width - low }
     val segments = value.split(splitPoints)
-    assert(segments.zip(splitPoints :+ 0).map { case (int, i) => int << i }.sum == this.value, "split failed")
-    //    println(s"${value.toString(2)} split into -> ${segments.map(_.toString(2)).mkString(" ")}")
     segments.zip(widthsOut).map { case (value, width) => RingInt(value, width) }
   }
 
@@ -45,16 +51,13 @@ object RingInt {
   def apply(constant: BigInt): RingInt = RingInt(constant, constant.bitLength)
 }
 
-object RingOpType extends Enumeration {
-  val FullMult, LowMult, SquareMult, ConstantMult, Add, Split, Merge = Value
-  type OperatorType = Value
-}
+import RingOpType._
 
-import arithmetic.MultplierMode._
-import device.MultiplicationByDspConfig
-import dfg.RingOpType._
-
-
+/** This is for crypto implementation on FPGAs of Ultrascale family, each child class of RingVertex has a corresponding hardware implementation on Ultrascale device
+ *
+ * @param opType     type of operation
+ * @param widthCheck check whether the input widths are valid, according to opType
+ */
 class RingVertex
 (
   name: String, latency: Int,
@@ -62,216 +65,58 @@ class RingVertex
   val opType: OperatorType,
   val widthsIn: Seq[Int], val widthsOut: Seq[Int], val widthCheck: Seq[Int] => Boolean
 ) extends ImplVertex[RingInt, UInt](name, latency, implS, implH) {
-  override def toString = s"${opType}Node $name"
-}
 
-object RingIoVertex {
-  def apply(name: String, width: Int) = new RingVertex(name, 0, (data: Seq[RingInt]) => data, (data: Seq[UInt]) => data, null, Seq(width), Seq(width), null)
-}
+  def doWidthCheck = assert(widthCheck(widthsIn), s"$opType vertex: widthsIn = ${widthsIn.mkString(" ")}, widthsOut = ${widthsOut.mkString(" ")}")
 
-case class RingPort(override val vertex: RingVertex, override val order: Int)
-  extends ImplPort[RingInt, UInt](vertex, order) {
-
-  def width = vertex.widthsOut(order)
-
-  def split(splitPoints: Seq[Int])(implicit dag: RingDag) = {
-    val splitVertex = SplitVertex(s"${vertex.name}_split", width, splitPoints)
-    dag.addVertex(splitVertex)
-    dag.addEdge(this, RingPort(splitVertex, 0))
-    (0 until splitPoints.length + 1).map(RingPort(splitVertex, _))
-  }
-
-  def +^(that: RingPort, carry: RingPort = null)(implicit dag: RingDag): (RingPort, RingPort) = {
-    val widthsIn = if (carry != null) Seq(width, that.width, 1) else Seq(width, that.width)
-    val addVertex = AddVertex(s"${vertex.name}+${that.vertex.name}", widthsIn)
-    dag.addVertex(addVertex)
-    dag.addEdge(this, RingPort(addVertex, 0))
-    dag.addEdge(that, RingPort(addVertex, 1))
-    if (carry != null) dag.addEdge(carry, RingPort(addVertex, 2))
-    (RingPort(addVertex, 0), RingPort(addVertex, 1))
-  }
-
-  def merge(tail: Seq[RingPort])(implicit dag: RingDag) = {
-    val all = this +: tail
-    val mergeVertex = MergeVertex(s"${vertex.name}_merge", all.map(_.width))
-    dag.addVertex(mergeVertex)
-    all.zipWithIndex.foreach { case (port, i) => dag.addEdge(port, RingPort(mergeVertex, i)) }
-    RingPort(mergeVertex, 0)
-  }
-}
-
-object MultVertex {
-  def apply(name: String, opType: OperatorType, widthsIn: Seq[Int]) = {
-    val latency = opType match {
-      case FullMult => 8
-      case LowMult => 8
-      case SquareMult => 8
-    }
-    val implS = (data: Seq[RingInt]) => Seq(opType match {
-      case FullMult => data.reduce(_ * _)
-      case LowMult => data.reduce(_ multLowBits _)
-      case SquareMult => data.head.square
-    })
-    val implH = opType match {
-      case FullMult => MultiplicationByDspConfig(Full).asNode
-      case LowMult => MultiplicationByDspConfig(Low).asNode
-      case SquareMult => MultiplicationByDspConfig(Square).asNode
-    }
-    val widthOut = opType match {
-      case FullMult => widthsIn.sum
-      case LowMult => widthsIn.head
-      case SquareMult => widthsIn.head * 2
-    }
-
-    def widthCheck = (widthsIn: Seq[Int]) => opType match {
-      case FullMult => widthsIn.forall(_ <= 32)
-      case LowMult => widthsIn.forall(_ <= 34)
-      case SquareMult => widthsIn.forall(_ <= 34)
-    }
-
-    new RingVertex(name, latency, implS, implH, opType, widthsIn, Seq(widthOut), widthCheck)
-  }
-}
-
-object AddVertex {
-  def apply(name: String, widthsIn: Seq[Int]) = {
-    val latency = 1
-    val widthsOut = Seq(1, widthsIn.max)
-    val opCount = widthsIn.length
-    val implS = (data: Seq[RingInt]) => {
-      val ret = if (opCount == 3) data(0) +^ data(1) + data(2)
-      else data(0) +^ data(1)
-      //      println(s"${data.map(_.value.toString(2)).mkString(" ")} sum up to ${ret.value.toString(2)}")
-      ret.split(Seq(widthsIn.max))
-    }
-    val implH = (data: Seq[UInt]) => {
-      val ret =
-        if (opCount == 3) data(0) +^ data(1) + data(2)
-        else data(0) +^ data(1)
-      Seq(ret.d(1).msb.asUInt, ret.d(1).takeLow(ret.getBitsWidth - 1).asUInt)
-    }
-
-    // 3->2
-    def widthCheck = (widthsIn: Seq[Int]) => widthsIn.size == 3 && widthsIn.max <= 127
-
-    new RingVertex(name, latency, implS, implH, Add, widthsIn, widthsOut, widthCheck)
-  }
-}
-
-object SplitVertex {
-  def apply(name: String, widthIn: Int, splitPoints: Seq[Int]) = {
-    val latency = 0
-    val widthsOut = (widthIn +: splitPoints).zip(splitPoints :+ 0).map { case (width, low) => width - low }
-    // example: 110011101.split(Seq(6,3)) = Seq(110, 011, 101)
-    val implS = (data: Seq[RingInt]) => data.head.split(splitPoints)
-    val implH = (data: Seq[UInt]) => data.head.split(splitPoints).map(_.asUInt)
-
-    def widthCheck = (widthsIn: Seq[Int]) => true
-
-    new RingVertex(name, latency, implS, implH, Split, Seq(widthIn), widthsOut, widthCheck)
-  }
-}
-
-object MergeVertex {
-  def apply(name: String, widthsIn: Seq[Int]) = {
-    val latency = 0
-    val widthOut = widthsIn.sum
-    // example: 110011101.split(Seq(6,3)) = Seq(110, 011, 101)
-    val implS = (data: Seq[RingInt]) => {
-      val newString = data.zip(widthsIn)
-        .map { case (data, width) => data.value.toString(2).padToLeft(width, '0') }
-        .mkString("")
-      //      println(s"${data.map(_.value.toString(2)).mkString(" ")} merge to ${BigInt(newString, 2).toString(2)}")
-      Seq(RingInt(BigInt(newString, 2), widthOut))
-    }
-    val implH = (data: Seq[UInt]) => Seq(data.reduce(_ @@ _))
-
-    def widthCheck = (widthsIn: Seq[Int]) => true
-
-    new RingVertex(name, latency, implS, implH, Split, widthsIn, Seq(widthOut), widthCheck)
-  }
+  override def toString = s"$name"
 }
 
 
 class RingDag extends ImplDag[RingInt, UInt] {
 
   def setInput(name: String, width: Int) = {
-    val in = RingIoVertex(name, width)
+    val in = RingVarVertex(name, width)
     addVertex(in)
     inputs += in
     RingPort(in, 0)
   }
 
   def setOutput(name: String, width: Int) = {
-    val out = RingIoVertex(name, width)
+    val out = RingVarVertex(name, width)
     addVertex(out)
     outputs += out
     RingPort(out, 0)
   }
+
+  // eliminate intermediate variables
+  def eliminateIntermediates(): Unit = {
+    val inters = vertexSet().toSeq.asInstanceOf[Seq[RingVertex]]
+      .filter(_.opType == Var).filterNot(isIo)
+    inters.foreach{ inter =>
+      val source = sourcePortsOf(inter).head
+      val target = targetPortsOf(inter).head
+      val weight = getEdgeWeight(incomingEdgesOf(inter).head) + getEdgeWeight(outgoingEdgesOf(inter).head)
+      addEdgeWithWeight(source, target, weight)
+    }
+    inters.foreach(removeVertex)
+  }
+
+  def breakBundles() = {
+    eliminateIntermediates()
+    val candidates = vertexSet().toSeq.asInstanceOf[Seq[RingVertex]]
+      .filter(_.opType == Merge)
+      .filter(merge => targetsOf(merge).asInstanceOf[Seq[RingVertex]].length == 1 && targetsOf(merge).asInstanceOf[Seq[RingVertex]].head.opType == Split)
+    val pairs = candidates.map(merge => (merge, targetsOf(merge).head.asInstanceOf[RingVertex]))
+
+
+  }
+
+  def checkWidths(): Unit = vertexSet().toSeq.asInstanceOf[Seq[RingVertex]].foreach(_.doWidthCheck)
 }
 
 object RingDag {
 
   def apply(): RingDag = new RingDag()
 
-  def main(args: Array[String]): Unit = {
-
-    def bigAdderGraph(width: Int) = {
-
-      val baseWidth = 127
-
-      implicit val graph = new RingDag
-      val x = graph.setInput("x", width)
-      val y = graph.setInput("y", width)
-      val z = graph.setOutput("z", width + 1)
-
-      val splitPoints = (0 until (width - 1) / baseWidth).reverse.map(i => (i + 1) * baseWidth)
-      val xs = x.split(splitPoints).reverse // low -> high
-      val ys = y.split(splitPoints).reverse
-
-      logger.info(s"x segments: ${xs.length}")
-
-      val carries = ArrayBuffer[RingPort]()
-      val sums = ArrayBuffer[RingPort]()
-
-      xs.zip(ys).foreach { case (x, y) =>
-        val (carry, sum) =
-          if (carries.nonEmpty) x.+^(y, carries.last)
-          else x +^ y
-        carries += carry
-        sums += sum
-      }
-
-      val ret = carries.last.merge(sums.reverse) // high -> low
-      graph.addEdge(ret, z)
-
-      graph.validate()
-      graph
-    }
-
-    val width = 377
-    val data = (0 until 4).map(_ => RingInt(Random.nextBigInt(width), 377))
-
-    val bigGraph = new RingDag
-    val inputs = (0 until 4).map(i => bigGraph.setInput(s"in_$i", 377))
-    val outputs = (0 until 1).map(i => bigGraph.setOutput(s"out_$i", 379))
-    val mids = (0 until 2).map(i => RingIoVertex(s"mid_$i", 378))
-    mids.foreach(bigGraph.addVertex)
-
-    val Seq(g0, g1, g2) = Seq(377, 377, 378).map(bigAdderGraph)
-
-    bigGraph.addGraphBetween(g0, inputs.take(2), Seq(mids(0).port(0)))
-    bigGraph.addGraphBetween(g1, inputs.takeRight(2), Seq(mids(1).port(0)))
-    bigGraph.addGraphBetween(g2, mids.map(_.port(0)), outputs)
-    println(s"latency = ${g0.latency}")
-
-    val algo = bigGraph.implS
-    println(s"latency = ${bigGraph.latency}")
-    bigGraph.validate()
-    println(s"latency = ${bigGraph.latency}")
-    assert(algo(data).head.value == data.map(_.value).sum)
-    println(bigGraph)
-
-  }
 }
 
