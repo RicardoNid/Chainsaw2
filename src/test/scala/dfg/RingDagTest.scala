@@ -9,9 +9,9 @@ import scala.util.Random
 
 class RingDagTest extends AnyFlatSpec {
 
-  def bigAdderGraph(name:String, width: Int) = {
+  def bigAdderGraph(name: String, width: Int) = {
 
-    val baseWidth = 4
+    val baseWidth = 127
 
     implicit val graph = new RingDag
     val x = graph.setInput(s"${name}_x", width)
@@ -42,8 +42,9 @@ class RingDagTest extends AnyFlatSpec {
     graph
   }
 
-  val width = 9
-  val data = (0 until 4).map(_ => RingInt(Random.nextBigInt(width), width))
+  val width = 377
+  val data = (0 until 4).map(_ => Random.nextBigInt(width))
+  val golden = data.sum
 
   val bigGraph = new RingDag
   val inputs = (0 until 4).map(i => bigGraph.setInput(s"in_$i", width))
@@ -53,17 +54,20 @@ class RingDagTest extends AnyFlatSpec {
 
   val g0 = bigAdderGraph("g0", width)
   val g1 = bigAdderGraph("g1", width)
-  val g2 = bigAdderGraph("g2", width+1)
+  val g2 = bigAdderGraph("g2", width + 1)
 
   bigGraph.addGraphBetween(g0, inputs.take(2), Seq(mids(0)(0)))
   bigGraph.addGraphBetween(g1, inputs.takeRight(2), Seq(mids(1)(0)))
   bigGraph.addGraphBetween(g2, mids.map(_.apply(0)), outputs)
 
-  val algo = bigGraph.implS
+  "RingDag" should "has correct software implementation" in assert(bigGraph.evaluateS(data).head == golden)
 
-  "RingDag" should "has correct software implementation" in assert(algo(data).map(_.value).sum == data.map(_.value).sum)
-  bigGraph.validate()
-  it should "be retimed correctly" in assert(bigGraph.latency == 6)
   it should "has correct widths" in bigGraph.checkWidths
+
+  it should "be optimized correctly" in {
+    bigGraph.validate()
+    assert(bigGraph.latency == 4)
+    assert(bigGraph.evaluateS(data).head == golden)
+  }
 
 }

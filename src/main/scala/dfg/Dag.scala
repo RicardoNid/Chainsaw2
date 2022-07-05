@@ -14,15 +14,18 @@ import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
 
 object OpType extends Enumeration {
-  val Var, FullMult, LowMult, SquareMult, Add, Merge, Split = Value
+  val Var = Value // variable (opposite to operation)
+  val FullMult, LowMult, SquareMult, Add, Merge, Split = Value // Ring operations
   type OpType = Value
 }
 
+object Direction extends Enumeration {
+  val In, Out = Value
+  type Direction = Value
+}
+
 import dfg.OpType._
-
-
-
-
+import dfg.Direction._
 
 /** This is for vertices which do no operations, this can be used as input, output or intermediate variables
  *
@@ -209,6 +212,23 @@ class Dag[TSoft, THard <: Data](val name: String)
     outputs.flatMap(signalMap(_))
   }
 
+  def evaluateS(dataIns: Seq[TSoft]) = implS.apply(dataIns)
+
+  def evaluateH(dataIns: Seq[THard]) = implH.apply(dataIns)
+
+  def eliminateIntermediates() = {
+    val inters = vertexSet().filter(_.opType == Var).filterNot(_.isIo)
+    inters.foreach { inter =>
+      val source = inter.sourcePorts.head
+      val target = inter.targetPorts.head
+      val weight = getEdgeWeight(incomingEdgesOf(inter).head) + getEdgeWeight(outgoingEdgesOf(inter).head)
+      addEdge(source, target, weight)
+    }
+    inters.foreach(removeVertex)
+
+    this
+  }
+
   def addGraphBetween(source: Dag[TSoft, THard], inputs: Seq[Port], outputs: Seq[Port]): Unit = {
     require(source.inputs.length == inputs.length)
     require(source.outputs.length == outputs.length)
@@ -217,7 +237,7 @@ class Dag[TSoft, THard <: Data](val name: String)
     // replace input ports
     inputs.zip(source.inputs).foreach { case (port, in) =>
       val originalWeights = source.outgoingEdgesOf(in).map(e => source.getEdgeWeight(e))
-       in.targetPorts.zip(originalWeights).foreach { case (targetPort, weight) =>
+      in.targetPorts.zip(originalWeights).foreach { case (targetPort, weight) =>
         addEdge(port, targetPort, weight)
       }
     }
@@ -238,4 +258,7 @@ class Dag[TSoft, THard <: Data](val name: String)
     path.getWeight.toInt
   }
 
+  override def toString =
+    s"vertices:\n${vertexSet().mkString("\n")}\n" +
+      s"edges:\n${edgeSet().map(_.toStringInGraph).mkString("\n")}"
 }

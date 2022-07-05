@@ -45,11 +45,10 @@ case class PipelinedBigAdderConfig(addWidth: Int, baseWidth: Int = 127, minus: B
     val ret = carries.last.merge(sums.reverse) // high -> low
     graph.addEdge(ret, z)
 
-    graph.validate()
     graph
   }
 
-  val graph = bigAdderGraph
+  val graph = bigAdderGraph.validate()
 
   override def impl(dataIn: Seq[Any]) = {
     val bigInts = dataIn.asInstanceOf[Seq[BigInt]]

@@ -1,8 +1,8 @@
 package org.datenlord
 package arithmetic
 
-import org.datenlord.dfg.RingInt
 import org.scalatest.flatspec.AnyFlatSpec
+import spinal.core
 import spinal.core._
 
 import scala.util.Random
@@ -16,10 +16,7 @@ class PipelinedBigAdderTest extends AnyFlatSpec {
   val data = (0 until testCount * 2).map(_ => Random.nextBigInt(width))
   val config = PipelinedBigAdderConfig(width, baseWidth)
 
-  "PipelinedBigAdder" should "work by algo" in {
-    val algo = config.graph.implS
-    assert(algo(data.take(2).map(RingInt(_, width))).head.value == data.take(2).sum)
-  }
+  "PipelinedBigAdder" should "work by algo" in assert(config.graph.evaluateS(data.take(2)).head == data.take(2).sum)
 
   "PipelinedBigAdder" should "work" in TransformTest.test(config.implH, data)
 

@@ -15,41 +15,7 @@ import org.jgrapht.traverse._
 import org.jgrapht.generate._
 
 import scala.collection.JavaConversions._
-
-case class RingInt(value: BigInt, width: Int) {
-  require(value.bitLength <= width)
-
-  def multLowBits(that: RingInt) = {
-    require(width == that.width)
-    val newValue = (value * that.value) % (BigInt(1) << width)
-    RingInt(newValue, width)
-  }
-
-  def *(that: RingInt) = {
-    val newValue = value * that.value
-    RingInt(newValue, width + that.width)
-  }
-
-  def +^(that: RingInt) = RingInt(value + that.value, width max that.width + 1)
-
-  def +(that: RingInt) = {
-    val widthMax = width max that.width
-    RingInt((value + that.value) % (BigInt(1) << widthMax), widthMax)
-  }
-
-  def square = this * this
-
-  def split(splitPoints: Seq[Int]) = {
-    val widthsOut = (width +: splitPoints).zip(splitPoints :+ 0).map { case (width, low) => width - low }
-    val segments = value.split(splitPoints)
-    segments.zip(widthsOut).map { case (value, width) => RingInt(value, width) }
-  }
-
-}
-
-object RingInt {
-  def apply(constant: BigInt): RingInt = RingInt(constant, constant.bitLength)
-}
+import OpType._
 
 /** This is for crypto implementation on FPGAs of Ultrascale family, each child class of RingVertex has a corresponding hardware implementation on Ultrascale device
  *
@@ -59,18 +25,20 @@ object RingInt {
 class RingVertex
 (
   name: String, latency: Int,
-  implS: Seq[RingInt] => Seq[RingInt], implH: Seq[UInt] => Seq[UInt],
+  implS: Seq[BigInt] => Seq[BigInt], implH: Seq[UInt] => Seq[UInt],
   opType: OpType,
   val widthsIn: Seq[Int], val widthsOut: Seq[Int], val widthCheck: Seq[Int] => Boolean
-) extends DagVertex[RingInt, UInt](name, latency, opType, implS, implH) {
+) extends DagVertex[BigInt, UInt](name, latency, opType, implS, implH) {
 
-  def doWidthCheck = assert(widthCheck(widthsIn), s"$opType vertex: widthsIn = ${widthsIn.mkString(" ")}, widthsOut = ${widthsOut.mkString(" ")}")
+  def doWidthCheck(): Unit = assert(widthCheck(widthsIn), s"$opType vertex: widthsIn = ${widthsIn.mkString(" ")}, widthsOut = ${widthsOut.mkString(" ")}")
 
   override def toString = s"$name"
 }
 
 
-class RingDag extends Dag[RingInt, UInt]("ring") {
+class RingDag extends Dag[BigInt, UInt]("ring") {
+
+  override implicit val ref: RingDag = this
 
   def setInput(name: String, width: Int) = {
     val in = RingVarVertex(name, width)
@@ -86,28 +54,72 @@ class RingDag extends Dag[RingInt, UInt]("ring") {
     RingPort(out, 0)
   }
 
-//  // eliminate intermediate variables
-//  def eliminateIntermediates(): Unit = {
-//    val inters = vertexSet().toSeq.asInstanceOf[Seq[RingVertex]]
-//      .filter(_.opType == Var).filterNot(isIo)
-//    inters.foreach{ inter =>
-//      val source = sourcePortsOf(inter).head
-//      val target = targetPortsOf(inter).head
-//      val weight = getEdgeWeight(incomingEdgesOf(inter).head) + getEdgeWeight(outgoingEdgesOf(inter).head)
-//      addEdgeWithWeight(source, target, weight)
-//    }
-//    inters.foreach(removeVertex)
-//  }
-//
-//  def breakBundles() = {
-//    eliminateIntermediates()
-//    val candidates = vertexSet().toSeq.asInstanceOf[Seq[RingVertex]]
-//      .filter(_.opType == Merge)
-//      .filter(merge => targetsOf(merge).asInstanceOf[Seq[RingVertex]].length == 1 && targetsOf(merge).asInstanceOf[Seq[RingVertex]].head.opType == Split)
-//    val pairs = candidates.map(merge => (merge, targetsOf(merge).head.asInstanceOf[RingVertex]))
-//
-//
-//  }
+  // break the merge-split construct into pieces
+  def breakBundles() = {
+    eliminateIntermediates()
+    val candidates = vertexSet()
+      .filter(_.opType == Merge)
+      .filter(_.targets.length == 1)
+      .filter(_.targets.head.opType == Split)
+      .map(merge => (merge, merge.targets.head)) // merge-split
+    candidates.foreach { case (m, s) =>
+      val (merge, split) = (m.asInstanceOf[RingVertex], s.asInstanceOf[RingVertex])
+
+      def getNewSplits(widthsOfMerge: Seq[Int], widthsOfSplit: Seq[Int]) = {
+
+        val mergeSplits = widthsOfMerge.reverse.scan(0)(_ + _).init
+        val splitSplits = widthsOfSplit.reverse.scan(0)(_ + _).init
+        val splitPoints = (mergeSplits ++ splitSplits).sorted.distinct
+
+        // split schemes of inputs, low -> high
+        val mergeBuffer = Seq.fill(widthsOfMerge.length)(ArrayBuffer[Int]())
+        splitPoints.foreach { p =>
+          val index = mergeSplits.lastIndexWhere(_ <= p) // find last where p >= value
+          val value = mergeSplits(index)
+          if ((p - value) > 0) mergeBuffer(index) += (p - value)
+        }
+
+        // merge schemes of outputs
+        val splitBuffer = Seq.fill(widthsOfSplit.length)(ArrayBuffer[Int]())
+        splitPoints.zipWithIndex.foreach { case (p, index) =>
+          val group = splitSplits.lastIndexWhere(_ <= p) // find last where p >= value
+          splitBuffer(group) += index
+        }
+
+        (mergeBuffer.reverse.map(_.reverse), splitBuffer.reverse)
+      }
+
+      val (mergeBuffer, splitBuffer) = getNewSplits(merge.widthsIn, split.widthsOut)
+
+      val starts = merge.sourcePorts.map(RingPort.fromDagPort)
+
+      val mids = starts.zip(mergeBuffer).flatMap { case (port, splits) =>
+        if (splits.isEmpty) Seq(port)
+        else port.split(splits)
+      }.reverse
+
+      val ends = splitBuffer.map { segmentIndices =>
+        val group = segmentIndices.map(mids(_)).reverse
+        if (group.length == 1) group.head
+        else group.head.merge(group.tail)
+      }
+
+      ends.zip(split.targetPorts).foreach { case (port, target) => addEdge(port, target) }
+
+      removeVertex(merge)
+      removeVertex(split)
+    }
+  }
+
+
+  /** Do retiming on this DFG, such that constraints for vertices are satisfied with minimum number of registers
+   *
+   * @return graph after validation
+   */
+  override def validate() = {
+    breakBundles()
+    super.validate()
+  }
 
   def checkWidths(): Unit = vertexSet().toSeq.asInstanceOf[Seq[RingVertex]].foreach(_.doWidthCheck)
 }

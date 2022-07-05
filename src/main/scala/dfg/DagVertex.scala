@@ -13,25 +13,33 @@ class DagVertex[TSoft, THard <: Data](
                                        val implS: Seq[TSoft] => Seq[TSoft] = (data: Seq[TSoft]) => data,
                                        val implH: Seq[THard] => Seq[THard] = (data: Seq[THard]) => data
                                      ) {
+
   def apply(portOrder: Int) = DagPort(this, portOrder)
 
+
+  def incomingEdges(implicit ref: Dag[TSoft, THard]) = ref.incomingEdgesOf(this)
+
   def sources(implicit ref: Dag[TSoft, THard]) =
-    ref.incomingEdgesOf(this)
+    this.incomingEdges
       .toSeq.sortBy(_.inOrder)
       .map(ref.getEdgeSource)
 
   def sourcePorts(implicit ref: Dag[TSoft, THard]) =
-    ref.incomingEdgesOf(this)
+    this.incomingEdges
       .toSeq.sortBy(_.inOrder)
-      .map(e => DagPort(ref.getEdgeSource(e), e.inOrder))
+      .map(e => DagPort(ref.getEdgeSource(e), e.outOrder))
+
+  def outgoingEdges(implicit ref: Dag[TSoft, THard]) = ref.outgoingEdgesOf(this)
 
   def targets(implicit ref: Dag[TSoft, THard]) =
-    ref.outgoingEdgesOf(this)
+    this.outgoingEdges
       .toSeq.sortBy(_.outOrder)
       .map(ref.getEdgeTarget)
 
   def targetPorts(implicit ref: Dag[TSoft, THard]) =
     ref.outgoingEdgesOf(this)
       .toSeq.sortBy(_.outOrder)
-      .map(e => DagPort(ref.getEdgeTarget(e), e.outOrder))
+      .map(e => DagPort(ref.getEdgeTarget(e), e.inOrder))
+
+  def isIo(implicit ref: Dag[TSoft, THard]) = ref.inputs.contains(this) || ref.outputs.contains(this)
 }

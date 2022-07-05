@@ -8,6 +8,7 @@ import spinal.core.UInt
 import dfg.OpType._
 
 object MultVertex {
+
   def apply(name: String, opType: OpType, widthsIn: Seq[Int]) = {
 
     val latency = opType match {
@@ -16,10 +17,10 @@ object MultVertex {
       case SquareMult => 8
     }
 
-    val implS = (data: Seq[RingInt]) => Seq(opType match {
-      case FullMult => data.reduce(_ * _)
-      case LowMult => data.reduce(_ multLowBits _)
-      case SquareMult => data.head.square
+    val implS = (data: Seq[BigInt]) => Seq(opType match {
+      case FullMult => data.product
+      case LowMult => data.product % (BigInt(1) << widthsIn.max)
+      case SquareMult => data.head * data.head
     })
 
     val implH = opType match {
@@ -30,7 +31,7 @@ object MultVertex {
 
     val widthOut = opType match {
       case FullMult => widthsIn.sum
-      case LowMult => widthsIn.head
+      case LowMult => widthsIn.max
       case SquareMult => widthsIn.head * 2
     }
 
@@ -53,9 +54,8 @@ object AddVertex {
     val widthsOut = Seq(1, widthsIn.max)
     val opCount = widthsIn.length
 
-    val implS = (data: Seq[RingInt]) => {
-      val ret = if (opCount == 3) data(0) +^ data(1) + data(2)
-      else data(0) +^ data(1)
+    val implS = (data: Seq[BigInt]) => {
+      val ret = data.sum
       ret.split(Seq(widthsIn.max))
     }
 
@@ -77,7 +77,7 @@ object SplitVertex {
     val latency = 0
     val widthsOut = (widthIn +: splitPoints).zip(splitPoints :+ 0).map { case (width, low) => width - low }
     // example: 110011101.split(Seq(6,3)) = Seq(110, 011, 101)
-    val implS = (data: Seq[RingInt]) => data.head.split(splitPoints)
+    val implS = (data: Seq[BigInt]) => data.head.split(splitPoints)
     val implH = (data: Seq[UInt]) => data.head.split(splitPoints).map(_.asUInt)
 
     def widthCheck = (widthsIn: Seq[Int]) => true
@@ -90,19 +90,17 @@ object MergeVertex {
   def apply(name: String, widthsIn: Seq[Int]) = {
     val latency = 0
     val widthOut = widthsIn.sum
-    // example: 110011101.split(Seq(6,3)) = Seq(110, 011, 101)
-    val implS = (data: Seq[RingInt]) => {
+    val implS = (data: Seq[BigInt]) => {
       val newString = data.zip(widthsIn)
-        .map { case (data, width) => data.value.toString(2).padToLeft(width, '0') }
+        .map { case (data, width) => data.toString(2).padToLeft(width, '0') }
         .mkString("")
-      //      println(s"${data.map(_.value.toString(2)).mkString(" ")} merge to ${BigInt(newString, 2).toString(2)}")
-      Seq(RingInt(BigInt(newString, 2), widthOut))
+      Seq(BigInt(newString, 2))
     }
     val implH = (data: Seq[UInt]) => Seq(data.reduce(_ @@ _))
 
     def widthCheck = (widthsIn: Seq[Int]) => true
 
-    new RingVertex(name, latency, implS, implH, Split, widthsIn, Seq(widthOut), widthCheck)
+    new RingVertex(name, latency, implS, implH, Merge, widthsIn, Seq(widthOut), widthCheck)
   }
 }
 
@@ -111,5 +109,5 @@ object MergeVertex {
  */
 object RingVarVertex {
   def apply(name: String, width: Int) =
-    new RingVertex(name, 0, (data: Seq[RingInt]) => data, (data: Seq[UInt]) => data, Var, Seq(width), Seq(width), (widths:Seq[Int]) => true)
+    new RingVertex(name, 0, (data: Seq[BigInt]) => data, (data: Seq[UInt]) => data, Var, Seq(width), Seq(width), (widths:Seq[Int]) => true)
 }

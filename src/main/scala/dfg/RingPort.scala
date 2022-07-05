@@ -8,7 +8,7 @@ import spinal.core.UInt
  * @param order output order of the vertex, the specific output variable is specified by this parameter
  */
 case class RingPort(override val vertex: RingVertex, override val order: Int)
-  extends DagPort[RingInt, UInt](vertex, order) {
+  extends DagPort[BigInt, UInt](vertex, order) {
 
   def width = vertex.widthsOut(order)
 
@@ -38,4 +38,8 @@ case class RingPort(override val vertex: RingVertex, override val order: Int)
   }
 
   override def toString = s"${vertex}_$order"
+}
+
+object RingPort {
+  def fromDagPort(dagPort: DagPort[BigInt, UInt]) = RingPort(dagPort.vertex.asInstanceOf[RingVertex], dagPort.order)
 }
