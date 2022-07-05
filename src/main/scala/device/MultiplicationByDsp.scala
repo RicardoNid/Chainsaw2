@@ -28,7 +28,12 @@ case class MultiplicationByDspConfig(mode: MultiplierMode) extends TransformBase
 
   override val size = (2, 1)
 
-  override def latency = 8
+  //  override def latency = 8
+  override def latency = mode match {
+    case Full => 7
+    case Low => 6
+    case Square => 5
+  }
 
   override def implH = MultiplicationByDsp(this)
 
@@ -63,8 +68,10 @@ case class MultiplicationByDsp(config: MultiplicationByDspConfig) extends Transf
   val dataOut = master Flow Fragment(Vec(UInt(baseWidth * 2 bits)))
 
   val Seq(x, y) = dataIn.fragment
-  val Seq(a, b) = x.subdivideIn(2 slices).reverse.map(_.d(1)) // xHigh, xLow
-  val Seq(c, d) = y.subdivideIn(2 slices).reverse.map(_.d(1)) // yHigh, yLow
+  //  val Seq(a, b) = x.subdivideIn(2 slices).reverse.map(_.d(1)) // xHigh, xLow
+  //  val Seq(c, d) = y.subdivideIn(2 slices).reverse.map(_.d(1)) // yHigh, yLow
+  val Seq(a, b) = x.subdivideIn(2 slices).reverse // xHigh, xLow
+  val Seq(c, d) = y.subdivideIn(2 slices).reverse // yHigh, yLow
 
   val ret = mode match {
     case Full =>
@@ -75,6 +82,11 @@ case class MultiplicationByDsp(config: MultiplicationByDspConfig) extends Transf
       val dsp1 = Dsp48.ab(b, d)
       // 2-5
       val dsp2 = Dsp48.adbc(a = a.d(2), b = cPlusD.d(1), c = dsp0, d = b.d(2), postMinus = true)
+
+      dsp0.addAttribute("use_dsp", "yes")
+      dsp1.addAttribute("use_dsp", "yes")
+      dsp2.addAttribute("use_dsp", "yes")
+
       // 5-6
       val adbc = (dsp2 - dsp1.d(3)).d(1)
       adbc.addAttribute("use_dsp", "no")
@@ -92,23 +104,43 @@ case class MultiplicationByDsp(config: MultiplicationByDspConfig) extends Transf
       // 4-6
       val dsp2 = Dsp48.abc(b.d(4), d.d(4), dsp1Low)
       val ret = dsp2.takeLow(baseWidth).asUInt
+
+      dsp0.addAttribute("use_dsp", "yes")
+      dsp1.addAttribute("use_dsp", "yes")
+      dsp2.addAttribute("use_dsp", "yes")
+
       // 6-7
-      ret.d(1)
+      //      ret.d(1)
+      ret
     case Square =>
       // 0-2
-      val dsp0 = Dsp48.ab(a, c)
-      val dsp1 = Dsp48.ab(b, d)
+      val dsp0 = Dsp48.ab(a, a)
+      val dsp1 = Dsp48.ab(b, b)
       val long = dsp0 @@ dsp1 // 68 bits
       val (high, mid, low) = (long.takeHigh(4).asUInt, long(63 downto 18), long.takeLow(18).asUInt)
       // 2-4
-      val dsp2 = Dsp48.abc(b.d(2), c.d(2), mid)
+      val dsp2 = Dsp48.abc(b.d(2), a.d(2), mid)
+
+      dsp0.addAttribute("use_dsp", "yes")
+      dsp1.addAttribute("use_dsp", "yes")
+      dsp2.addAttribute("use_dsp", "yes")
+
       // 4-5
       val finalHigh = (high.d(2) + dsp2.msb.asUInt).d(1)
       val finalMid = dsp2.takeLow(46).asUInt.d(1)
       // 5-7
       val ret = finalHigh @@ finalMid @@ low.d(3)
-      ret.d(2)
+      //      ret.d(2)
+      ret
   }
+
+  val defName = mode match {
+    case Full => "FullMult32"
+    case Low => "LowMult34"
+    case Square => "SquareMult34"
+  }
+
+  setDefinitionName(defName)
 
   dataOut.fragment := Vec(ret.resize(baseWidth * 2))
   autoValid()

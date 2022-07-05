@@ -10,15 +10,19 @@ import xilinx.VivadoReport
 case class Addition(width: Int) extends Component {
 
   val a, b = in UInt (width bits)
+  val carry = in UInt (1 bits)
   val c = out UInt (width + 1 bits)
-  c := (a.d(1) +^ b.d(1)).d(1)
+  c := (a.d(1) +^ b.d(1) + carry.d(1)).d(1)
 
 }
 
-object Addition {
+case class Subtraction(width: Int) extends Component {
 
-
-
-
+  val a, b = in UInt (width bits)
+  val carry = in UInt (1 bits)
+  val c = out UInt (width + 1 bits)
+  c := (a.d(1) +^ ~b.d(1) + carry.d(1)).d(1)
 
 }
+
+

@@ -18,37 +18,7 @@ import dfg._
  */
 case class PipelinedBigAdderConfig(addWidth: Int, baseWidth: Int = 127, minus: Boolean = false) extends TransformBase {
 
-  def bigAdderGraph = {
-
-    implicit val graph: RingDag = new RingDag
-    val x = graph.setInput("x", addWidth)
-    val y = graph.setInput("y", addWidth)
-    val z = graph.setOutput("z", addWidth + 1)
-
-    val splitPoints = (0 until (addWidth - 1) / baseWidth).reverse.map(i => (i + 1) * baseWidth)
-    val xs = x.split(splitPoints).reverse // low -> high
-    val ys = y.split(splitPoints).reverse
-
-    logger.info(s"x segments: ${xs.length}")
-
-    val carries = ArrayBuffer[RingPort]()
-    val sums = ArrayBuffer[RingPort]()
-
-    xs.zip(ys).foreach { case (x, y) =>
-      val (carry, sum) =
-        if (carries.nonEmpty) x.+^(y, carries.last)
-        else x +^ y
-      carries += carry
-      sums += sum
-    }
-
-    val ret = carries.last.merge(sums.reverse) // high -> low
-    graph.addEdge(ret, z)
-
-    graph
-  }
-
-  val graph = bigAdderGraph.validate()
+  val graph = dfg.ArithmeticGraphs.addGraph(addWidth, baseWidth).validate(100)
 
   override def impl(dataIn: Seq[Any]) = {
     val bigInts = dataIn.asInstanceOf[Seq[BigInt]]

@@ -10,4 +10,6 @@ package object dfg {
 
   def lcm(a: Int, b: Int) = a * b / gcd(a, b)
 
+
+
 }

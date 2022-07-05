@@ -15,7 +15,7 @@ import scala.collection.mutable.ArrayBuffer
 
 object OpType extends Enumeration {
   val Var = Value // variable (opposite to operation)
-  val FullMult, LowMult, SquareMult, Add, Merge, Split = Value // Ring operations
+  val FullMult, LowMult, SquareMult, Add, Sub, Merge, Split, Resize = Value // Ring operations
   type OpType = Value
 }
 
@@ -35,10 +35,10 @@ object VarVertex {
     new DagVertex(name, 0, Var, (data: Seq[TSoft]) => data, (data: Seq[THard]) => data)
 }
 
-class DagPort[TSoft, THard <: Data](val vertex: DagVertex[TSoft, THard], val order: Int)
+class DagPort[TSoft, THard <: Data](val vertex: DagVertex[TSoft, THard], val order: Int, val direction: Direction)
 
 object DagPort {
-  def apply[TSoft, THard <: Data](vertex: DagVertex[TSoft, THard], order: Int): DagPort[TSoft, THard] = new DagPort(vertex, order)
+  def apply[TSoft, THard <: Data](vertex: DagVertex[TSoft, THard], order: Int, direction: Direction): DagPort[TSoft, THard] = new DagPort(vertex, order, direction)
 }
 
 
@@ -61,6 +61,7 @@ class Dag[TSoft, THard <: Data](val name: String)
   override def addEdge(sourceVertex: DagVertex[TSoft, THard], targetVertex: DagVertex[TSoft, THard], e: E) = super.addEdge(sourceVertex, targetVertex, e)
 
   def addEdge(source: Port, target: Port, weight: Double = 0) = {
+    require(source.direction == Out && target.direction == In)
     val e = new E(target.order, source.order)
     super.addVertex(source.vertex)
     super.addVertex(target.vertex)
@@ -94,21 +95,26 @@ class Dag[TSoft, THard <: Data](val name: String)
    *
    * @return graph after validation
    */
-  def validate() = {
+  def validate(maxLatency: Int) = {
+
+    checkHomo()
+
     // build graph with dummy vertices
     val originalEdges = edgeSet().toSeq
     val edgeWeights = mutable.Map[E, Double]()
+    val ks = ArrayBuffer[Int]()
     vertexSet()
       .filter(v => outgoingEdgesOf(v).size() > 1)
       .foreach { v =>
         val outgoingEdges = outgoingEdgesOf(v).toSeq
         val k = outgoingEdges.size
+        ks += k
         val latencies = outgoingEdges.map(getEdgeWeight)
         val latencyMax = latencies.max
         val targets = outgoingEdges.map(getEdgeTarget)
         val dummy = VarVertex[TSoft, THard](s"${v.name}_dummy")
         addVertex(dummy)
-        val dummyEdges = targets.zip(latencies).map { case (target, latency) => addEdge(target(0), dummy(0), latencyMax - latency) }
+        val dummyEdges = targets.zip(latencies).map { case (target, latency) => addEdge(target.out(0), dummy.in(0), latencyMax - latency) }
         (outgoingEdges ++ dummyEdges)
           .foreach(e => edgeWeights += (e -> 1 / k.toDouble))
       }
@@ -116,14 +122,30 @@ class Dag[TSoft, THard <: Data](val name: String)
     implicit val model: MPModel = MPModel(SolverLib.oJSolver)
     // declare variables
     val vertices = vertexSet().toSeq
-    val variables: Seq[MPFloatVar] = vertices.map(v => MPFloatVar(v.toString, -20, 20))
+    val variables: Seq[MPFloatVar] = vertices.map(v => MPFloatVar(v.toString, 0, maxLatency))
     assert(variables.distinct.length == vertices.length)
     val variableMap = Map(vertices.zip(variables): _*)
     // construct cost function for minimum number of registers
+
+    val uniqueKs = ks.distinct
+    //    println("unique ks:")
+    //    uniqueKs.foreach(println)
+    val positiveRationals = uniqueKs.flatMap(k => (1 until k).map(_ / k.toDouble))
+    val rationals = positiveRationals ++ positiveRationals.map(rational => -rational)
+    val epsilon = 1e-5
+
     val coeffs: Seq[Double] = vertices.map { v =>
       incomingEdgesOf(v).map(e => edgeWeights.getOrElse(e, 1.0)).sum -
         outgoingEdgesOf(v).map(e => edgeWeights.getOrElse(e, 1.0)).sum
+    }.map { coeff =>
+      val candidate = rationals.filter(rational => (rational - coeff).abs < epsilon)
+      if (candidate.nonEmpty) candidate.head
+      else coeff
     }
+
+    //    println("coeffs:")
+    //    coeffs.foreach(println)
+
     val expr = variables.zip(coeffs)
       .map { case (variable, coeff) => variable * coeff }
       .reduce(_ + _)
@@ -149,7 +171,8 @@ class Dag[TSoft, THard <: Data](val name: String)
   // TODO: merge implH and implS
   def implH: Seq[THard] => Seq[THard] = (dataIns: Seq[THard]) => {
 
-    validate()
+    logger.info(s"latency before impl: $latency")
+    if (latency == 0) logger.warn(s"latency = 0, do validate()")
 
     val signalMap = mutable.Map[V, Seq[THard]]()
 
@@ -217,40 +240,48 @@ class Dag[TSoft, THard <: Data](val name: String)
   def evaluateH(dataIns: Seq[THard]) = implH.apply(dataIns)
 
   def eliminateIntermediates() = {
-    val inters = vertexSet().filter(_.opType == Var).filterNot(_.isIo)
-    inters.foreach { inter =>
+    val inters = vertexSet() // find inters
+      .filter(_.opType == Var)
+      .filterNot(_.isIo)
+      .filter(v => v.inDegree > 0 && v.outDegree > 0)
+    inters.foreach { inter => // remove one by one
       val source = inter.sourcePorts.head
       val target = inter.targetPorts.head
-      val weight = getEdgeWeight(incomingEdgesOf(inter).head) + getEdgeWeight(outgoingEdgesOf(inter).head)
+      val weight = inter.incomingEdges.head.weight + inter.outgoingEdges.head.weight
       addEdge(source, target, weight)
+      removeVertex(inter)
     }
-    inters.foreach(removeVertex)
-
     this
   }
 
-  def addGraphBetween(source: Dag[TSoft, THard], inputs: Seq[Port], outputs: Seq[Port]): Unit = {
-    require(source.inputs.length == inputs.length)
-    require(source.outputs.length == outputs.length)
-    Graphs.addGraph(this, source) // add all vertices and edges of that to this
-    source.edgeSet().foreach(e => setEdgeWeight(e, source.getEdgeWeight(e)))
-    // replace input ports
-    inputs.zip(source.inputs).foreach { case (port, in) =>
-      val originalWeights = source.outgoingEdgesOf(in).map(e => source.getEdgeWeight(e))
-      in.targetPorts.zip(originalWeights).foreach { case (targetPort, weight) =>
-        addEdge(port, targetPort, weight)
-      }
-    }
-    outputs.zip(source.outputs).foreach { case (port, out) =>
-      val originalWeights = source.incomingEdgesOf(out).map(e => source.getEdgeWeight(e))
-      out.sourcePorts.zip(originalWeights).foreach { case (sourcePort, weight) =>
-        addEdge(sourcePort, port, weight)
-      }
-    }
-    // remove IOs
-    source.inputs.foreach(removeVertex)
-    source.outputs.foreach(removeVertex)
+  def addGraphsAfter(source: Dag[TSoft, THard], starts: Seq[Port]): Seq[DagPort[TSoft, THard]] = {
+    require(source.inputs.length == starts.length)
+    require(starts.forall(_.direction == Out))
+    //    require(starts.forall(_.vertex.outDegree == 0))
+    // add
+    Graphs.addGraph(this, source) // add all vertices and edges of that to this, but the edge weights won't be copied
+    source.edgeSet().foreach(e => setEdgeWeight(e, source.getEdgeWeight(e))) // copy the edge weights
+    // link
+    starts.zip(source.inputs).foreach { case (port, in) => addEdge(port, in.in(0)) }
+    // remove inputs of source graph
+    eliminateIntermediates()
+    // return output ports of source graph, which are part of this graph now
+    source.outputs.map(_.out(0))
   }
+
+  def addGraphBetween(source: Dag[TSoft, THard], starts: Seq[Port], ends: Seq[Port]): Unit = {
+    require(source.outputs.length == ends.length)
+    require(ends.forall(_.direction == In))
+    require(ends.forall(_.vertex.inDegree == 0))
+    // add & link inputs
+    val outputs = addGraphsAfter(source, starts)
+    // link outputs
+    ends.zip(outputs).foreach { case (port, out) => addEdge(out, port) }
+    // remove inputs & outputs of source graph
+    eliminateIntermediates()
+  }
+
+  def checkHomo(): Unit = assert(edgeSet().forall(_.weight == 0))
 
   def latency = {
     val algo = new DijkstraShortestPath(this)
