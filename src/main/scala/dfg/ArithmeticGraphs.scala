@@ -4,14 +4,17 @@ package dfg
 import scala.collection.mutable.ArrayBuffer
 import arithmetic.MultplierMode._
 
+
+import scala.collection.JavaConversions._
+
 object ArithmeticGraphs {
 
   def addGraph(addWidth: Int, baseWidth: Int = 127) = {
 
     implicit val graph: RingDag = new RingDag
-    val x = graph.setInput("x", addWidth)
-    val y = graph.setInput("y", addWidth)
-    val z = graph.setOutput("z", addWidth + 1)
+    val x = graph.addInput("addX", addWidth)
+    val y = graph.addInput("addY", addWidth)
+    val z = graph.addOutput("addZ", addWidth + 1)
 
     val splitPoints = (0 until (addWidth - 1) / baseWidth).reverse.map(i => (i + 1) * baseWidth)
     val xs = if (splitPoints.isEmpty) Seq(x) else x.split(splitPoints).reverse // low -> high
@@ -38,9 +41,9 @@ object ArithmeticGraphs {
   def subGraph(addWidth: Int, baseWidth: Int = 127) = {
 
     implicit val graph: RingDag = new RingDag
-    val x = graph.setInput("x", addWidth)
-    val y = graph.setInput("y", addWidth)
-    val z = graph.setOutput("z", addWidth)
+    val x = graph.addInput("bigSubX", addWidth)
+    val y = graph.addInput("bigSubY", addWidth)
+    val z = graph.addOutput("bigSubZ", addWidth + 1)
 
     val splitPoints = (0 until (addWidth - 1) / baseWidth).reverse.map(i => (i + 1) * baseWidth)
     val xs = if (splitPoints.isEmpty) Seq(x) else x.split(splitPoints).reverse // low -> high
@@ -57,9 +60,8 @@ object ArithmeticGraphs {
       sums += sum
     }
 
-    val ret = if(splitPoints.isEmpty) sums.last else sums.last.merge(sums.init.reverse) // high -> low
+    val ret = carries.last.merge(sums.reverse)
     graph.addEdge(ret, z)
-
     graph
   }
 
@@ -70,13 +72,13 @@ object ArithmeticGraphs {
     //    val stages = Seq(34, 66, 130, 258)
 
     implicit val graph: RingDag = new RingDag
-    val x = graph.setInput("x", width)
-    val y = graph.setInput("y", width)
+    val x = graph.addInput(s"bigMultX", width)
+    val y = graph.addInput("bigMultY", width)
     val widthOut = mode match {
       case Low => width
       case _ => width * 2
     }
-    val z = graph.setOutput("z", widthOut)
+    val z = graph.addOutput(s"bigMultZ_$mode", widthOut)
 
     def recursiveTask(width: Int, x: RingPort, y: RingPort, mode: MultiplierMode): RingPort = {
 
@@ -150,7 +152,33 @@ object ArithmeticGraphs {
 
     val ret: RingPort = recursiveTask(width, x, y, mode)
     graph.addEdge(ret, z)
-    logger.info(s"graph built")
+    logger.info(s"$mode mult graph built")
+    graph
+  }
+
+  def montgomeryGraph(width: Int, modulus: BigInt, square: Boolean = false, byLUT: Boolean = false) = {
+
+    require(modulus.bitLength <= width)
+
+    implicit val graph: RingDag = new RingDag
+    val x = graph.addInput("montX", width)
+    val y = graph.addInput("montY", width)
+    val modulusInput = graph.addInput("modulus", width)
+    val nprimeInput = graph.addInput("np", width)
+    val z = graph.addOutput("montRet", width + 1)
+
+    val T = if (!square) x *:* y else x bigSquare y
+    val TLow = T.resize(width)
+
+    val m = TLow *-:*- nprimeInput
+    val prod = m *:* modulusInput
+    val full = prod +:+^ T
+    val t = full.splitAt(width)._1
+
+
+    graph.addEdge(t, z)
+    logger.info(s"mont graph built")
+    println(graph.vertexSet().filter(_.inDegree == 0).mkString(" "))
     graph
   }
 

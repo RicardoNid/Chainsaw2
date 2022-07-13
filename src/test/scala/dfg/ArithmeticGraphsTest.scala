@@ -5,82 +5,68 @@ import arithmetic.MultplierMode._
 
 import org.scalatest.flatspec.AnyFlatSpec
 
-import scala.collection.JavaConversions._
 import scala.util.Random
-import dfg.OpType._
 
 class ArithmeticGraphsTest extends AnyFlatSpec {
 
-  val testCount = 10
+  val genCount = 1
+  val testCaseCount = 10000
+  val complexTestCaseCount = 10000
   val testWidth = 377
-
-  val graphAdd = ArithmeticGraphs.addGraph(testWidth)
-
-  "addGraph" should "work" in {
-    val data = (0 until testCount * 2).map(_ => Random.nextBigInt(testWidth))
-    data.grouped(2).toSeq.foreach(slice => assert(graphAdd.evaluateS(slice).head == slice.sum))
-    TransformTest.test(graphAdd.toTransform(), data)
-  }
-
-  //  it should "synth" in VivadoSynth(graphAdd.toTransform(100), "graphAdd")
-
-  val graphSub = ArithmeticGraphs.subGraph(testWidth)
-
-  "subGraph" should "work" in {
-    val xs = (0 until testCount).map(_ => Random.nextBigInt(testWidth - 1))
-    val ys = (0 until testCount).map(_ => Random.nextBigInt(testWidth - 1))
-    val data = xs.zip(ys).flatMap { case (x, y) => Seq(x + y, y) }
-    data.grouped(2).toSeq.foreach(slice => assert(graphSub.evaluateS(slice).head == slice(0) - slice(1)))
-    TransformTest.test(graphSub.toTransform(), data)
-  }
-
-  //  it should "synth" in VivadoSynth(graphSub.toTransform(100), "graphSub")
-
   Random.setSeed(42)
-  val data = (0 until testCount * 2).map(_ => Random.nextBigInt(testWidth))
-
-  def showCost(graph: RingDag) = {
-    logger.info(s"latency = ${graph.latency}")
-    logger.info(s"number of full mults = ${graph.vertexSet().count(v => v.opType == FullMult)}")
-    logger.info(s"number of low mults = ${graph.vertexSet().count(v => v.opType == LowMult)}")
-    logger.info(s"number of square mults = ${graph.vertexSet().count(v => v.opType == SquareMult)}")
-    logger.info(s"number of all mults = ${graph.vertexSet().count(v => v.opType == FullMult || v.opType == LowMult || v.opType == SquareMult)}")
-    logger.info(s"number of adds = ${graph.vertexSet().count(v => v.opType == Add || v.opType == Sub)}")
-  }
+  val data = (0 until testCaseCount * 2).map(_ => Random.nextBigInt(testWidth))
 
   // get a brand new graph every time we need it
+  def graphAdd = ArithmeticGraphs.addGraph(testWidth)
+
+  def graphSub = ArithmeticGraphs.subGraph(testWidth)
+
   def graphFull = ArithmeticGraphs.karatsubaGraph(testWidth, Full)
 
   def graphLow = ArithmeticGraphs.karatsubaGraph(testWidth, Low)
 
   def graphSquare = ArithmeticGraphs.karatsubaGraph(testWidth, Square)
 
-  "karatsubaGraph" should "show cost" in {
-    logger.info(s"cost of full")
-    showCost(graphFull.validate(35))
-    logger.info("--------")
-    logger.info(s"cost of low")
-    showCost(graphLow.validate(25))
-    logger.info("--------")
-    logger.info(s"cost of square")
-    showCost(graphSquare.validate(28))
-    logger.info("--------")
+  def graphMontMult = ArithmeticGraphs.montgomeryGraph(testWidth, zprizeModulus, square = false, byLUT = false)
+
+  def graphMontSquare = ArithmeticGraphs.montgomeryGraph(testWidth, zprizeModulus, square = true, false)
+
+  val addGolden = (data: Seq[BigInt]) => Seq(data.sum)
+  val subGolden = (data: Seq[BigInt]) => Seq(data(0) - data(1))
+  val fullMultGolden = (data: Seq[BigInt]) => Seq(data.product)
+  val lowMultGolden = (data: Seq[BigInt]) => Seq(data.product % (BigInt(1) << testWidth))
+  val squareMultGolden = (data: Seq[BigInt]) => Seq(data.head * data.head)
+
+  val zprizeModulus = algos.ZPrizeMSM.baseModulus
+  val R = BigInt(1) << zprizeModulus.bitLength
+  val RInverse = R.modInverse(zprizeModulus)
+  val NPrime = ((R * RInverse - 1) / zprizeModulus) % zprizeModulus
+  val montData = (0 until complexTestCaseCount * 2).map(_ => Random.nextBigInt(testWidth) % zprizeModulus)
+  val montTestData = montData.grouped(2).toSeq.flatMap(slice => slice ++ Seq(zprizeModulus, NPrime))
+
+  val montMultGolden = (data: Seq[BigInt]) => {
+    val Seq(x, y, modulus, nprime) = data
+    val ret = (x * y * RInverse) % modulus
+    ret
   }
 
-  // 35,25,28
-  // 39,26,29
+  val subMetric = (yours: Seq[BigInt], golden: Seq[BigInt]) => yours.zip(golden).forall { case (x, y) =>
+    if (y < 0) x - y == (BigInt(1) << testWidth) else x - (BigInt(1) << testWidth) == y
+  }
+  val montMetric = (yours: Seq[BigInt], golden: Seq[BigInt]) => yours.zip(golden).forall { case (x, y) => x % zprizeModulus == y % zprizeModulus }
 
-  it should "work for full multiplication on software" in data.grouped(2).toSeq.foreach(slice => assert(graphFull.evaluateS(slice).head == slice.product))
-  it should "work for full multiplication on hardware" in TransformTest.test(graphFull.toTransform(35), data)
+  "addGraph" should "work" in (0 until genCount).foreach(_ => TransformTest.test(graphAdd.toTransform(golden = addGolden), data))
+  "subGraph" should "work" in (0 until genCount).foreach(_ => TransformTest.test(graphSub.toTransform(golden = subGolden), data, subMetric))
 
-  it should "work for low-bit multiplication on software" in data.grouped(2).toSeq.foreach(slice => assert(graphLow.evaluateS(slice).head == slice.product % (BigInt(1) << testWidth)))
-  it should "work for low-bit multiplication on hardware" in TransformTest.test(graphLow.toTransform(25), data)
+  it should "work for full multiplication on hardware" in (0 until genCount).foreach(_ =>
+    TransformTest.test(graphFull.toTransform(golden = fullMultGolden), data))
+  it should "work for low-bit multiplication on hardware" in (0 until genCount).foreach(_ =>
+    TransformTest.test(graphLow.toTransform(golden = lowMultGolden), data))
+  it should "work for square multiplication on hardware" in (0 until genCount).foreach(_ =>
+    TransformTest.test(graphSquare.toTransform(golden = squareMultGolden), data.take(testCaseCount / 2).flatMap(d => Seq(d, d))))
 
-  it should "work for square multiplication on software" in data.foreach(int => assert(graphSquare.evaluateS(Seq(int, int)).head == int * int))
-  it should "work for square multiplication on hardware" in TransformTest.test(graphSquare.toTransform(28), data)
-
-  it should "synth for full" in VivadoSynth(graphFull.toTransform(35), "graphFull")
-  it should "synth for low" in VivadoSynth(graphLow.toTransform(25), "graphLow")
-  it should "synth for square" in VivadoSynth(graphSquare.toTransform(28), "graphSquare")
-
+  "montgomeryGraph" should "work for modular multiplication on hardware" in (0 until genCount).foreach(_ =>
+    TransformTest.test(graphMontMult.toTransform(), montTestData, montMetric))
+  it should "work for modular square multiplication on hardware" in (0 until genCount).foreach(_ =>
+    TransformTest.test(graphMontSquare.toTransform(), montTestData.take(testCaseCount / 2).flatMap(d => Seq(d, d)), montMetric))
 }

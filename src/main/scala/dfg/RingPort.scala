@@ -6,7 +6,7 @@ import dfg.Direction._
 import dfg.OpType._
 import arithmetic.MultplierMode._
 
-import org.datenlord.dfg.ArithmeticGraphs.{addGraph, subGraph}
+import org.datenlord.dfg.ArithmeticGraphs.{addGraph, karatsubaGraph, subGraph}
 
 import scala.collection.immutable
 
@@ -19,9 +19,13 @@ case class RingPort(override val vertex: RingVertex, override val order: Int, ov
 
   def width = vertex.widthsOut(order)
 
+  /** Split a vertex into multiple
+   * @param splitPoints high to low split points
+   * @example
+   */
   def split(splitPoints: Seq[Int])(implicit dag: RingDag): Seq[RingPort] = {
     require(this.direction == Out)
-    require(splitPoints.nonEmpty)
+    require(splitPoints.nonEmpty && splitPoints.max < this.width && splitPoints.min > 0)
     val splitVertex = SplitVertex(s"${vertex.name}_split", width, splitPoints)
     dag.addVertex(splitVertex)
     dag.addEdge(this, splitVertex.in(0))
@@ -69,10 +73,13 @@ case class RingPort(override val vertex: RingVertex, override val order: Int, ov
 
   def resize(widthOut: Int)(implicit dag: RingDag) = {
     require(this.direction == Out)
-    val padVertex = ResizeVertex(s"${vertex.name}_merge", this.width, widthOut)
-    dag.addVertex(padVertex)
-    dag.addEdge(this, padVertex.in(0))
-    padVertex.out(0)
+    if (this.width == widthOut) this // skip when it is not necessary
+    else {
+      val padVertex = ResizeVertex(s"${vertex.name}_merge", this.width, widthOut)
+      dag.addVertex(padVertex)
+      dag.addEdge(this, padVertex.in(0))
+      padVertex.out(0)
+    }
   }
 
   def multByMode(that: RingPort, mode: MultiplierMode)(implicit dag: RingDag) = {
@@ -119,17 +126,42 @@ case class RingPort(override val vertex: RingVertex, override val order: Int, ov
 
   def +:+(that: RingPort)(implicit dag: RingDag): RingPort = {
     val widthAdd = this.width max that.width
-    val padded = Seq(this, that).map(port => if (port.width < widthAdd) port.resize(widthAdd) else port)
-    val sum = dag.addGraphsAfter(addGraph(widthAdd), padded)
-      .head.asInstanceOf[RingPort]
-    sum.resize(widthAdd)
+    (this +:+^ that).resize(widthAdd)
   }
 
-  def -:-(that: RingPort)(implicit dag: RingDag): RingPort = {
+  def -:-^(that: RingPort)(implicit dag: RingDag): RingPort = {
     require(this.width >= that.width)
-    val widthAdd = this.width max that.width
-    val padded = that.resize(widthAdd)
-    dag.addGraphsAfter(subGraph(widthAdd), Seq(this, padded))
+    val widthSub = this.width max that.width
+    val padded = that.resize(widthSub)
+    dag.addGraphsAfter(subGraph(widthSub), Seq(this, padded))
+      .head.asInstanceOf[RingPort]
+  }
+
+  def -:-(that: RingPort)(implicit dag: RingDag) = {
+    require(this.width >= that.width)
+    val widthSub = this.width max that.width
+    (this -:-^ that).resize(widthSub)
+  }
+
+  def *:*(that: RingPort)(implicit dag: RingDag): RingPort = {
+    require(this.width == that.width)
+    dag.addGraphsAfter(karatsubaGraph(this.width, Full), Seq(this, that))
+      .head.asInstanceOf[RingPort]
+  }
+
+  def *-:*-(that: RingPort)(implicit dag: RingDag): RingPort = {
+    require(this.width == that.width)
+    dag.addGraphsAfter(karatsubaGraph(this.width, Low), Seq(this, that))
+      .head.asInstanceOf[RingPort]
+  }
+
+  def bigSquare(implicit dag: RingDag): RingPort = {
+    dag.addGraphsAfter(karatsubaGraph(this.width, Square), Seq(this, this))
+      .head.asInstanceOf[RingPort]
+  }
+
+  def bigSquare(that:RingPort)(implicit dag: RingDag): RingPort = {
+    dag.addGraphsAfter(karatsubaGraph(this.width, Square), Seq(this, that))
       .head.asInstanceOf[RingPort]
   }
 

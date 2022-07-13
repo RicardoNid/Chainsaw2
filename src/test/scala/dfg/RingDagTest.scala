@@ -9,13 +9,13 @@ import ArithmeticGraphs.addGraph
 
 class RingDagTest extends AnyFlatSpec {
 
-  val width = 377
+  val width = 377 // 3 * 191 - 1
   val data = (0 until 4).map(_ => Random.nextBigInt(width))
   val golden = data.sum
 
   val bigGraph = new RingDag
-  val inputs = (0 until 4).map(i => bigGraph.setInput(s"in_$i", width))
-  val outputs = (0 until 1).map(i => bigGraph.setOutput(s"out_$i", width + 2))
+  val inputs = (0 until 4).map(i => bigGraph.addInput(s"in_$i", width))
+  val outputs = (0 until 1).map(i => bigGraph.addOutput(s"out_$i", width + 2))
 
   val g0 = addGraph(width)
   val g1 = addGraph(width)
@@ -27,12 +27,12 @@ class RingDagTest extends AnyFlatSpec {
 
   "RingDag" should "has correct software implementation" in assert(bigGraph.evaluateS(data).head == golden)
 
-  it should "has correct widths" in bigGraph.checkWidths
+  "checkWidths" should "work" in bigGraph.checkWidths
 
-  it should "be optimized correctly" in {
-    bigGraph.validate(100)
-    assert(bigGraph.latency == 4)
-    assert(bigGraph.evaluateS(data).head == golden)
+  "break bundles" should "work" in {
+    val latency0 = bigGraph.latencyLowerBound
+    bigGraph.breakBundles()
+    val latency1 = bigGraph.latencyLowerBound
     TransformTest.test(bigGraph.toTransform(), data)
   }
 

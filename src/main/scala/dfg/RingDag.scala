@@ -1,29 +1,18 @@
 package org.datenlord
 package dfg
 
-import arithmetic.MultplierMode._
-
-import org.datenlord.dfg.OpType.OpType
-import spinal.core._
-
-import scala.collection.mutable.ArrayBuffer
-import scala.util.Random
-import org.jgrapht._
-import org.jgrapht.graph._
-import org.jgrapht.graph.builder._
-import org.jgrapht.traverse._
-import org.jgrapht.generate._
+import dfg.Direction._
+import dfg.OpType.{OpType, _}
 
 import spinal.core._
-import spinal.core.sim._
 import spinal.lib._
-import spinal.lib.fsm._
 
 import scala.collection.JavaConversions._
-import OpType._
-import org.datenlord.dfg.Direction._
+import scala.collection.mutable.ArrayBuffer
 
-/** This is for crypto implementation on FPGAs of Ultrascale family, each child class of RingVertex has a corresponding hardware implementation on Ultrascale device
+case class ArithInfo(width: Int, shift:Int)
+
+/** This is for crypto implementation on FPGAs of Xilinx UltraScale family
  *
  * @param opType     type of operation
  * @param widthCheck check whether the input widths are valid, according to opType
@@ -36,7 +25,6 @@ class RingVertex
   val widthsIn: Seq[Int], val widthsOut: Seq[Int], val widthCheck: Seq[Int] => Boolean
 ) extends DagVertex[BigInt, UInt](name, latency, opType, implS, implH) {
 
-
   override def in(portOrder: Int) = RingPort(this, portOrder, In)
 
   override def out(portOrder: Int) = RingPort(this, portOrder, Out)
@@ -47,18 +35,18 @@ class RingVertex
 }
 
 
-class RingDag extends Dag[BigInt, UInt]("ring") {
+class RingDag(name: String = "ring") extends Dag[BigInt, UInt](name) {
 
   override implicit val ref: RingDag = this
 
-  def setInput(name: String, width: Int) = {
+  def addInput(name: String, width: Int) = {
     val in = RingVarVertex(name, width)
     addVertex(in)
     inputs += in
     in.out(0)
   }
 
-  def setOutput(name: String, width: Int) = {
+  def addOutput(name: String, width: Int) = {
     val out = RingVarVertex(name, width)
     addVertex(out)
     outputs += out
@@ -66,79 +54,72 @@ class RingDag extends Dag[BigInt, UInt]("ring") {
   }
 
   // break the merge-split construct into pieces
-  def breakBundles() = {
+  def breakBundles(): Unit = {
 
-    checkHomo()
+    simplified()
 
-    val candidates = vertexSet()
+    def getCandidates: Seq[(RingVertex, RingVertex)] = vertexSet().toSeq
       .filter(_.opType == Merge)
       .filter(_.targets.length == 1)
       .filter(_.targets.head.opType == Split)
       .map(merge => (merge, merge.targets.head)) // merge-split
-    logger.info(s"${candidates.size} pairs of merge-split found")
-    logger.info(s"${vertexSet().size()} vertices before")
-    candidates.foreach { case (m, s) =>
-      val (merge, split) = (m.asInstanceOf[RingVertex], s.asInstanceOf[RingVertex])
+      .asInstanceOf[Seq[(RingVertex, RingVertex)]]
 
-      def getNewSplits(widthsOfMerge: Seq[Int], widthsOfSplit: Seq[Int]) = {
+    def break(pair: (RingVertex, RingVertex)): Unit = {
+      // get split points
+      val (merge, split) = pair
+      val mergeSplits = merge.widthsIn.reverse.scan(0)(_ + _).init
+      val splitSplits = split.widthsOut.reverse.scan(0)(_ + _).init
+      val splitPoints = (mergeSplits ++ splitSplits).sorted.distinct
 
-        //        require(widthsOfMerge.length > 1 && widthsOfSplit.length > 1)
-        val mergeSplits = widthsOfMerge.reverse.scan(0)(_ + _).init
-        val splitSplits = widthsOfSplit.reverse.scan(0)(_ + _).init
-        val splitPoints = (mergeSplits ++ splitSplits).sorted.distinct
-
-        //        println(mergeSplits.mkString(" "))
-        //        println(splitSplits.mkString(" "))
-        //        println(splitPoints.mkString(" "))
-
-        // split schemes of inputs, low -> high
-        val mergeBuffer = Seq.fill(widthsOfMerge.length)(ArrayBuffer[Int]())
-        splitPoints.foreach { p =>
-          val index = mergeSplits.lastIndexWhere(_ <= p) // find last where p >= value
-          val value = mergeSplits(index)
-          if ((p - value) > 0) mergeBuffer(index) += (p - value)
-        }
-
-        // merge schemes of outputs
-        val splitBuffer = Seq.fill(widthsOfSplit.length)(ArrayBuffer[Int]())
-        splitPoints.zipWithIndex.foreach { case (p, index) =>
-          val group = splitSplits.lastIndexWhere(_ <= p) // find last where p >= value
-          splitBuffer(group) += index
-        }
-
-        (mergeBuffer.reverse.map(_.reverse), splitBuffer.reverse)
-      }
-
-      val (mergeBuffer, splitBuffer) = getNewSplits(merge.widthsIn, split.widthsOut)
-
+      // sources of original merge-split
       val starts = merge.sourcePorts.map(RingPort.fromDagPort)
 
-      val mids = starts.zip(mergeBuffer).flatMap { case (port, splits) =>
+      // split scheme of inputs, low -> high
+      val mergeBuffer = Seq.fill(merge.widthsIn.length)(ArrayBuffer[Int]())
+      splitPoints.foreach { p =>
+        val index = mergeSplits.lastIndexWhere(_ <= p) // find last where p >= value
+        val value = mergeSplits(index)
+        if ((p - value) > 0) mergeBuffer(index) += (p - value)
+      }
+
+      val mids = starts.zip(mergeBuffer.reverse.map(_.reverse)).flatMap { case (port, splits) =>
         if (splits.isEmpty) Seq(port)
         else port.split(splits)
       }.reverse
 
-      val ends = splitBuffer.map { segmentIndices =>
+      // merge schemes of outputs, low -> high
+      val splitBuffer = Seq.fill(split.widthsOut.length)(ArrayBuffer[Int]())
+      splitPoints.zipWithIndex.foreach { case (p, index) =>
+        val group = splitSplits.lastIndexWhere(_ <= p) // find last where p >= value
+        splitBuffer(group) += index
+      }
+
+      val ends = splitBuffer.reverse.map { segmentIndices =>
         val group = segmentIndices.map(mids(_)).reverse
         if (group.length == 1) group.head
         else group.head.merge(group.tail)
       }
 
-
+      // link ends to original targets
       ends.zipWithIndex.foreach { case (end, i) =>
         val targetsPorts = split.outgoingEdges.filter(_.outOrder == i).map(_.targetPort)
         targetsPorts.foreach(target => addEdge(end, target))
       }
 
-      //      assert(ends.length == split.targetPorts.length)
-      //      ends.zip(split.targetPorts).foreach { case (port, target) => addEdge(port, target) }
-
       removeVertex(merge)
       removeVertex(split)
-
     }
-    logger.info(s"2 vertices removed")
-    logger.info(s"${vertexSet().size()} vertices after")
+
+    logger.info("start breaking bundles")
+    while (getCandidates.nonEmpty) {
+      val candidates = getCandidates
+      logger.info(s"\t${candidates.size} pairs of merge-split found")
+      logger.info(s"\t${vertexSet().size()} vertices before")
+      candidates.foreach(break)
+      logger.info(s"\t${vertexSet().size()} vertices after")
+    }
+    logger.info("end breaking bundles")
   }
 
 
@@ -146,31 +127,36 @@ class RingDag extends Dag[BigInt, UInt]("ring") {
    *
    * @return graph after validation
    */
-  override def validate(maxLatency: Int = 100) = {
-    eliminateIntermediates()
+  override def validate() = {
     breakBundles()
-    logger.info(s"merge-split removed")
-    super.validate(maxLatency)
+    super.validate()
     this
   }
 
   def checkWidths(): Unit = vertexSet().toSeq.asInstanceOf[Seq[RingVertex]].foreach(_.doWidthCheck())
 
-  def toTransform(maxLatency: Int = 100) = {
+  /** Add design rules here, invoked before impl
+   *
+   */
+  override def doDrc(): Unit = {
+    checkWidths()
+    super.doDrc()
+  }
 
-    this.validate(maxLatency)
-    logger.info(s"latency before impl ${this.latency}")
+  def toTransform(golden: Seq[BigInt] => Seq[BigInt] = implS) = {
+
+    this.validate()
+    this.showCost
 
     val graphLatency = this.latency
+    logger.info(s"latency before impl ${graphLatency}")
 
     def config = new TransformBase {
-      override def impl(dataIn: Seq[Any]) = evaluateS(dataIn.asInstanceOf[Seq[BigInt]])
+      override def impl(dataIn: Seq[Any]) = golden.apply(dataIn.asInstanceOf[Seq[BigInt]])
 
       override val size = (inputs.length, outputs.length)
 
       override def latency = graphLatency
-
-      logger.info(s"latency in config $latency")
 
       override def implH = module(this)
     }
@@ -193,7 +179,7 @@ class RingDag extends Dag[BigInt, UInt]("ring") {
 
 object RingDag {
 
-  def apply(): RingDag = new RingDag()
+  def apply(name: String = "ring"): RingDag = new RingDag(name)
 
 }
 

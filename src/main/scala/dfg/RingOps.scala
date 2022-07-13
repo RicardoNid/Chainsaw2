@@ -60,8 +60,8 @@ object AddVertex {
     }
 
     val implH = (data: Seq[UInt]) => {
-      require(data(0).getBitsWidth == widthsIn(0))
-      require(data(1).getBitsWidth == widthsIn(1))
+//      require(data(0).getBitsWidth == widthsIn(0))
+//      require(data(1).getBitsWidth == widthsIn(1))
       val ret =
         if (opCount == 3) data(0) +^ data(1) + data(2)
         else data(0) +^ data(1)

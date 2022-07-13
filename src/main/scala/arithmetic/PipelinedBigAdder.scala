@@ -18,7 +18,7 @@ import dfg._
  */
 case class PipelinedBigAdderConfig(addWidth: Int, baseWidth: Int = 127, minus: Boolean = false) extends TransformBase {
 
-  val graph = dfg.ArithmeticGraphs.addGraph(addWidth, baseWidth).validate(100)
+  val graph = dfg.ArithmeticGraphs.addGraph(addWidth, baseWidth).validate()
 
   override def impl(dataIn: Seq[Any]) = {
     val bigInts = dataIn.asInstanceOf[Seq[BigInt]]
