@@ -9,12 +9,12 @@ import scala.collection.JavaConversions._
 
 object ArithmeticGraphs {
 
-  def addGraph(addWidth: Int, baseWidth: Int = 127) = {
+  def addGraph(addWidth: Int, shift: Int, baseWidth: Int = 127) = {
 
     implicit val graph: RingDag = new RingDag
-    val x = graph.addInput("addX", addWidth)
-    val y = graph.addInput("addY", addWidth)
-    val z = graph.addOutput("addZ", addWidth + 1)
+    val x = graph.addInput("addX", ArithInfo(addWidth, shift))
+    val y = graph.addInput("addY", ArithInfo(addWidth, shift))
+    val z = graph.addOutput("addZ", ArithInfo(addWidth + 1, shift))
 
     val splitPoints = (0 until (addWidth - 1) / baseWidth).reverse.map(i => (i + 1) * baseWidth)
     val xs = if (splitPoints.isEmpty) Seq(x) else x.split(splitPoints).reverse // low -> high
@@ -38,12 +38,12 @@ object ArithmeticGraphs {
   }
 
   // this subtraction has no carry out, so make sure that when you use it for a - b, a is always greater than b
-  def subGraph(addWidth: Int, baseWidth: Int = 127) = {
+  def subGraph(addWidth: Int, shift: Int, baseWidth: Int = 127) = {
 
     implicit val graph: RingDag = new RingDag
-    val x = graph.addInput("bigSubX", addWidth)
-    val y = graph.addInput("bigSubY", addWidth)
-    val z = graph.addOutput("bigSubZ", addWidth + 1)
+    val x = graph.addInput("bigSubX", ArithInfo(addWidth, shift))
+    val y = graph.addInput("bigSubY", ArithInfo(addWidth, shift))
+    val z = graph.addOutput("bigSubZ", ArithInfo(addWidth + 1, shift))
 
     val splitPoints = (0 until (addWidth - 1) / baseWidth).reverse.map(i => (i + 1) * baseWidth)
     val xs = if (splitPoints.isEmpty) Seq(x) else x.split(splitPoints).reverse // low -> high
@@ -65,20 +65,20 @@ object ArithmeticGraphs {
     graph
   }
 
-  def karatsubaGraph(width: Int, mode: MultiplierMode) = {
+  def karatsubaGraph(width: Int, shift: Int, mode: MultiplierMode) = {
 
     val stages = Seq(32, 62, 121, 240)
     // TODO: achieve the following stages by reimplement full mode
     //    val stages = Seq(34, 66, 130, 258)
 
     implicit val graph: RingDag = new RingDag
-    val x = graph.addInput(s"bigMultX", width)
-    val y = graph.addInput("bigMultY", width)
+    val x = graph.addInput(s"bigMultX", ArithInfo(width, shift))
+    val y = graph.addInput("bigMultY", ArithInfo(width, shift))
     val widthOut = mode match {
       case Low => width
       case _ => width * 2
     }
-    val z = graph.addOutput(s"bigMultZ_$mode", widthOut)
+    val z = graph.addOutput(s"bigMultZ_$mode", ArithInfo(widthOut, shift))
 
     def recursiveTask(width: Int, x: RingPort, y: RingPort, mode: MultiplierMode): RingPort = {
 
@@ -156,21 +156,21 @@ object ArithmeticGraphs {
     graph
   }
 
-  def montgomeryGraph(width: Int, modulus: BigInt, square: Boolean = false, byLUT: Boolean = false) = {
+  def montgomeryGraph(width: Int, shift: Int, modulus: BigInt, square: Boolean = false, byLUT: Boolean = false) = {
 
     require(modulus.bitLength <= width)
 
     implicit val graph: RingDag = new RingDag
-    val x = graph.addInput("montX", width)
-    val y = graph.addInput("montY", width)
-    val modulusInput = graph.addInput("modulus", width)
-    val nprimeInput = graph.addInput("np", width)
-    val z = graph.addOutput("montRet", width + 1)
+    val x = graph.addInput("montX", ArithInfo(width, shift))
+    val y = graph.addInput("montY", ArithInfo(width, shift))
+    val modulusInput = graph.addInput("modulus", ArithInfo(width, shift))
+    val nprimeInput = graph.addInput("np", ArithInfo(width, shift))
+    val z = graph.addOutput("montRet", ArithInfo(width + 1, shift))
 
     val T = if (!square) x *:* y else x bigSquare y
     val TLow = T.resize(width)
 
-    val m = TLow *-:*- nprimeInput
+    val m = TLow *%:*% nprimeInput
     val prod = m *:* modulusInput
     val full = prod +:+^ T
     val t = full.splitAt(width)._1

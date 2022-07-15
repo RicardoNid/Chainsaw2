@@ -22,7 +22,7 @@ import scala.math.{cos, log}
 
 object OpType extends Enumeration {
   val Var = Value // variable (opposite to operation)
-  val FullMult, LowMult, SquareMult, Add2, Add3, Sub, Merge, Split, Resize = Value // Ring operations
+  val FullMult, LowMult, SquareMult, Add2, Add3, Sub2, Merge, Split, Resize = Value // Ring operations
   type OpType = Value
 }
 

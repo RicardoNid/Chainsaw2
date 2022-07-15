@@ -8,7 +8,7 @@ import spinal.lib._
 
 case class KaratsubaByGraphConfig(width: Int, mode: MultiplierMode) extends TransformBase {
 
-  val graph = dfg.ArithmeticGraphs.karatsubaGraph(width, mode).validate
+  val graph = dfg.ArithmeticGraphs.karatsubaGraph(width, 0, mode).validate
 
   override def impl(dataIn: Seq[Any]) = {
 

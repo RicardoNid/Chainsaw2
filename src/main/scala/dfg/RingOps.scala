@@ -5,11 +5,46 @@ import arithmetic.MultplierMode.{Full, Low, Square}
 import device.MultiplicationByDspConfig
 import dfg.OpType._
 
+import org.datenlord.dfg.Direction.{In, Out}
 import spinal.core._
+
+case class ArithInfo(width: Int, shift: Int)
+
+/** This is for crypto implementation on FPGAs of Xilinx UltraScale family
+ *
+ * @param opType     type of operation
+ * @param widthCheck check whether the input widths are valid, according to opType
+ */
+class RingVertex
+(
+  name: String, latency: Int,
+  implS: Seq[BigInt] => Seq[BigInt], implH: Seq[UInt] => Seq[UInt],
+  opType: OpType,
+  val infosIn: Seq[ArithInfo], val infosOut: Seq[ArithInfo]
+) extends DagVertex[BigInt, UInt](name, latency, opType, implS, implH) {
+
+  def widthsIn = infosIn.map(_.width)
+
+  def widthsOut = infosOut.map(_.width)
+
+  def shiftsIn = infosIn.map(_.shift)
+
+  def shiftsOut = infosOut.map(_.shift)
+
+  override def in(portOrder: Int) = RingPort(this, portOrder, In)
+
+  override def out(portOrder: Int) = RingPort(this, portOrder, Out)
+
+  override def toString = s"$name"
+}
 
 object MultVertex {
 
-  def apply(name: String, opType: OpType, widthsIn: Seq[Int]) = {
+  def apply(name: String, opType: OpType, infosIn: Seq[ArithInfo]) = {
+
+    val widthsIn = infosIn.map(_.width)
+    val shiftsIn = infosIn.map(_.shift)
+    val lowWidth = (widthsIn.sum + 1) / 2
 
     val config = opType match {
       case FullMult => MultiplicationByDspConfig(Full)
@@ -20,108 +55,101 @@ object MultVertex {
     val latency = config.latency
 
     val implS = (data: Seq[BigInt]) => Seq(opType match {
-      case FullMult => data.product
-      case LowMult => data.product % (BigInt(1) << widthsIn.max)
-      case SquareMult => data.head * data.head
+      case LowMult => data.product % (BigInt(1) << lowWidth)
+      case _ => data.product
     })
 
     val widthOut = opType match {
-      case FullMult => widthsIn.sum
-      case LowMult => widthsIn.max
-      case SquareMult => widthsIn.head * 2
+      case LowMult => lowWidth
+      case _ => widthsIn.sum
     }
 
+    val shiftOut = shiftsIn.sum
+
     val implH = (data: Seq[UInt]) => {
-      require(data(0).getBitsWidth == widthsIn(0))
-      require(data(1).getBitsWidth == widthsIn(1))
+      require(data.forall(_.getBitsWidth <= config.baseWidth))
       val seq = config.asNode.apply(data)
-      Seq(seq.head.resize(widthOut))
+      Seq(seq.head.resize(widthOut)) // as the multiplier by dsp has a fixed width, resize is required
     }
 
-    def widthCheck = (widthsIn: Seq[Int]) => widthsIn.forall(_ <= config.baseWidth)
-
-    new RingVertex(name, latency, implS, implH, opType, widthsIn, Seq(widthOut), widthCheck)
+    new RingVertex(name, latency, implS, implH, opType, infosIn, Seq(ArithInfo(widthOut, shiftOut)))
   }
 }
 
-/** Adder vertex which has 3 inputs(x,y,carry) and 2 outputs(carry, sum), implemented by LUT2 and CARRY8
- *
+/** Adder vertex which has 3 inputs(x,y,carry) and 2 outputs(carry, sum), implemented by LUT2 and CARRY8. Only when all shiftsIn are the same, this vertex can be implemented by itself, otherwise, it will be converted into bit matrix compressor.
  */
-object AddVertex {
-  def apply(name: String, widthsIn: Seq[Int]) = {
-    require(widthsIn(0) == widthsIn(1))
+object Add2Vertex {
+  def apply(name: String, opType: OpType, infosIn: Seq[ArithInfo]) = {
+
+    val widthsIn = infosIn.map(_.width)
+    val shiftsIn = infosIn.map(_.shift)
+
+    val baseWidth = 127
+
     val latency = 1
     val widthsOut = Seq(1, widthsIn.max)
-    val opCount = widthsIn.length
-
-    val implS = (data: Seq[BigInt]) => {
-      val ret = data.sum
-      ret.split(Seq(widthsIn.max))
-    }
-
-    val implH = (data: Seq[UInt]) => {
-//      require(data(0).getBitsWidth == widthsIn(0))
-//      require(data(1).getBitsWidth == widthsIn(1))
-      val ret =
-        if (opCount == 3) data(0) +^ data(1) + data(2)
-        else data(0) +^ data(1)
-      Seq(ret.d(1).msb.asUInt, ret.d(1).takeLow(ret.getBitsWidth - 1).asUInt)
-    }
-
-    def widthCheck = (widthsIn: Seq[Int]) => widthsIn.max <= 127
-
-    new RingVertex(name, latency, implS, implH, Add2, widthsIn, widthsOut, widthCheck)
-  }
-}
-
-object SubVertex {
-  def apply(name: String, widthsIn: Seq[Int]) = {
-    require(widthsIn(0) == widthsIn(1))
-    val latency = 1
-    val widthsOut = Seq(1, widthsIn.max)
+    val shiftsOut = Seq(shiftsIn.head + widthsIn.max, widthsIn.max)
+    val infosOut = widthsOut.zip(shiftsOut).map{ case (width, shift) => ArithInfo(width, shift)}
     val opCount = widthsIn.length
 
     val implS = (data: Seq[BigInt]) => {
       def invert(value: Char) = if (value == '1') '0' else '1'
-
-      val invertOperand = BigInt(data(1).toString(2).padToLeft(widthsIn(1), '0').map(invert), 2)
-      val ret = if (opCount == 3) data(0) + invertOperand + data(2) else data(0) + invertOperand + 1
-      ret.split(Seq(widthsIn.max))
+      opType match {
+        case Add2 => val ret = data.sum
+          ret.split(Seq(widthsIn.max))
+        case Sub2 =>
+          val invertOperand = BigInt(data(1).toString(2).padToLeft(widthsIn(1), '0').map(invert), 2)
+          val ret = if (opCount == 3) data(0) + invertOperand + data(2) else data(0) + invertOperand + 1
+          ret.split(Seq(widthsIn.max))
+      }
     }
 
     val implH = (data: Seq[UInt]) => {
-      val ret =
-        if (opCount == 3) data(0) +^ ~data(1) + data(2)
-        else data(0) +^ ~data(1) + U(1, 1 bits)
+      logger.info(s"implementing add2 with ${shiftsIn(0)} and ${shiftsIn(1)}")
+      require(shiftsIn.forall(_ == shiftsIn.head))
+      require(data.forall(_.getBitsWidth <= baseWidth))
+      if (opCount == 3) require(data(2).getBitsWidth == 1) // carry
+      val ret = opType match {
+        case Add2 =>
+          if (opCount == 3) data(0) +^ data(1) + data(2)
+          else data(0) +^ data(1)
+        case Sub2 =>
+          if (opCount == 3) data(0) +^ ~data(1) + data(2)
+          else data(0) +^ ~data(1) + U(1, 1 bits)
+      }
+
       Seq(ret.d(1).msb.asUInt, ret.d(1).takeLow(ret.getBitsWidth - 1).asUInt)
     }
 
-    def widthCheck = (widthsIn: Seq[Int]) => widthsIn.max <= 127
-
-    new RingVertex(name, latency, implS, implH, Sub, widthsIn, widthsOut, widthCheck)
+    new RingVertex(name, latency, implS, implH, opType, infosIn, infosOut)
   }
 }
 
 object SplitVertex {
-  def apply(name: String, widthIn: Int, splitPoints: Seq[Int]) = {
+  def apply(name: String, infoIn: ArithInfo, splitPoints: Seq[Int]) = {
+    require(infoIn.width > splitPoints.max)
     val latency = 0
-    val widthsOut = (widthIn +: splitPoints).zip(splitPoints :+ 0).map { case (width, low) => width - low }
-    // example: 110011101.split(Seq(6,3)) = Seq(110, 011, 101)
-    val implS = (data: Seq[BigInt]) => {
-      data.head.split(splitPoints)
-    }
+    val widthsOut = (infoIn.width +: splitPoints).zip(splitPoints :+ 0).map { case (width, low) => width - low }
+    val shiftsOut = splitPoints.map(_ + infoIn.shift) :+ infoIn.shift
+    val infosOut = widthsOut.zip(shiftsOut).map{ case (width, shift) => ArithInfo(width, shift)}
+    // example: 110011101.split(Seq(6,3)) = Seq(110, 011, 101), high to low
+    val implS = (data: Seq[BigInt]) => data.head.split(splitPoints)
     val implH = (data: Seq[UInt]) => data.head.split(splitPoints).map(_.asUInt)
 
-    def widthCheck = (widthsIn: Seq[Int]) => true
-
-    new RingVertex(name, latency, implS, implH, Split, Seq(widthIn), widthsOut, widthCheck)
+    new RingVertex(name, latency, implS, implH, Split, Seq(infoIn), infosOut)
   }
 }
 
 object MergeVertex {
-  def apply(name: String, widthsIn: Seq[Int]) = {
+
+  def apply(name: String, infosIn: Seq[ArithInfo]) = {
+    // TODO: info requirement on merge
+    // TODO: deprecate merge
+    val widthsIn = infosIn.map(_.width)
+    val shiftsIn = infosIn.map(_.shift)
     val latency = 0
     val widthOut = widthsIn.sum
+    val shiftOut = shiftsIn.min
     val implS = (data: Seq[BigInt]) => {
       val newString = data.zip(widthsIn)
         .map { case (data, width) => data.toString(2).padToLeft(width, '0') }
@@ -130,21 +158,16 @@ object MergeVertex {
     }
     val implH = (data: Seq[UInt]) => Seq(data.reduce(_ @@ _))
 
-    def widthCheck = (widthsIn: Seq[Int]) => true
-
-    new RingVertex(name, latency, implS, implH, Merge, widthsIn, Seq(widthOut), widthCheck)
+    new RingVertex(name, latency, implS, implH, Merge, infosIn, Seq(ArithInfo(widthOut, shiftOut)))
   }
 }
 
 object ResizeVertex {
-  def apply(name: String, widthIn: Int, widthOut: Int) = {
+  def apply(name: String, infoIn: ArithInfo, widthOut: Int) = {
     val latency = 0
     val implS = (data: Seq[BigInt]) => Seq(data.head % (BigInt(1) << widthOut))
     val implH = (data: Seq[UInt]) => Seq(data.head.resize(widthOut))
-
-    def widthCheck = (widthsIn: Seq[Int]) => true
-
-    new RingVertex(name, latency, implS, implH, Resize, Seq(widthIn), Seq(widthOut), widthCheck)
+    new RingVertex(name, latency, implS, implH, Resize, Seq(infoIn), Seq(ArithInfo(widthOut, infoIn.shift)))
   }
 }
 
@@ -152,6 +175,6 @@ object ResizeVertex {
  *
  */
 object RingVarVertex {
-  def apply(name: String, width: Int) =
-    new RingVertex(name, 0, (data: Seq[BigInt]) => data, (data: Seq[UInt]) => data, Var, Seq(width), Seq(width), (widths: Seq[Int]) => true)
+  def apply(name: String, info: ArithInfo) =
+    new RingVertex(name, 0, (data: Seq[BigInt]) => data, (data: Seq[UInt]) => data, Var, Seq(info), Seq(info))
 }

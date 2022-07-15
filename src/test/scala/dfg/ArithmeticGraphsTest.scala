@@ -11,25 +11,25 @@ class ArithmeticGraphsTest extends AnyFlatSpec {
 
   val genCount = 1
   val testCaseCount = 10000
-  val complexTestCaseCount = 10000
+  val complexTestCaseCount = 100
   val testWidth = 377
   Random.setSeed(42)
   val data = (0 until testCaseCount * 2).map(_ => Random.nextBigInt(testWidth))
 
   // get a brand new graph every time we need it
-  def graphAdd = ArithmeticGraphs.addGraph(testWidth)
+  def graphAdd = ArithmeticGraphs.addGraph(testWidth, 0)
 
-  def graphSub = ArithmeticGraphs.subGraph(testWidth)
+  def graphSub = ArithmeticGraphs.subGraph(testWidth, 0)
 
-  def graphFull = ArithmeticGraphs.karatsubaGraph(testWidth, Full)
+  def graphFull = ArithmeticGraphs.karatsubaGraph(testWidth, 0, Full)
 
-  def graphLow = ArithmeticGraphs.karatsubaGraph(testWidth, Low)
+  def graphLow = ArithmeticGraphs.karatsubaGraph(testWidth, 0, Low)
 
-  def graphSquare = ArithmeticGraphs.karatsubaGraph(testWidth, Square)
+  def graphSquare = ArithmeticGraphs.karatsubaGraph(testWidth, 0, Square)
 
-  def graphMontMult = ArithmeticGraphs.montgomeryGraph(testWidth, zprizeModulus, square = false, byLUT = false)
+  def graphMontMult = ArithmeticGraphs.montgomeryGraph(testWidth, 0, zprizeModulus, square = false, byLUT = false)
 
-  def graphMontSquare = ArithmeticGraphs.montgomeryGraph(testWidth, zprizeModulus, square = true, false)
+  def graphMontSquare = ArithmeticGraphs.montgomeryGraph(testWidth, 0, zprizeModulus, square = true, false)
 
   val addGolden = (data: Seq[BigInt]) => Seq(data.sum)
   val subGolden = (data: Seq[BigInt]) => Seq(data(0) - data(1))
@@ -47,7 +47,7 @@ class ArithmeticGraphsTest extends AnyFlatSpec {
   val montMultGolden = (data: Seq[BigInt]) => {
     val Seq(x, y, modulus, nprime) = data
     val ret = (x * y * RInverse) % modulus
-    ret
+    Seq(ret)
   }
 
   val subMetric = (yours: Seq[BigInt], golden: Seq[BigInt]) => yours.zip(golden).forall { case (x, y) =>
@@ -66,7 +66,8 @@ class ArithmeticGraphsTest extends AnyFlatSpec {
     TransformTest.test(graphSquare.toTransform(golden = squareMultGolden), data.take(testCaseCount / 2).flatMap(d => Seq(d, d))))
 
   "montgomeryGraph" should "work for modular multiplication on hardware" in (0 until genCount).foreach(_ =>
-    TransformTest.test(graphMontMult.toTransform(), montTestData, montMetric))
+    TransformTest.test(graphMontMult.toTransform(golden = montMultGolden), montTestData, montMetric))
   it should "work for modular square multiplication on hardware" in (0 until genCount).foreach(_ =>
-    TransformTest.test(graphMontSquare.toTransform(), montTestData.take(testCaseCount / 2).flatMap(d => Seq(d, d)), montMetric))
+    TransformTest.test(graphMontSquare.toTransform(golden = montMultGolden),
+      montTestData.grouped(4).toSeq.flatMap(group => Seq(group(0), group(0), group(2), group(3))), montMetric))
 }

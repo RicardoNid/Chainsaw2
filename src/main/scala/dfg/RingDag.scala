@@ -10,42 +10,19 @@ import spinal.lib._
 import scala.collection.JavaConversions._
 import scala.collection.mutable.ArrayBuffer
 
-/** This is for crypto implementation on FPGAs of Xilinx UltraScale family
- *
- * @param opType     type of operation
- * @param widthCheck check whether the input widths are valid, according to opType
- */
-class RingVertex
-(
-  name: String, latency: Int,
-  implS: Seq[BigInt] => Seq[BigInt], implH: Seq[UInt] => Seq[UInt],
-  opType: OpType,
-  val infosIn: Seq[Int], val infosOut: Seq[Int], val widthCheck: Seq[Int] => Boolean
-) extends DagVertex[BigInt, UInt](name, latency, opType, implS, implH) {
-
-  override def in(portOrder: Int) = RingPort(this, portOrder, In)
-
-  override def out(portOrder: Int) = RingPort(this, portOrder, Out)
-
-  def doWidthCheck(): Unit = assert(widthCheck(infosIn), s"$opType vertex: widthsIn = ${infosIn.mkString(" ")}, widthsOut = ${infosOut.mkString(" ")}")
-
-  override def toString = s"$name"
-}
-
-
 class RingDag(name: String = "ring") extends Dag[BigInt, UInt](name) {
 
   override implicit val ref: RingDag = this
 
-  def addInput(name: String, width: Int) = {
-    val in = RingVarVertex(name, width)
+  def addInput(name: String, info: ArithInfo) = {
+    val in = RingVarVertex(name, info)
     addVertex(in)
     inputs += in
     in.out(0)
   }
 
-  def addOutput(name: String, width: Int) = {
-    val out = RingVarVertex(name, width)
+  def addOutput(name: String, info: ArithInfo) = {
+    val out = RingVarVertex(name, info)
     addVertex(out)
     outputs += out
     out.in(0)
@@ -66,15 +43,15 @@ class RingDag(name: String = "ring") extends Dag[BigInt, UInt](name) {
     def break(pair: (RingVertex, RingVertex)): Unit = {
       // get split points
       val (merge, split) = pair
-      val mergeSplits = merge.infosIn.reverse.scan(0)(_ + _).init
-      val splitSplits = split.infosOut.reverse.scan(0)(_ + _).init
+      val mergeSplits = merge.widthsIn.reverse.scan(0)(_ + _).init
+      val splitSplits = split.widthsOut.reverse.scan(0)(_ + _).init
       val splitPoints = (mergeSplits ++ splitSplits).sorted.distinct
 
       // sources of original merge-split
       val starts = merge.sourcePorts.map(RingPort.fromDagPort)
 
       // split scheme of inputs, low -> high
-      val mergeBuffer = Seq.fill(merge.infosIn.length)(ArrayBuffer[Int]())
+      val mergeBuffer = Seq.fill(merge.widthsIn.length)(ArrayBuffer[Int]())
       splitPoints.foreach { p =>
         val index = mergeSplits.lastIndexWhere(_ <= p) // find last where p >= value
         val value = mergeSplits(index)
@@ -87,7 +64,7 @@ class RingDag(name: String = "ring") extends Dag[BigInt, UInt](name) {
       }.reverse
 
       // merge schemes of outputs, low -> high
-      val splitBuffer = Seq.fill(split.infosOut.length)(ArrayBuffer[Int]())
+      val splitBuffer = Seq.fill(split.widthsOut.length)(ArrayBuffer[Int]())
       splitPoints.zipWithIndex.foreach { case (p, index) =>
         val group = splitSplits.lastIndexWhere(_ <= p) // find last where p >= value
         splitBuffer(group) += index
@@ -131,13 +108,10 @@ class RingDag(name: String = "ring") extends Dag[BigInt, UInt](name) {
     this
   }
 
-  def checkWidths(): Unit = vertexSet().toSeq.asInstanceOf[Seq[RingVertex]].foreach(_.doWidthCheck())
-
   /** Add design rules here, invoked before impl
    *
    */
   override def doDrc(): Unit = {
-    checkWidths()
     super.doDrc()
   }
 
@@ -162,8 +136,8 @@ class RingDag(name: String = "ring") extends Dag[BigInt, UInt](name) {
     def module(theConfig: TransformConfig) =
       new TransformModule[UInt, UInt] {
         override val config = theConfig
-        val widthIn = inputs.asInstanceOf[Seq[RingVertex]].head.infosOut.head
-        val widthOut = outputs.asInstanceOf[Seq[RingVertex]].head.infosIn.head
+        val widthIn = inputs.asInstanceOf[Seq[RingVertex]].head.widthsOut.head
+        val widthOut = outputs.asInstanceOf[Seq[RingVertex]].head.widthsIn.head
         override val dataIn = slave Flow Fragment(Vec(UInt(widthIn bits), config.size._1))
         override val dataOut = master Flow Fragment(Vec(UInt(widthOut bits), config.size._2))
         dataOut.fragment := evaluateH(dataIn.fragment)
