@@ -17,7 +17,7 @@ import scala.collection.immutable
 case class RingPort(override val vertex: RingVertex, override val order: Int, override val direction: Direction)
   extends DagPort[BigInt, UInt](vertex, order, direction) {
 
-  def width = vertex.widthsOut(order)
+  def width = vertex.infosOut(order)
 
   /** Split a vertex into multiple
    * @param splitPoints high to low split points

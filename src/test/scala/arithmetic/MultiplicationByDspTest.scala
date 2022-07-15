@@ -3,8 +3,11 @@ package arithmetic
 
 import arithmetic.MultplierMode._
 import device.MultiplicationByDspConfig
+import xilinx.VivadoUtilRequirement
 
 import org.scalatest.flatspec.AnyFlatSpec
+import spinal.core.IntToBuilder
+
 import scala.util.Random
 
 class MultiplicationByDspTest extends AnyFlatSpec {
@@ -24,7 +27,10 @@ class MultiplicationByDspTest extends AnyFlatSpec {
   it should "work for low-bit multiplication" in TransformTest.test(config1.implH, data16, name = "Mult36ForLow")
   it should "work for squaring" in TransformTest.test(config2.implH, data17Square, name = "Mult36ForSquare")
 
-  it should "synth for full multiplication " in VivadoSynth(config0.implH, "Mult34ForFull")
-  it should "synth for low-bit multiplication " in VivadoSynth(config1.implH, "Mult36ForLow")
-  it should "synth for squaring " in VivadoSynth(config2.implH, "Mult36ForSquare")
+  val utilRequirement = VivadoUtilRequirement(dsp = 3)
+  val fmaxRequirement = 800 MHz
+
+  it should "synth for full multiplication " in VivadoSynth(config0.implH, "Mult34ForFull").require(utilRequirement, fmaxRequirement)
+  it should "synth for low-bit multiplication " in VivadoSynth(config1.implH, "Mult36ForLow").require(utilRequirement, fmaxRequirement)
+  it should "synth for squaring " in VivadoSynth(config2.implH, "Mult36ForSquare").require(utilRequirement, fmaxRequirement)
 }

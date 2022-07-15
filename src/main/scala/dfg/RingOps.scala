@@ -70,7 +70,7 @@ object AddVertex {
 
     def widthCheck = (widthsIn: Seq[Int]) => widthsIn.max <= 127
 
-    new RingVertex(name, latency, implS, implH, Add, widthsIn, widthsOut, widthCheck)
+    new RingVertex(name, latency, implS, implH, Add2, widthsIn, widthsOut, widthCheck)
   }
 }
 

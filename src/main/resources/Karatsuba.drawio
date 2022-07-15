@@ -1,6 +1,6 @@
 <mxfile host="65bd71144e" pages="8">
     <diagram id="VqBuKh5A-THluChDFXoK" name="variations">
-        <mxGraphModel dx="682" dy="556" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="1" shadow="0">
+        <mxGraphModel dx="1306" dy="771" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="1" shadow="0">
             <root>
                 <mxCell id="0"/>
                 <mxCell id="1" parent="0"/>
@@ -635,7 +635,7 @@
         </mxGraphModel>
     </diagram>
     <diagram id="y7QvMdECXmproGQ9Gh9P" name="new splits">
-        <mxGraphModel dx="682" dy="556" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+        <mxGraphModel dx="1306" dy="771" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
             <root>
                 <mxCell id="7a89-ohbQVopVEbhS7QO-0"/>
                 <mxCell id="7a89-ohbQVopVEbhS7QO-1" parent="7a89-ohbQVopVEbhS7QO-0"/>
@@ -1207,7 +1207,7 @@
         </mxGraphModel>
     </diagram>
     <diagram id="Ed9ZCMUGm9vGJm4b8tR8" name="pipeline-full">
-        <mxGraphModel dx="802" dy="654" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+        <mxGraphModel dx="1306" dy="771" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
             <root>
                 <mxCell id="Bxc6WNNIT0PNfZdxJznR-0"/>
                 <mxCell id="Bxc6WNNIT0PNfZdxJznR-1" parent="Bxc6WNNIT0PNfZdxJznR-0"/>

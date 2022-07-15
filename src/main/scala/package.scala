@@ -40,7 +40,7 @@ package object datenlord {
     report
   }
 
-  def VivadoSynth[T <: Component](gen: => T, name: String = "temp") = {
+  def VivadoSynth[T <: Component](gen: => T, name: String = "temp"): VivadoReport = {
     val report = VivadoFlow(design = gen, taskType = SYNTH, topModuleName = name, workspacePath = s"./$name").doFlow()
     report.printArea()
     report.printFMax()
@@ -93,6 +93,8 @@ package object datenlord {
       BigInt(bi.toString(2).slice(from, until), 2)
     }
 
+    /** Get words from low to high, the highest word can be incomplete
+     */
     def toWords(wordWidth: Int) = bi.toString(2)
       .reverse.grouped(wordWidth).toSeq
       .map(digits => BigInt(digits.reverse, 2))

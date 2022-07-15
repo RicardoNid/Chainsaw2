@@ -43,4 +43,9 @@ object ComplexMult {
 
   def latency = 6
 
+  def main(args: Array[String]): Unit = {
+    val precision = HardType(SFix(2 exp, -13 exp))
+    VivadoSynth(ComplexMult(precision, precision))
+  }
+
 }

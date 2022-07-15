@@ -1,13 +1,14 @@
 package org.datenlord
 package device
 
-import spinal.core._
+import spinal.core.{out, _}
 import spinal.lib._
 
 import scala.sys.process._
 import scala.util.Random
 
-
+// TODO: spiral implementation doesn't take advantage of 3-input adders, and the width of constant is limited to 31,
+//  for better performance, read "MCM book" and improve this
 case class ConstantMultByLutConfig(constants: Seq[BigInt], widthIn: Int) extends TransformBase {
   override def impl(dataIn: Seq[Any]) = constants.map(_ * dataIn.head.asInstanceOf[BigInt])
 
@@ -17,12 +18,23 @@ case class ConstantMultByLutConfig(constants: Seq[BigInt], widthIn: Int) extends
 
   override def implH = ConstantMultByLut(this)
 
+  def naiveImplH = new Module {
+    val dataIn = in UInt (127 - 32 bits)
+    val dataOut = out Vec(UInt(), constants.length)
+    dataOut.zip(constants).foreach { case (out, coeff) =>
+      val product = dataIn.d(1) * coeff
+      product.addAttribute("use_dsp", "no")
+      out := product.d(1)
+    }
+  }
+
   // generating shift-add graph by spiral
   val spiralPath = "/home/ltr/IdeaProjects/Chainsaw2/spiral"
-  val spiralText = Process(s"acm ${constants.mkString(" ")} -gc", new java.io.File(spiralPath)).!!
+  val constantsGt1 = constants.filter(_ > BigInt(1))
+  val spiralText = Process(s"acm ${constantsGt1.mkString(" ")} -gc", new java.io.File(spiralPath)).!!
   // regular expressions for information extraction
-  val outputPattern = "int t(\\d+) = (\\d+) \\* t0".r // match output information
-  val exprPattern = "t(\\d+) = (shl|shr|sub|add)\\(t(\\d+), t?(\\d+)\\);   /\\* (\\d+)\\*/".r // match shift-add information
+  val outputPattern = """int t(\d+) = (\d+) \* t0""".r // match output information
+  val exprPattern = """t(\d+) = (shl|shr|sub|add)\(t(\d+), t?(\d+)\); {3}/\* (\d+)\*/""".r // match shift-add information
 
   case class ShiftAddOp(opType: String, op0: Int, op1: Int, ret: Int, multiple: BigInt)
 
@@ -76,54 +88,21 @@ case class ConstantMultByLut(config: ConstantMultByLutConfig) extends TransformM
       case "shr" => println(s"t${op.ret} = t${op.op0} >> ${op.op1}")
         (vertices(op.op0) >> op.op1).resized
       case "add" => println(s"t${op.ret} = t${op.op0} + t${op.op1}")
-        (vertices(op.op0) +^ vertices(op.op1)).d(1).resized
+        (vertices(op.op0) +^ vertices(op.op1)).resized
       case "sub" => println(s"t${op.ret} = t${op.op0} - t${op.op1}")
-        (vertices(op.op0) - vertices(op.op1)).d(1).resized
+        (vertices(op.op0) - vertices(op.op1)).resized
     }
     vertices(op.ret) := ret
   }
 
-  // TODO: treat 0 & 1 specially
+  // for constants > 1
   outputInfos.foreach { info =>
     dataOut.fragment(constants.indexOf(info.value)) := vertices(info.index).d(1)
-    println(s"out_${constants.indexOf(info.value)} = t${info.index}")
   }
+  // for constants 0 and 1
+  dataOut.fragment.zip(constants).filter(_._2 == BigInt(1)).foreach(_._1 := dataIn.fragment.head.d(2))
+  dataOut.fragment.zip(constants).filter(_._2 == BigInt(0)).foreach(_._1 := U(0).resized)
 
   autoValid()
   autoLast()
-}
-
-object ConstantMultByLut {
-  def main(args: Array[String]): Unit = {
-    def testOnce() = {
-      val constants = (0 until 3).map(_ => Random.nextBigInt(31))
-      val config = ConstantMultByLutConfig(constants, 32)
-      val data = (0 until 100 * constants.length).map(_ => Random.nextBigInt(32))
-      TransformTest.test(config.implH, data)
-    }
-
-    import algos.ZPrizeMSM.{NPrime, baseModulus}
-
-    def testZPrize(constant: BigInt) = {
-      val splitPoints = (0 until (baseModulus.bitLength - 1 / 31)).map(_ * 31).reverse
-      val constants = constant.split(splitPoints).filter(_ > 1)
-      val config = ConstantMultByLutConfig(constants, 127 - 32)
-      val data = (0 until 100 * constants.length).map(_ => Random.nextBigInt(32) % baseModulus)
-      TransformTest.test(config.implH, data)
-    }
-
-    def synthZPrize(constant: BigInt) = {
-      val splitPoints = (0 until (baseModulus.bitLength - 1 / 31)).map(_ * 31).reverse
-      val constants = constant.split(splitPoints).filter(_ > 1)
-      val config = ConstantMultByLutConfig(constants, 127 - 32)
-      VivadoSynth(config.implH)
-    }
-
-    //    (0 until 100).foreach(_ => testOnce())
-    //    testZPrize(baseModulus)
-    //    testZPrize(NPrime)
-
-    synthZPrize(baseModulus)
-    synthZPrize(NPrime)
-  }
 }

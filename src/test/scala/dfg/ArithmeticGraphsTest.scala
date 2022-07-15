@@ -58,7 +58,7 @@ class ArithmeticGraphsTest extends AnyFlatSpec {
   "addGraph" should "work" in (0 until genCount).foreach(_ => TransformTest.test(graphAdd.toTransform(golden = addGolden), data))
   "subGraph" should "work" in (0 until genCount).foreach(_ => TransformTest.test(graphSub.toTransform(golden = subGolden), data, subMetric))
 
-  it should "work for full multiplication on hardware" in (0 until genCount).foreach(_ =>
+  "KaratsubaGraph" should "work for full multiplication on hardware" in (0 until genCount).foreach(_ =>
     TransformTest.test(graphFull.toTransform(golden = fullMultGolden), data))
   it should "work for low-bit multiplication on hardware" in (0 until genCount).foreach(_ =>
     TransformTest.test(graphLow.toTransform(golden = lowMultGolden), data))

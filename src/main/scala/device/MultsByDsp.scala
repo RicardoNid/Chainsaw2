@@ -68,8 +68,6 @@ case class MultiplicationByDsp(config: MultiplicationByDspConfig) extends Transf
   val dataOut = master Flow Fragment(Vec(UInt(baseWidth * 2 bits)))
 
   val Seq(x, y) = dataIn.fragment
-  //  val Seq(a, b) = x.subdivideIn(2 slices).reverse.map(_.d(1)) // xHigh, xLow
-  //  val Seq(c, d) = y.subdivideIn(2 slices).reverse.map(_.d(1)) // yHigh, yLow
   val Seq(a, b) = x.subdivideIn(2 slices).reverse // xHigh, xLow
   val Seq(c, d) = y.subdivideIn(2 slices).reverse // yHigh, yLow
 
