@@ -11,7 +11,8 @@ import scala.util.Random
 /** Summing n unsigned integers by Wallace/Dadda Tree
  *
  */
-case class WallaceTree(dataIn: Vec[UInt], compressor32: Seq[Bool] => (Bool, Bool), compressor22: Seq[Bool] => (Bool, Bool)) extends ImplicitArea[UInt] {
+case class WallaceTree(dataIn: Vec[UInt], compressor32: Seq[Bool] => (Bool, Bool), compressor22: Seq[Bool] => (Bool, Bool))
+  extends ImplicitArea[UInt] {
 
   val k = dataIn.map(_.getBitsWidth).max
   val n = dataIn.size
