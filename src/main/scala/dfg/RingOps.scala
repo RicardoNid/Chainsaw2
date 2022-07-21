@@ -8,7 +8,11 @@ import dfg.OpType._
 import org.datenlord.dfg.Direction.{In, Out}
 import spinal.core._
 
-case class ArithInfo(width: Int, shift: Int)
+case class ArithInfo(width: Int, shift: Int) {
+  val low = shift
+  val high = low + width
+  val range = (high - 1) downto low
+}
 
 /** This is for crypto implementation on FPGAs of Xilinx UltraScale family
  *
@@ -89,11 +93,12 @@ object Add2Vertex {
     val latency = 1
     val widthsOut = Seq(1, widthsIn.max)
     val shiftsOut = Seq(shiftsIn.head + widthsIn.max, widthsIn.max)
-    val infosOut = widthsOut.zip(shiftsOut).map{ case (width, shift) => ArithInfo(width, shift)}
+    val infosOut = widthsOut.zip(shiftsOut).map { case (width, shift) => ArithInfo(width, shift) }
     val opCount = widthsIn.length
 
     val implS = (data: Seq[BigInt]) => {
       def invert(value: Char) = if (value == '1') '0' else '1'
+
       opType match {
         case Add2 => val ret = data.sum
           ret.split(Seq(widthsIn.max))
@@ -131,7 +136,7 @@ object SplitVertex {
     val latency = 0
     val widthsOut = (infoIn.width +: splitPoints).zip(splitPoints :+ 0).map { case (width, low) => width - low }
     val shiftsOut = splitPoints.map(_ + infoIn.shift) :+ infoIn.shift
-    val infosOut = widthsOut.zip(shiftsOut).map{ case (width, shift) => ArithInfo(width, shift)}
+    val infosOut = widthsOut.zip(shiftsOut).map { case (width, shift) => ArithInfo(width, shift) }
     // example: 110011101.split(Seq(6,3)) = Seq(110, 011, 101), high to low
     val implS = (data: Seq[BigInt]) => data.head.split(splitPoints)
     val implH = (data: Seq[UInt]) => data.head.split(splitPoints).map(_.asUInt)

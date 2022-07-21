@@ -28,7 +28,6 @@ class ArithmeticGraphsTest extends AnyFlatSpec {
   def graphSquare = ArithmeticGraphs.karatsubaGraph(testWidth, 0, Square)
 
   def graphMontMult = ArithmeticGraphs.montgomeryGraph(testWidth, 0, zprizeModulus, square = false, byLUT = false)
-
   def graphMontSquare = ArithmeticGraphs.montgomeryGraph(testWidth, 0, zprizeModulus, square = true, false)
 
   val addGolden = (data: Seq[BigInt]) => Seq(data.sum)
