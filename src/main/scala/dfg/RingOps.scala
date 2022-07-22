@@ -110,7 +110,7 @@ object Add2Vertex {
     }
 
     val implH = (data: Seq[UInt]) => {
-      logger.info(s"implementing add2 with ${shiftsIn(0)} and ${shiftsIn(1)}")
+      logger.info(s"implementing $opType with ${shiftsIn(0)} and ${shiftsIn(1)}")
       require(shiftsIn.forall(_ == shiftsIn.head))
       require(data.forall(_.getBitsWidth <= baseWidth))
       if (opCount == 3) require(data(2).getBitsWidth == 1) // carry

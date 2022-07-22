@@ -82,7 +82,11 @@ object Pippenger2 {
     //      println(s"actual   : ${cost._1}, stage1: ${cost._2}, stage2: ${cost._3}")
     //    }
 
+    println(ZPrizeMSM.estimateWorkload(1 << 26, 253, 4))
     println(ZPrizeMSM.estimateWorkload(1 << 26, 253, 10))
     println(ZPrizeMSM.estimateWorkload(1 << 26, 253, 12))
+    println(ZPrizeMSM.estimateWorkload(1 << 26, 253, 17))
+    println(ZPrizeMSM.estimateWorkload(1 << 26, 253, 18))
+    println(ZPrizeMSM.estimateWorkload(1 << 26, 253, 19))
   }
 }

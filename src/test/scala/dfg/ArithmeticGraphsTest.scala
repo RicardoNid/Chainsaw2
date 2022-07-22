@@ -30,6 +30,9 @@ class ArithmeticGraphsTest extends AnyFlatSpec {
   def graphMontMult = ArithmeticGraphs.montgomeryGraph(testWidth, 0, zprizeModulus, square = false, byLUT = false)
   def graphMontSquare = ArithmeticGraphs.montgomeryGraph(testWidth, 0, zprizeModulus, square = true, false)
 
+  val smallData = (0 until testCaseCount * 2).map(_ => Random.nextBigInt(61))
+  def graphFullSmall = ArithmeticGraphs.karatsubaGraph(61, 0, Full)
+
   val addGolden = (data: Seq[BigInt]) => Seq(data.sum)
   val subGolden = (data: Seq[BigInt]) => Seq(data(0) - data(1))
   val fullMultGolden = (data: Seq[BigInt]) => Seq(data.product)
@@ -63,6 +66,9 @@ class ArithmeticGraphsTest extends AnyFlatSpec {
     TransformTest.test(graphLow.toTransform(golden = lowMultGolden), data))
   it should "work for square multiplication on hardware" in (0 until genCount).foreach(_ =>
     TransformTest.test(graphSquare.toTransform(golden = squareMultGolden), data.take(testCaseCount / 2).flatMap(d => Seq(d, d))))
+
+  it should "work for the toy case" in  (0 until genCount).foreach(_ =>
+    TransformTest.test(graphFullSmall.toTransform(golden = fullMultGolden), smallData))
 
   "montgomeryGraph" should "work for modular multiplication on hardware" in (0 until genCount).foreach(_ =>
     TransformTest.test(graphMontMult.toTransform(golden = montMultGolden), montTestData, montMetric))

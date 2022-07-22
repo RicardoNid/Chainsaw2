@@ -111,6 +111,7 @@ object ArithmeticGraphs {
           case Full =>
             val aPlusB = xHigh +:+^ xLow
             val cPlusD = yHigh +:+^ yLow
+            logger.info(s"high ${xHigh.shift}, low: ${xLow.shift}")
 
             val ac = recursiveTask(widthHigh, xHigh, yHigh, Full)
             val bd = recursiveTask(widthLow, xLow, yLow, Full)
