@@ -11,6 +11,7 @@ object McmType extends Enumeration {
 
 import arithmetic.McmType._
 
+
 /** multiple constant multiplication for UInt implemented by different ways
  *
  * @param widthIn width of input operand
@@ -19,6 +20,7 @@ import arithmetic.McmType._
  */
 case class McmConfig(constants: Seq[BigInt], widthIn: Int, mcmType: McmType)
   extends TransformBase {
+
   override def impl(dataIn: Seq[Any]) = constants.map(_ * dataIn.head.asInstanceOf[BigInt])
 
   override val size = (1, constants.length)
@@ -40,7 +42,8 @@ case class McmConfig(constants: Seq[BigInt], widthIn: Int, mcmType: McmType)
   override def implH = Mcm(this)
 }
 
-case class Mcm(config: McmConfig) extends TransformModule[UInt, UInt] {
+case class Mcm(config: McmConfig)
+  extends TransformModule[UInt, UInt] {
 
   import config._
 

@@ -12,12 +12,12 @@ import scala.util.Random
 class McmTest extends AnyFlatSpec {
 
   val dataWidth = 126 - 31
-  val coeffWidth = 377
-  val data = (0 until 1000).map(_ => Random.nextBigInt(dataWidth))
   val config0 = McmConfig(baseModulus.toWords(31), dataWidth, SPIRAL)
   val config1 = McmConfig(baseModulus.toWords(31), dataWidth, PAG)
   val config2 = McmConfig(NPrime.toWords(31), dataWidth, SPIRAL)
   val config3 = McmConfig(NPrime.toWords(31), dataWidth, PAG)
+
+  val data = (0 until 10000).map(_ => Random.nextBigInt(dataWidth))
 
   "MCM" should "work for BLS-377 modulus" in {
     TransformTest.test(config0.implH, data, name = "SpiralMcmBase")

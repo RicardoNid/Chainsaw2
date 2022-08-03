@@ -8,17 +8,17 @@ import scala.language.postfixOps
 import scala.sys.process._
 import scala.util.Random
 
-case class SCMConfig(constant: BigInt, widthIn: Int, plain: Boolean) extends TransformBase {
+case class ScmConfig(constant: BigInt, widthIn: Int, plain: Boolean) extends TransformBase {
   override def impl(dataIn: Seq[Any]) = Seq(dataIn.head.asInstanceOf[BigInt] * constant)
 
   override val size = (1, 1)
 
   override def latency = 1
 
-  override def implH = SCM(this)
+  override def implH = Scm(this)
 }
 
-case class SCM(config: SCMConfig) extends TransformModule[UInt, UInt] {
+case class Scm(config: ScmConfig) extends TransformModule[UInt, UInt] {
 
   import config._
 
@@ -40,17 +40,17 @@ case class SCM(config: SCMConfig) extends TransformModule[UInt, UInt] {
   autoLast()
 }
 
-object SCM {
+object Scm {
   def main(args: Array[String]): Unit = {
     val constant = BigInt(62317)
     val length = constant.bitLength
-    val config0 = SCMConfig(constant, length, plain = true)
-    val config1 = SCMConfig(constant, length, plain = false)
+    val config0 = ScmConfig(constant, length, plain = true)
+    val config1 = ScmConfig(constant, length, plain = false)
     val testCases = (0 until 100).map(_ => Random.nextBigInt(length))
     //    TransformTest.test(SCM(config0), testCases, name = "testSCM")
     //    TransformTest.test(SCM(config1), testCases, name = "testSCM")
-    VivadoSynth(SCM(config0))
-    VivadoSynth(SCM(config1))
+    VivadoSynth(Scm(config0))
+    VivadoSynth(Scm(config1))
   }
 }
 

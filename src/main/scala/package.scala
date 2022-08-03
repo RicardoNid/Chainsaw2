@@ -2,8 +2,8 @@ package org
 
 import breeze.linalg._
 import breeze.math._
-import cc.redberry.rings
 import cc.redberry.rings.scaladsl._
+import org.datenlord.xilinx.VivadoTaskType._
 import org.datenlord.xilinx._
 import org.slf4j.LoggerFactory
 import spinal.core._
@@ -34,14 +34,14 @@ package object datenlord {
   }
 
   def VivadoImpl[T <: Component](gen: => T, name: String = "temp", xdcPath: String = null) = {
-    val report = VivadoFlow(design = gen, taskType = IMPL, topModuleName = name, workspacePath = s"./$name").doFlow()
+    val report = VivadoFlow(design = gen, taskType = IMPL, topModuleName = name, workspacePath = s"synthWorkspace/$name").doFlow()
     report.printArea()
     report.printFMax()
     report
   }
 
   def VivadoSynth[T <: Component](gen: => T, name: String = "temp"): VivadoReport = {
-    val report = VivadoFlow(design = gen, taskType = SYNTH, topModuleName = name, workspacePath = s"./$name").doFlow()
+    val report = VivadoFlow(design = gen, taskType = SYNTH, topModuleName = name, workspacePath = s"synthWorkspace/$name").doFlow()
     report.printArea()
     report.printFMax()
     report
