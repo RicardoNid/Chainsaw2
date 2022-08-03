@@ -29,13 +29,6 @@ case class TernaryAdderConfig(width: Int, sub: Int = 0) extends TransformBase {
 
   override def implH = TernaryAdder(this)
 
-  def asNode: Seq[UInt] => Seq[UInt] = (dataIn: Seq[UInt]) => {
-    val Seq(a, b, c) = dataIn
-    val core = implH
-    core.dataIn.fragment := Vec(a.resized, b.resized, c.resized)
-    core.skipControl()
-    core.dataOut.fragment
-  }
 }
 
 case class TernaryAdder(config: TernaryAdderConfig) extends TransformModule[UInt, UInt] {

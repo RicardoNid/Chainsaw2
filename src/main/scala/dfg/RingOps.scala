@@ -72,7 +72,7 @@ object MultVertex {
 
     val implH = (data: Seq[UInt]) => {
       require(data.forall(_.getBitsWidth <= config.baseWidth))
-      val seq = config.asNode.apply(data)
+      val seq = config.implH.asNode.apply(data)
       Seq(seq.head.resize(widthOut)) // as the multiplier by dsp has a fixed width, resize is required
     }
 

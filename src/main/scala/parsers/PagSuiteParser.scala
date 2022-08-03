@@ -98,7 +98,7 @@ object PagSuiteParser {
             val width = Seq(op0, op1, op2).map(_.getBitsWidth).max
             val widthOut = log2Up(node.output.fundamental) + widthIn
             val config = device.TernaryAdderConfig(width, sub)
-            val ret = config.asNode(Seq(op0, regularOp1, regularOp2)).head.resize(widthOut)
+            val ret = config.implH.asNode(Seq(op0, regularOp1, regularOp2)).head.resize(widthOut)
             signalMap += node.outPosition -> ret
             cost += ret.getBitsWidth
         }

@@ -38,28 +38,6 @@ case class MultiplicationByDspConfig(mode: MultiplierMode) extends TransformBase
   }
 
   override def implH = MultiplicationByDsp(this)
-
-  // TODO: make "asOperator" a function of TransformBase
-  def asOperator = (x: UInt, y: UInt) => {
-    require(x.getBitsWidth <= baseWidth && y.getBitsWidth <= baseWidth, s"x: ${x.getBitsWidth}, y" {
-      y.getBitsWidth
-    })
-    val core = implH
-    core.dataIn.fragment := Vec(x.resized, y.resized)
-    core.skipControl()
-    core.dataOut.fragment.head
-  }
-
-  def asNode: Seq[UInt] => Seq[UInt] = (dataIn: Seq[UInt]) => {
-    val Seq(x, y) = dataIn
-    require(x.getBitsWidth <= baseWidth && y.getBitsWidth <= baseWidth, s"x: ${x.getBitsWidth}, y" {
-      y.getBitsWidth
-    })
-    val core = implH
-    core.dataIn.fragment := Vec(x.resized, y.resized)
-    core.skipControl()
-    core.dataOut.fragment
-  }
 }
 
 case class MultiplicationByDsp(config: MultiplicationByDspConfig) extends TransformModule[UInt, UInt] {
@@ -115,13 +93,13 @@ case class MultiplicationByDsp(config: MultiplicationByDspConfig) extends Transf
       //      val abOption = (cdMsb.asUInt * abMain.asUInt).d(2)
       //      val msbOption = (abMsb.asUInt * cdMsb.asUInt).d(2)
       // 3-4
-      val almostAll = TernaryAdderConfig(34).asNode(
+      val almostAll = TernaryAdderConfig(34).implH.asNode(
         Seq(dsp2, cdOption << 17, abOption << 17)
       ).head
       // 4-5
       val all = (almostAll + (msbOption.d(1) << 34)).d(1)
       // 5-6
-      val adPlusBc = TernaryAdderConfig(36, 2).asNode(
+      val adPlusBc = TernaryAdderConfig(36, 2).implH.asNode(
         Seq(all, dsp0.d(3), dsp1.d(3))
       ).head
       // 6-7
