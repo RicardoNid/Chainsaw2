@@ -31,7 +31,7 @@ case class EcPointProj(x: IntZ, y: IntZ, z: IntZ) {
     }
   }
 
-  def +(that:EcPointProj)(implicit eccGroup: EcGroup) = eccGroup.paddByProj(this, that)
+  def +(that: EcPointProj)(implicit eccGroup: EcGroup) = eccGroup.paddByProj(this, that)
 
   def dbl(implicit eccGroup: EcGroup) = eccGroup.pdblByProj(this)
 
@@ -97,7 +97,7 @@ case class EcGroup(modulus: IntZ, a: IntZ, b: IntZ) {
 
   def pdbl(p: EcPointAffine) = padd(p, p)
 
-  /**
+  /** By far the fastest impl for PADD on BLS-377, 11S + 5M required
    * @see [[https://www.hyperelliptic.org/EFD/g1p/auto-shortw-jacobian-0.html#addition-add-2007-bl]]
    */
   def paddByProj(p0: EcPointProj, p1: EcPointProj) = {
@@ -105,31 +105,38 @@ case class EcGroup(modulus: IntZ, a: IntZ, b: IntZ) {
 
     val (x0, x1, y0, y1, z0, z1) = (p0.x, p1.x, p0.y, p1.y, p0.z, p1.z)
 
+    def zpSquare(a: IntZ) = zp.multiply(a, a)
+
     val ret = {
       if (p0.isZero) p1
       else if (p1.isZero) p0
-      //      else if (p0 == p1.inverse(this)) EccZeroAffine
       else if (p0 != p1) {
-        // TODO: update this to 2007 version
-        val z0Squared = zp.multiply(z0, z0)
+        val z0Squared = zpSquare(z0)
         val z0Cubed = zp.multiply(z0, z0Squared)
-        val z1Squared = zp.multiply(z1, z1)
+        val z1Squared = zpSquare(z1)
         val z1Cubed = zp.multiply(z1, z1Squared)
         val u0 = zp.multiply(x0, z1Squared)
         val u1 = zp.multiply(x1, z0Squared)
         val s0 = zp.multiply(y0, z1Cubed)
         val s1 = zp.multiply(y1, z0Cubed)
         val h = zp.subtract(u1, u0)
-        val r = zp.subtract(s1, s0)
-        val hSquared = zp.multiply(h, h)
-        val hCubed = zp.multiply(hSquared, h)
-        val rSquared = zp.multiply(r, r)
-        val uhCross = zp.multiply(u0, hSquared)
-        val shCross = zp.multiply(s0, hCubed)
-        val x2 = (rSquared - hCubed - uhCross * 2) % modulus
-        val y2 = zp.multiply(r, uhCross - x2) - shCross
-        val zCross = zp.multiply(z0, z1)
-        val z2 = zp.multiply(zCross, h)
+
+        val i = zpSquare(h * 2)
+        val j = zp.multiply(h, i)
+        val r = (zp.subtract(s1, s0) * 2) % modulus
+        val rSquared = zpSquare(r)
+        val v = zp.multiply(u0, i)
+
+        val x2 = (rSquared - j - v * 2) % modulus
+        val y2temp0 = zp.subtract(v, x2)
+        val y2temp1 = zp.multiply(r, y2temp0)
+        val y2temp2 = (zp.multiply(s0, j) * 2) % modulus
+        val y2 = zp.subtract(y2temp1, y2temp2)
+        val zSum = z0 + z1
+        val z2temp0 = zpSquare(zSum)
+        val z2temp1 = z2temp0 - z0Squared - z1Squared
+        val z2 = zp.multiply(z2temp1, h)
+
         EcPointProj(x2, y2, z2)
       }
       else {
@@ -177,43 +184,4 @@ case class EcGroup(modulus: IntZ, a: IntZ, b: IntZ) {
     }
     temp
   }
-
-}
-
-object EcGroup {
-
-  // test from "Guide to ECC"
-  def testEcc() = {
-
-    val p = 23
-    val a = 0
-    val b = 1
-
-    implicit val ecc = EcGroup(p, a, b)
-    val points = ecc.getAllPoints
-    val (point0, point1, scalar) = (points(0), points(2), 15)
-
-    val sum = ecc.padd(point0, point1)
-    val sumByProj = ecc.paddByProj(point0.toProjective, point1.toProjective).toAffine
-    assert(ecc.isOnCurve(sum))
-    assert(sumByProj == sum)
-    println(s"sum: $sumByProj = $sum")
-
-    val dbl = ecc.pdbl(point0)
-    val dblByProj = ecc.pdblByProj(point0.toProjective).toAffine
-    assert(ecc.isOnCurve(dbl))
-    assert(dblByProj == dbl)
-    println(s"dbl: $dblByProj = $dbl")
-
-    println(ecc.paddByProj(point0.toProjective, point0.inverse.toProjective))
-
-    val product = ecc.pmult(scalar, point1)
-    val productByProj = ecc.pmultByProj(scalar, point1.toProjective).toAffine
-    assert(ecc.isOnCurve(product))
-    assert(product == productByProj)
-    println(s"product $product = $productByProj")
-  }
-
-  def main(args: Array[String]): Unit = {testEcc()}
-
 }

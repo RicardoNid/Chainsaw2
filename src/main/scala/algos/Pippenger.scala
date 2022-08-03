@@ -1,23 +1,13 @@
 package org.datenlord
 package algos
 
+import scala.collection.mutable.ArrayBuffer
 import scala.util.Random
 
-case class Performance(add: Int, dbl: Int, storage: Double) {
-  val dblFactor = 1
-  val operationCost = add + dbl * 0.7
-  val storageCost = storage
-  val ratio = dbl / add.toDouble
-}
+case class Pippenger[T](N: Int, W: Int, w: Int, add: (T, T) => T, dbl: T => T, zero: T) {
 
-case class PippengerProblem[T](scalars: Seq[BigInt], points: Seq[T], add: (T, T) => T, dbl: T => T, zero: T) {
-
-  var addCount, dblCount = 0
-
-  def clear() = {
-    addCount = 0
-    dblCount = 0
-  }
+  var addCount = 0
+  var dblCount = 0
 
   def doAdd(a: T, b: T) = {
     addCount += 1
@@ -29,7 +19,13 @@ case class PippengerProblem[T](scalars: Seq[BigInt], points: Seq[T], add: (T, T)
     dbl(a)
   }
 
-  def mult(scalar: BigInt, point: T) = {
+
+  def clear() = {
+    addCount = 0
+    dblCount = 0
+  }
+
+  def doMult(scalar: BigInt, point: T) = {
     var temp = if (scalar == 0) zero else point
     scalar.toString(2).tail.foreach { bit =>
       temp = doDbl(temp)
@@ -38,106 +34,48 @@ case class PippengerProblem[T](scalars: Seq[BigInt], points: Seq[T], add: (T, T)
     temp
   }
 
-  def solveByOriginal = {
+  def doGolden(scalars: Seq[BigInt], points: Seq[T]) = scalars.zip(points).map { case (scalar, point) => doMult(scalar, point) }.reduce(add)
 
-    val result = scalars.zip(points).map { case (scalar, point) => mult(scalar, point) }.reduce(doAdd)
-
-    val ret = (result, Performance(addCount, dblCount, 1))
+  def doPippenger(scalars: Seq[BigInt], points: Seq[T]) = {
+    val golden = doGolden(scalars, points)
     clear()
-    ret
-  }
-
-  def solveByPippenger(bitWindow: Int, pointWindow: Int, lookup: Int) = {
-
-    val scalarBitLength = scalars.map(_.bitLength).max
-    val bitBatchCount = (scalarBitLength + bitWindow - 1) / bitWindow
-    val pointBatchCount = (points.length + pointWindow - 1) / pointWindow
-
-    val GMatrix = Seq.tabulate(pointBatchCount, bitBatchCount) { (pointBatchIndex, bitBatchIndex) =>
-      val (pointStart, pointEnd) = (pointWindow * pointBatchIndex, pointWindow * (pointBatchIndex + 1))
-      val (bitStart, bitEnd) = (bitWindow * bitBatchIndex, bitWindow * (bitBatchIndex + 1))
-
-      val pointsInBatch = points.slice(pointStart, pointEnd)
-      val scalarsInBatch = scalars.slice(pointStart, pointEnd)
-      val slicesInBatch = scalarsInBatch.map(_.toString(2).reverse.padTo(scalarBitLength, '0').slice(bitStart, bitEnd).reverse).map(BigInt(_, 2))
-
-      val Bs =
-        slicesInBatch.zip(pointsInBatch)
-          .groupBy(_._1).filter(_._1 != 0)
-          .map { case (slice, seq) =>
-            val B = seq.map(_._2)
-              .grouped(lookup).toSeq
-              .map(_.reduce(add))
-              .reduce(doAdd)
-            mult(slice, B)
-          }
-      val G = (Bs.toSeq :+ zero).reduce(doAdd) // in case of empty
-      G
+    val groupsCount = (W - 1) / w + 1
+    val bucketsCount = (1 << w) - 1
+    val buckets = Seq.tabulate(groupsCount, bucketsCount)((_, _) => ArrayBuffer[T]())
+    // distribution
+    scalars.zip(points).foreach { case (scalar, point) =>
+      scalar.toWords(w).zipWithIndex.filter(_._1 != 0)
+        .foreach { case (word, i) => buckets(i)((word - 1).toInt) += point }
     }
-
-    val result = GMatrix.map { rowOfGs =>
-      var temp = rowOfGs.last // G_max
-      rowOfGs.reverse.tail.foreach { next =>
-        (0 until bitWindow).foreach(_ => temp = doDbl(temp))
-        temp = doAdd(temp, next)
-      }
-      temp
-    }.reduce(doAdd)
-
-    val storage = if (lookup == 1) 1 else (1 << lookup).toDouble / lookup
-
-    val ret = (result, Performance(addCount, dblCount, storage))
-    clear()
-    ret
-  }
-
-  val base = solveByOriginal
-
-  def testWindow(bitWindow: Int, pointWindow: Int, lookup: Int) = {
-    val solution = solveByPippenger(bitWindow, pointWindow, lookup)
-    val cost = solution._2.operationCost / base._2.operationCost
-    val storage = solution._2.storage
-    val ratio = solution._2.ratio
-    println(s"$bitWindow, $pointWindow, $lookup -> cost: $cost, storage: $storage, ratio: $ratio")
-    assert(solution._1 == base._1, s"${solution._1}, ${base._1}")
-    (bitWindow, pointWindow, lookup, cost, ratio)
+    // stage1
+    val bucketsSums = buckets.map(_.map(bucket => if (bucket.nonEmpty) bucket.reduce(doAdd) else zero))
+    val costStage1 = addCount + dblCount
+    // stage2
+    val groupsSums = bucketsSums.map(group => group.zipWithIndex.map { case (bucketSum, i) => doMult(BigInt(i + 1), bucketSum) }.reduce(doAdd))
+    val costStage2 = addCount + dblCount - costStage1
+    // stage3
+    val ret = groupsSums.reverse.reduce((high, low) => doAdd(doMult(BigInt(1) << w, high), low))
+    assert(ret == golden)
+    (addCount + dblCount, costStage1, costStage2)
   }
 }
 
-object PippengerProblem {
-  def main(args: Array[String]): Unit = {
-
-    val add = (a: BigInt, b: BigInt) => a + b
-    val dbl = (a: BigInt) => a * 2
-
-    def search() = {
-      val randBig: Seq[BigInt] = (0 until 1000).map(_ => Random.nextBigInt(10))
-      val randScalar: Seq[BigInt] = (0 until 1000).map(_ => Random.nextBigInt(253) % ZPrizeMSM.scalarModulus)
-      val problem = PippengerProblem(randScalar, randBig, add, dbl, BigInt(0))
-      val bitCandidate = 1 to 8
-      val pointCandidate = (1 to 10).map(_ * 100)
-      val lookupCandidates = 4 to 4
-
-      val notByLut = Seq.tabulate(bitCandidate.length, pointCandidate.length, lookupCandidates.length) {
-        (i, j, k) =>
-          val bit = bitCandidate(i)
-          val point = pointCandidate(j)
-          val lut = lookupCandidates(k)
-          problem.testWindow(bit, point, lut)
-      }.flatten.flatten
-
-      println(notByLut.minBy(_._4))
-    }
-
-    def evaluate(size: Int, lut: Int) = {
-      val randBig: Seq[BigInt] = (0 until size).map(_ => Random.nextBigInt(10))
-      val randScalar: Seq[BigInt] = (0 until size).map(_ => Random.nextBigInt(253) % ZPrizeMSM.scalarModulus)
-      val problem = PippengerProblem(randScalar, randBig, add, dbl, BigInt(0))
-      problem.testWindow(3, size, lut)
-    }
-
-    //    evaluate(1 << 10, 1)
-    //    evaluate(1 << 14, 10)
-    search()
+object Pippenger {
+  def estimateWorkload(N: Int, W: Int, w: Int) = {
+    val scale = BigDecimal(1) / w
+    val frac1 = (BigDecimal(2).pow(w) - 1) / BigDecimal(2).pow(w) * scale
+    val frac2 = (3 * w - 4).toDouble / 2 * scale
+    val costStage1 = frac1 * N * W - BigDecimal(W) / w * ((1 << w) - 1)
+    val costStage2 = frac2 * BigDecimal(2).pow(w) * W
+    val amount = costStage1 + costStage2
+    val freq = 600 * 1000 * 1000 // 600MHz
+    //    println(s"amount: ${amount / 1000000}M")
+    //    val buckets = (W / w) * (1 << w - 1) + (1 << (W % w))
+    //    val BRAM36 = buckets.toDouble * 377 * 2 / 36 / 1000
+    //    println(s"w = $w, $buckets buckets required, $BRAM36 BRAM36 required")
+    logger.info(s"when w = $w, ${amount / freq} sec needed with 1 PADD module running at 600MHz")
+    //    println(s"stage1: ${stage1Cost / amount}, stage2: ${stage2Cost / amount}")
+    (amount, costStage1, costStage2)
   }
+
 }

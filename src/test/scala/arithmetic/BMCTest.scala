@@ -7,7 +7,7 @@ import org.scalatest.flatspec.AnyFlatSpec
 
 import scala.util.Random
 
-class UIntCompressorTest extends AnyFlatSpec {
+class BMCTest extends AnyFlatSpec {
 
   val testCount = 1000
   val testWidth = 377
@@ -15,7 +15,7 @@ class UIntCompressorTest extends AnyFlatSpec {
 
   val infos = Seq.fill(operandsCount)(ArithInfo(testWidth, 0))
   val operands = (0 until testCount).flatMap(_ => infos.map(info => Random.nextBigInt(info.width)))
-  val config = UIntCompressorConfig(infos)
+  val config = BmcConfig(infos)
 
   "UInt Compressor" should "work" in TransformTest.test(config.implH, operands, config.metric)
 

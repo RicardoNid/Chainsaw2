@@ -11,14 +11,13 @@ import scala.util.Random
 case class BitMatrixCompressor[T](baseCompressor: Seq[Seq[T]] => Seq[T], pipeline: T => T, baseWidth: Int) {
 
   def compressOnce(matrix: BitMatrix[T]): (BitMatrix[T], Int) = {
-    //    println(s"before compression\n$matrix")
     val table = matrix.table
     val bitsCountBefore = matrix.bitsCount
     val operands = ArrayBuffer[Seq[T]]()
     val infos = ArrayBuffer[ArithInfo]()
     var cost = 0
     val height = matrix.height
-    logger.info(s"bit matrix before reduction: $matrix")
+    //    logger.info(s"bit matrix before reduction: $matrix")
     while (matrix.height >= 3) {
       // get slice as long as possible
       val start = table.indexWhere(_.length >= 3)
@@ -47,24 +46,25 @@ case class BitMatrixCompressor[T](baseCompressor: Seq[Seq[T]] => Seq[T], pipelin
     val ret = BitMatrix.apply(operands, infos) + pipelinedMatrix
     val bitsCountAfter = ret.bitsCount
     val bitsReduction = bitsCountBefore - bitsCountAfter
-    logger.info(s"height = $height, cost = $cost, bits reduction = $bitsReduction, ratio = ${cost.toDouble / bitsReduction}")
+    //    logger.info(s"height = $height, cost = $cost, bits reduction = $bitsReduction, ratio = ${cost.toDouble / bitsReduction}")
     (ret, cost)
   }
 
-  def compressAll(matrix: BitMatrix[T]): (BitMatrix[T], Int) = {
+  def compressAll(matrix: BitMatrix[T]): (BitMatrix[T], Int, Int) = {
     val bitsCountBefore = matrix.bitsCount
     var current = matrix
     var cost = 0
+    var stage = 0
     while (current.height >= 3) {
       val (matrixNext, costOnce) = compressOnce(current)
       current = matrixNext
       cost += costOnce
+      stage += 1
     }
     val bitsReduction = bitsCountBefore - current.bitsCount
     logger.info(s"cost = $cost, bits reduction = $bitsReduction, ratio = ${cost.toDouble / bitsReduction}")
-    (current, cost)
+    (current, cost, stage)
   }
-
 }
 
 case class BitMatrix[T](table: ArrayBuffer[ArrayBuffer[T]], shift: Int) {
@@ -85,7 +85,6 @@ case class BitMatrix[T](table: ArrayBuffer[ArrayBuffer[T]], shift: Int) {
 
   override def toString = s"bit matrix starts from $shift:\n${table.map(_.length).mkString(",")}"
 }
-
 
 object BitMatrix {
 
@@ -110,5 +109,24 @@ object BitMatrix {
     }
 
     BitMatrix(table, positionLow)
+  }
+
+  def getLatency(infos: Seq[ArithInfo], baseWidth: Int) = {
+    def compressor = (dataIn: Seq[Seq[Char]]) => {
+      val width = dataIn.length
+      val padded = dataIn.map(_.padTo(3, '0'))
+      val sum = padded.transpose.map(operand2BigInt).sum
+      bigInt2Operand(sum).padTo(width + 2, '0')
+    }
+
+    def pipeline(c: Char) = c
+
+    def bigInt2Operand(value: BigInt) = value.toString(2).toCharArray.toSeq.reverse
+
+    def operand2BigInt(operand: Seq[Char]) = BigInt(operand.mkString("").reverse, 2)
+
+    val operands = infos.map(_.width).map(width => Random.nextBigInt(width - 1) + (BigInt(1) << (width - 1)))
+    val original = BitMatrix(operands.map(bigInt2Operand), infos)
+    BitMatrixCompressor(compressor, pipeline, baseWidth).compressAll(original)._3
   }
 }

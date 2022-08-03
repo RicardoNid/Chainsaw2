@@ -8,7 +8,7 @@ import spinal.lib._
 
 import scala.language.postfixOps
 
-case class UIntCompressorConfig(infos: Seq[ArithInfo]) extends TransformBase {
+case class BmcConfig(infos: Seq[ArithInfo]) extends TransformBase {
   override def impl(dataIn: Seq[Any]) = {
     val bigInts = dataIn.asInstanceOf[Seq[BigInt]]
     val ret = bigInts.zip(infos).map { case (int, info) => int << info.shift }.sum
@@ -17,12 +17,13 @@ case class UIntCompressorConfig(infos: Seq[ArithInfo]) extends TransformBase {
 
   override val size = (infos.length, 2)
 
-  // TODO: get latency from infos
-  override def latency = 5
-
-  override def implH = UIntCompressor(this)
-
+  // TODO: adjustable baseWidth
   val baseWidth = 126
+  val fixedLatency = BitMatrix.getLatency(infos, baseWidth)
+
+  override def latency = fixedLatency
+
+  override def implH = BMC(this)
 
   def compressor = (dataIn: Seq[Seq[Bool]]) => {
     val width = dataIn.length
@@ -50,9 +51,11 @@ case class UIntCompressorConfig(infos: Seq[ArithInfo]) extends TransformBase {
   }
 }
 
-case class UIntCompressor(config: UIntCompressorConfig) extends TransformModule[UInt, UInt] {
+case class BMC(config: BmcConfig)
+  extends TransformModule[UInt, UInt] {
 
   import config._
+  logger.info(s"latency of UInt Compressor = $fixedLatency")
 
   override val dataIn = slave Flow Fragment(Vec(infos.map(info => UInt(info.width bits))))
   override val dataOut = master Flow Fragment(Vec(UInt(), 2))

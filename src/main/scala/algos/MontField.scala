@@ -38,7 +38,7 @@ case class MontField(modulus: IntZ) {
     val m = (TLow * NPrime) % R // low-bits multiplication + constant multiplication
     val t = (T + m * modulus) / R // constant multiplication(modulus is a constant)
 
-    // TODO: find an algo to skip this
+    // TODO: find an algo to skip this mux
     val det = t - modulus
     val ret = if (det >= 0) det else t // t \in [0, 2N)
 
@@ -55,26 +55,4 @@ case class MontField(modulus: IntZ) {
   def montAdd(x: MontNumber, y: MontNumber) = MontNumber(x.value.add(y.value).mod(modulus))
 
   def montSub(x: MontNumber, y: MontNumber) = MontNumber(x.value.subtract(y.value).mod(modulus))
-}
-
-object MontField {
-  def testMont(): Unit = {
-    implicit val baseField: MontField = MontField(baseModulus)
-
-    def test(a: BigInt, b: BigInt): Unit = {
-      val montA = baseField(a)
-      val montB = baseField(b)
-      val ret0 = (a * b) % baseModulus
-      val ret1 = (montA * montB).toBigInt
-      println(s"\ngolden: $ret0, \nyours : $ret1")
-      assert(ret0 == ret1, s"\ngolden: $ret0, \nyours : $ret1")
-    }
-
-    Seq.tabulate(3, 3)((i, j) => test(baseModulus / 2 - i, baseModulus / 2 + j))
-    logger.info("montgomery multiplication is correct")
-  }
-
-  def main(args: Array[String]): Unit = {
-    testMont()
-  }
 }

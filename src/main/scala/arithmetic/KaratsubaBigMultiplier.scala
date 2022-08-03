@@ -8,10 +8,7 @@ import spinal.lib._
 
 import scala.language.postfixOps
 
-object MultplierMode extends Enumeration {
-  val Full, Low, Square, Full34 = Value
-  type MultiplierMode = Value
-}
+
 
 import arithmetic.MultplierMode._
 

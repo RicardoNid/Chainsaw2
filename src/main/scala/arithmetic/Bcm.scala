@@ -1,6 +1,7 @@
 package org.datenlord
 package arithmetic
 
+import arithmetic.McmType._
 import dfg.ArithInfo
 
 import spinal.core._
@@ -8,20 +9,22 @@ import spinal.lib._
 
 import scala.language.postfixOps
 
-case class ConstantBigMultiplierConfig(coeff: BigInt, inWidth: Int) extends TransformBase {
+/** Big constant multiplier implemented by MCM and BMC
+ */
+case class BcmConfig(coeff: BigInt, inWidth: Int) extends TransformBase {
   override def impl(dataIn: Seq[Any]) =
     dataIn.asInstanceOf[Seq[BigInt]].map(_ * coeff)
 
   override val size = (1, 1)
 
   val solverLimit = 31
-  val adderLimit = 126
+  val adderLimit = 126 - 31
 
   val coeffWords = coeff.toWords(solverLimit) // low to high
   val dataWidths = Seq.fill(inWidth)(1).grouped(adderLimit).toSeq.map(_.sum)
   val dataPositions = dataWidths.scan(0)(_ + _).init
 
-  val adderGraphConfigs = dataWidths.map(width => Mcm(coeffWords, width))
+  val adderGraphConfigs = dataWidths.map(width => McmConfig(coeffWords, width, PAG))
 
   val arithInfos = dataWidths.zip(dataPositions).flatMap { case (width, position) =>
     val prodWidths = coeffWords.map(coeffWord => coeffWord.bitLength + width)
@@ -29,19 +32,19 @@ case class ConstantBigMultiplierConfig(coeff: BigInt, inWidth: Int) extends Tran
     prodWidths.zip(shifts).map { case (width, shift) => ArithInfo(width, shift) }
   }
 
-  arithInfos.foreach(info => logger.info(s"arith info: $info"))
+  //  arithInfos.foreach(info => logger.info(s"arith info: $info"))
 
-  val compressorConfig = UIntCompressorConfig(arithInfos)
-
-  val adderGraphLatency = adderGraphConfigs.map(_.latency).max
+  val compressorConfig = BmcConfig(arithInfos)
   val compressorLatency = compressorConfig.latency
+  val adderGraphLatency = adderGraphConfigs.map(_.latency).max
 
   override def latency = adderGraphLatency + compressorLatency
 
-  override def implH = ConstantBigMultiplier(this)
+  override def implH = Bcm(this)
 }
 
-case class ConstantBigMultiplier(config: ConstantBigMultiplierConfig) extends TransformModule[UInt, UInt] {
+case class Bcm(config: BcmConfig)
+  extends TransformModule[UInt, UInt] {
 
   import config._
 

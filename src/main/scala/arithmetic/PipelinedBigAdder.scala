@@ -34,13 +34,6 @@ case class PipelinedBigAdderConfig(addWidth: Int, baseWidth: Int = 127, minus: B
   override def latency = graph.latency
 
   override def implH = PipelinedBigAdder(this)
-
-  def asOperator = (x: UInt, y: UInt) => {
-    val core = implH
-    core.dataIn.fragment := Vec(x.resized, y.resized)
-    core.skipControl()
-    core.dataOut.fragment.head
-  }
 }
 
 case class PipelinedBigAdder(config: PipelinedBigAdderConfig) extends TransformModule[UInt, UInt] {

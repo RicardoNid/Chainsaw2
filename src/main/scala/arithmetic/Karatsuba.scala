@@ -170,103 +170,21 @@ case class Karatsuba(width: Int, mode: MultiplierMode, baseWidth: Int, constant:
     baseMultCount = 0
     assert(ret == golden, s"\nret    = $ret\ngolden = $golden")
 
-    val compressor = UIntCompressorConfig(ariths.data.map(arith => ArithInfo(arith.width, arith.baseShift)))
-    VivadoSynth(compressor.implH)
+    //    val compressor = BmcConfig(ariths.data.map(arith => ArithInfo(arith.width, arith.baseShift)))
+    //    VivadoSynth(compressor.implH)
 
     ret
   }
-
-//  case class HardArith(value: UInt, width: Int, baseShift: Int, sign: Boolean = true) {
-//    def <<(shift: Int) = HardArith(value, width, baseShift + shift, sign)
-//
-//    def unary_- = HardArith(value, width, baseShift, !sign)
-//
-//    def +(that: Arith) = HardAriths(Seq(this, that))
-//
-//    def -(that: Arith) = HardAriths(Seq(this, -that))
-//  }
-//
-//  implicit def asExp(arith: Arith): Ariths = Ariths(Seq(arith))
-//
-//  case class HardAriths(data: Seq[HardArith]) {
-//    def <<(shift: Int) = HardAriths(data.map(_ << shift))
-//
-//    def +(that: HardAriths) = HardAriths(data ++ that.data)
-//
-//    def unary_- = HardAriths(data.map(-_))
-//
-//    def -(that: HardAriths) = this.+(-that)
-//
-//    def positivePart = data.filter(_.sign == true)
-//
-//    def negativePart = data.filter(_.sign == false)
-//  }
-
-//  def multHardRec(op0: UInt, op1: UInt, width: Int, mode: MultiplierMode) = {
-//
-//    def baseMult(mode:MultiplierMode) = MultiplicationByDspConfig(mode).asOperator
-//
-//    val ret =
-//      if (width <= baseWidth) baseMult(mode)(op0, op1).resize(width * 2)
-//      else {
-//        val lowWidth = getSplit(width)
-//        val doubleWidth = 2 * lowWidth
-//        val highWidth = width - lowWidth
-//        require(lowWidth >= highWidth)
-//
-//        val (a, b) = op0.splitAt(lowWidth)
-//        val (c, d) = op1.splitAt(lowWidth)
-//
-//        mode match {
-//          case Full =>
-//            // before mults
-//            val bigAddConfig = PipelinedBigAdderConfig(lowWidth)
-//            val bigAdd = bigAddConfig.asOperator
-//            val (abMsb, abMain) = bigAdd(a.asUInt ,b.asUInt).splitAt(lowWidth)
-//            val (cdMsb, cdMain) = bigAdd(c.asUInt ,d.asUInt).splitAt(lowWidth)
-//            val cdOption = Mux(abMsb.asBool, cdMain.asUInt, U(0, lowWidth bits))
-//            val abOption = Mux(cdMsb.asBool, cdMain.asUInt, U(0, lowWidth bits))
-//              Arith(abMsb * cdMain, lowWidth, 0)
-//            val abOption = Arith(cdMsb * abMain, lowWidth, 0)
-//            val msbOption = Arith(abMsb * cdMsb, 1, 0)
-//
-//            // mults
-//            val ac = multImprovedRec(a, c, highWidth, Full)
-//            val bd = multImprovedRec(b, d, lowWidth, Full)
-//            val allLow = multImprovedRec(abMain, cdMain, lowWidth, Full)
-//
-//            // after mults
-//            val all = allLow + ((cdOption + abOption) << lowWidth) + (msbOption << doubleWidth)
-//            //            val all = multImprovedRec(a + b, c + d, lowWidth + 1, Full)
-//            val adPlusBc = all - ac - bd
-//            (ac << doubleWidth) + (adPlusBc << lowWidth) + bd
-//          case Low =>
-//            val ad = multImprovedRec(a, d, lowWidth, Low) // this multiplication is imbalanced
-//            val cb = multImprovedRec(c, b, lowWidth, Low) // this multiplication is imbalanced
-//            val bd = multImprovedRec(b, d, lowWidth, Full)
-//            ((ad + cb) << lowWidth) + bd
-//          case Square =>
-//            val ac = multImprovedRec(a, c, highWidth, Square)
-//            val adOrBc = multImprovedRec(a, d, lowWidth, Full) // this multiplication is imbalanced
-//            val bd = multImprovedRec(b, d, lowWidth, Square)
-//            (ac << doubleWidth) + (adOrBc << (lowWidth + 1)) + bd
-//        }
-//      }
-//    ret
-//
-//  }
-
-
 }
 
 object Karatsuba {
   def main(args: Array[String]): Unit = {
     val data = (0 until 1000).map(_ => Random.nextBigInt(377))
-    //    Karatsuba(377, Full, 32).mult(data(0), data(1))
-    //    Karatsuba(377, Low, 32).mult(data(0), data(1))
-    //    Karatsuba(377, Square, 32).mult(data(0), data(0))
+    Karatsuba(377, Full, 32).mult(data(0), data(1))
+    Karatsuba(377, Low, 32).mult(data(0), data(1))
+    Karatsuba(377, Square, 32).mult(data(0), data(0))
     Karatsuba(1024, Full, 32).multImproved(data(0), data(1))
-//    Karatsuba(377, Low, 32).multImproved(data(0), data(1))
-//    Karatsuba(377, Square, 32).multImproved(data(0), data(0))
+    Karatsuba(377, Low, 32).multImproved(data(0), data(1))
+    Karatsuba(377, Square, 32).multImproved(data(0), data(0))
   }
 }

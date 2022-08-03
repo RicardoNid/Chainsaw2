@@ -7,7 +7,7 @@ import org.scalatest.flatspec.AnyFlatSpec
 
 import scala.util.Random
 
-class ConstantBigMultiplierConfigTest extends AnyFlatSpec {
+class BcmTest extends AnyFlatSpec {
 
   Random.setSeed(42)
 
@@ -16,10 +16,8 @@ class ConstantBigMultiplierConfigTest extends AnyFlatSpec {
   val data = (0 until 1000).map(_ => Random.nextBigInt(dataWidth))
   val coeff = Random.nextBigInt(coeffWidth - 1) + (BigInt(1) << (coeffWidth - 1))
 
-  "Constant Big Multiplier" should "work for BLS-377 modulus" in {
-    val config = ConstantBigMultiplierConfig(baseModulus, dataWidth)
-    //    val config = ConstantBigMultiplierConfig(coeff, dataWidth)
-    //    TransformTest.test(config.implH, data, name = "CBM")
+  "BCM" should "work for BLS-377 modulus" in {
+    val config = BcmConfig(baseModulus, dataWidth)
     VivadoSynth(config.implH, name = "CBM")
   }
 

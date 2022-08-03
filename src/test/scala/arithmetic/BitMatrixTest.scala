@@ -36,7 +36,7 @@ class BitMatrixTest extends AnyFlatSpec {
 
     val original = BitMatrix(operands.map(bigInt2Operand), infos)
     val bitsCountBefore = original.bitsCount
-    val (ret, cost) = BitMatrixCompressor(compressor, pipeline, baseWidth).compressAll(original)
+    val (ret, cost, latency) = BitMatrixCompressor(compressor, pipeline, baseWidth).compressAll(original)
     val bitsCountAfter = ret.bitsCount
     val paddedRet = ret.table.map(_.padTo(2, '0'))
 

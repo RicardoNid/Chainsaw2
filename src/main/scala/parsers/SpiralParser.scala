@@ -25,7 +25,7 @@ object SpiralParser {
     val file = File(filepath)
     if (!file.exists) file.writeAll(doCmdAndGetLine(command, spiralDir))
     val src = Source.fromFile(filepath)
-    src.getLines().toSeq.head
+    src.getLines().mkString("\n")
   }
 
   def parse(spiralText: String) = {
@@ -54,39 +54,39 @@ object SpiralParser {
     (ops, outputInfos)
   }
 
-  def build(constants: Seq[BigInt], widthIn: Int) = (dataIn: UInt) => {
-
+  def build(constants: Seq[BigInt], widthIn: Int) = {
     val (ops, outputInfos) = parse(run(constants, widthIn))
-    logger.info(s"output table:\n${outputInfos.mkString("\n")}")
-    var cost = 0
+    val op = (dataIn: UInt) => {
+      var cost = 0
 
-    val vertices = dataIn +: ops.map(op => UInt(op.multiple.bitLength + widthIn bits))
+      val vertices = dataIn.d(1) +: ops.map(op => UInt(op.multiple.bitLength + widthIn bits))
 
-    ops.foreach { op =>
-      val (uint0, uint1) = (vertices(op.op0), vertices(op.op1))
-      val ret = op.opType match {
-        case "shl" => (uint0 << op.op1).resized
-        case "shr" => (uint0 >> op.op1).resized
-        case "add" => cost += uint0.getBitsWidth max uint1.getBitsWidth
-          (uint0 +^ uint1).resized
-        case "sub" => cost += uint0.getBitsWidth
-          (uint0 - uint1).resized
+      ops.foreach { op =>
+        val (uint0, uint1) = (vertices(op.op0), vertices(op.op1))
+        val ret = op.opType match {
+          case "shl" => (uint0 << op.op1).resized
+          case "shr" => (uint0 >> op.op1).resized
+          case "add" => cost += uint0.getBitsWidth max uint1.getBitsWidth
+            (uint0 +^ uint1).resized
+          case "sub" => cost += uint0.getBitsWidth
+            (uint0 - uint1).resized
+        }
+        vertices(op.ret) := ret
       }
-      vertices(op.ret) := ret
-    }
 
-    logger.info(s"cost of pipelined adder graph: $cost")
+      logger.info(s"cost of pipelined adder graph: $cost")
 
-    constants.map { constant =>
-      constant.toInt match {
-        case 0 => U(0).resized
-        case 1 => dataIn.d(2)
-        case _ =>
-          logger.info(s"find ${constant.toInt}")
-          val indexOfInfo = outputInfos.indexWhere(_.value == constant)
-          val indexInVertices = outputInfos(indexOfInfo).index
-          vertices(indexInVertices).d(1)
+      constants.map { constant =>
+        constant.toInt match {
+          case 0 => U(0).resized
+          case 1 => dataIn.d(2)
+          case _ =>
+            val indexOfInfo = outputInfos.indexWhere(_.value == constant)
+            val indexInVertices = outputInfos(indexOfInfo).index
+            vertices(indexInVertices).d(1)
+        }
       }
     }
+    (op, 2) // TODO: auto pipeline for spiral, 2 should be changed to the true latency
   }
 }
