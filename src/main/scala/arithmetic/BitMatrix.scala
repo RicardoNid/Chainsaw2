@@ -8,6 +8,13 @@ import spinal.core._
 import scala.collection.mutable.ArrayBuffer
 import scala.util.Random
 
+/** Compress a bitmatrix
+ *
+ * @param baseCompressor a basic compressor which will be repeatedly used to compress the matrix
+ * @param pipeline       used to connect a stage with the stage after
+ * @param baseWidth      length upper bound of a base compressor, making it carry-save
+ * @example [[BMC]] is a hardware instance of bit matrix compressor
+ */
 case class BitMatrixCompressor[T](baseCompressor: Seq[Seq[T]] => Seq[T], pipeline: T => T, baseWidth: Int) {
 
   def compressOnce(matrix: BitMatrix[T]): (BitMatrix[T], Int) = {
@@ -67,6 +74,10 @@ case class BitMatrixCompressor[T](baseCompressor: Seq[Seq[T]] => Seq[T], pipelin
   }
 }
 
+/** Storing information of a bit matrix, while providing util methods, making operations on bit matrix easier
+ * @param table the bits
+ * @param shift the base shift of the whole bit matrix, this is necessary as a bit matrix can merge with others
+ */
 case class BitMatrix[T](table: ArrayBuffer[ArrayBuffer[T]], shift: Int) {
 
   def +(that: BitMatrix[T]): BitMatrix[T] = {
@@ -112,7 +123,7 @@ object BitMatrix {
   }
 
   def getLatency(infos: Seq[ArithInfo], baseWidth: Int) = {
-    def compressor = (dataIn: Seq[Seq[Char]]) => {
+    def compressor: Seq[Seq[Char]] => Seq[Char] = (dataIn: Seq[Seq[Char]]) => {
       val width = dataIn.length
       val padded = dataIn.map(_.padTo(3, '0'))
       val sum = padded.transpose.map(operand2BigInt).sum

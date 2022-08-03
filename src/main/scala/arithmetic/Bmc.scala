@@ -25,7 +25,7 @@ case class BmcConfig(infos: Seq[ArithInfo]) extends TransformBase {
 
   override def implH = BMC(this)
 
-  def compressor = (dataIn: Seq[Seq[Bool]]) => {
+  def compressor: Seq[Seq[Bool]] => Vec[Bool] = (dataIn: Seq[Seq[Bool]]) => {
     val width = dataIn.length
     val core = device.TernaryAdderConfig(width).implH
     val operands = dataIn
@@ -42,7 +42,7 @@ case class BmcConfig(infos: Seq[ArithInfo]) extends TransformBase {
 
   def metric(yours: Seq[BigInt], golden: Seq[BigInt]) = yours.sum == golden.head
 
-  def naiveImplH = new Module {
+  def naiveImplH: Module = new Module {
     val dataIn = in Vec infos.map(info => UInt(info.width bits))
     val dataOut = out UInt()
     val add = (a: UInt, b: UInt) => a +^ b
