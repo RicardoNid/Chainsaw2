@@ -2,23 +2,16 @@ package org.datenlord
 package dfg
 
 import ilog.concert.IloNumVar
-import optimus.optimization._
-import optimus.optimization.enums.SolverLib
-import optimus.optimization.model.MPFloatVar
+import ilog.cplex.IloCplex
+import org.jgrapht._
 import org.jgrapht.alg.shortestpath.FloydWarshallShortestPaths
 import org.jgrapht.graph._
-import org.jgrapht._
 import spinal.core._
 
 import java.util.function.Supplier
 import scala.collection.JavaConversions._
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
-import ilog.cplex.IloCplex
-
-import collection.JavaConversions._
-import collection.JavaConverters._
-import scala.math.{cos, log}
 
 object OpType extends Enumeration {
   val Var = Value // variable (opposite to operation)

@@ -18,6 +18,7 @@ case class BitMatrixCompressor[T](baseCompressor: Seq[Seq[T]] => Seq[T], pipelin
     val infos = ArrayBuffer[ArithInfo]()
     var cost = 0
     val height = matrix.height
+    logger.info(s"bit matrix before reduction: $matrix")
     while (matrix.height >= 3) {
       // get slice as long as possible
       val start = table.indexWhere(_.length >= 3)
@@ -27,8 +28,11 @@ case class BitMatrixCompressor[T](baseCompressor: Seq[Seq[T]] => Seq[T], pipelin
           table.slice(start, end + 1).take(baseWidth)
         case 1 => val end = table.lastIndexWhere(_.length >= 2)
           table.slice(start, end + 1).take(baseWidth)
-        case 2 => if (matrix.height > 3) table.drop(start).takeWhile(_.length >= 3).take(baseWidth)
-        else table.drop(start).takeWhile(_.length >= 2).take(baseWidth)
+        case 2 =>
+          if (matrix.height > 3)
+            table.drop(start).takeWhile(_.length >= 3).take(baseWidth)
+          else
+            table.drop(start).takeWhile(_.length >= 2).take(baseWidth)
       }
 
       val width = slice.length + 2

@@ -1,15 +1,27 @@
 package org.datenlord
-package device
+package arithmetic
 
-import spinal.core.{out, _}
+import org.datenlord.parsers.PagNodeType.Value
+import spinal.core.{Vec, out, _}
 import spinal.lib._
 
 import scala.sys.process._
-import scala.util.Random
 
-// TODO: spiral implementation doesn't take advantage of 3-input adders, and the width of constant is limited to 31,
-//  for better performance, read "MCM book" and improve this
-case class ConstantMultByLutConfig(constants: Seq[BigInt], widthIn: Int) extends TransformBase {
+object McmType extends Enumeration {
+  val NAIVE, SPIRAL, PAG = Value
+  type McmType = Value
+}
+
+import McmType._
+
+/** multiple constant multiplication for UInt implemented by different ways
+ *
+ * @param widthIn width of input operand
+ * @see [[https://gitlab.com/kumm/pagsuite]] for PAGSuite implementation
+ * @see [[https://spiral.ece.cmu.edu/mcm/gen.html]] for spiral implementation
+ */
+case class Mcm(constants: Seq[BigInt], widthIn: Int, mcmType: McmType = SPIRAL)
+  extends TransformBase {
   override def impl(dataIn: Seq[Any]) = constants.map(_ * dataIn.head.asInstanceOf[BigInt])
 
   override val size = (1, constants.length)
@@ -19,13 +31,20 @@ case class ConstantMultByLutConfig(constants: Seq[BigInt], widthIn: Int) extends
   override def implH = ConstantMultByLut(this)
 
   def naiveImplH = new Module {
-    val dataIn = in UInt (127 - 32 bits)
+    val dataIn = in UInt (widthIn bits)
     val dataOut = out Vec(UInt(), constants.length)
     dataOut.zip(constants).foreach { case (out, coeff) =>
       val product = dataIn.d(1) * coeff
       product.addAttribute("use_dsp", "no")
       out := product.d(1)
     }
+  }
+
+  def asNode: Seq[UInt] => Seq[UInt] = (dataIn: Seq[UInt]) => {
+    val core = implH
+    core.dataIn.fragment := Vec(dataIn)
+    core.skipControl()
+    core.dataOut.fragment
   }
 
   // generating shift-add graph by spiral
@@ -72,7 +91,7 @@ case class ConstantMultByLutConfig(constants: Seq[BigInt], widthIn: Int) extends
 
 }
 
-case class ConstantMultByLut(config: ConstantMultByLutConfig) extends TransformModule[UInt, UInt] {
+case class ConstantMultByLut(config: Mcm) extends TransformModule[UInt, UInt] {
 
   import config._
 
@@ -95,13 +114,20 @@ case class ConstantMultByLut(config: ConstantMultByLutConfig) extends TransformM
     vertices(op.ret) := ret
   }
 
-  // for constants > 1
-  outputInfos.foreach { info =>
-    dataOut.fragment(constants.indexOf(info.value)) := vertices(info.index).d(1)
-  }
-  // for constants 0 and 1
-  dataOut.fragment.zip(constants).filter(_._2 == BigInt(1)).foreach(_._1 := dataIn.fragment.head.d(2))
-  dataOut.fragment.zip(constants).filter(_._2 == BigInt(0)).foreach(_._1 := U(0).resized)
+  val op = parsers.SpiralParser.build(constants, widthIn)
+  val ret = Vec(op(dataIn.fragment.head))
+
+  //  // for constants > 1
+  //  outputInfos.foreach { info =>
+  //    dataOut.fragment(constants.indexOf(info.value)) := vertices(info.index).d(1)
+  //  }
+  //  // for constants 0 and 1
+  //  dataOut.fragment.zip(constants).filter(_._2 == BigInt(1)).foreach(_._1 := dataIn.fragment.head.d(2))
+  //  dataOut.fragment.zip(constants).filter(_._2 == BigInt(0)).foreach(_._1 := U(0).resized)
+  //
+  //
+
+  dataOut.fragment := ret
 
   autoValid()
   autoLast()

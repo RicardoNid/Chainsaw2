@@ -1,5 +1,5 @@
 package org.datenlord
-package device
+package arithmetic
 
 import algos.ZPrizeMSM.{NPrime, baseModulus}
 
@@ -13,8 +13,8 @@ class ConstantMultByLutTest extends AnyFlatSpec {
   val constants0 = baseModulus.toWords(31)
   val constants1 = NPrime.toWords(31)
   val testData = (0 until testCount * constants0.length).map(_ => Random.nextBigInt(127 - 32) % baseModulus)
-  val config0 = ConstantMultByLutConfig(constants0, 127 - 32)
-  val config1 = ConstantMultByLutConfig(constants1, 127 - 32)
+  val config0 = Mcm(constants0, 127 - 32)
+  val config1 = Mcm(constants1, 127 - 32)
 
   "ConstantMultByLut" should "work" in {
     TransformTest.test(config0.implH, testData)

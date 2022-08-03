@@ -1,8 +1,7 @@
 package org.datenlord
 package dfg
 
-import dfg.Direction._
-import dfg.OpType.{OpType, _}
+import dfg.OpType._
 
 import spinal.core._
 import spinal.lib._

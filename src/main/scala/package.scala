@@ -245,4 +245,16 @@ package object datenlord {
     else
       Process(command, new java.io.File(path)) !
   }
+
+  def doCmdAndGetLine(command: String, path: String): String = { // do cmd at the workSpace
+    println(command)
+    val isWindows = System.getProperty("os.name").toLowerCase().contains("win")
+    if (isWindows)
+      Process("cmd /C " + command, new java.io.File(path)) !!
+    else
+      Process(command, new java.io.File(path)) !!
+  }
+
+  var usePrimitives = false
+  val unisimPath = "/tools/Xilinx/Vivado/2021.1/data/verilog/src/unisims"
 }

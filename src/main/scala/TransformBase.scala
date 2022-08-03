@@ -1,5 +1,7 @@
 package org.datenlord
 
+import spinal.core.UInt
+
 abstract class TransformBase extends TransformConfig {
 
   // override when folding is available/natural, otherwise, just leave it here

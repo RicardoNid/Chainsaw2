@@ -52,6 +52,13 @@ abstract class TransformModule[TIn <: Data, TOut <: Data] extends Component {
   def inSize = dataIn.fragment.length
 
   def outSize = dataOut.fragment.length
+
+  def asNode: Seq[TIn] => Seq[TOut] = (dataIn: Seq[TIn]) => {
+    val core = this
+    core.dataIn.fragment := Vec(dataIn)
+    core.skipControl()
+    core.dataOut.fragment
+  }
 }
 
 // TODO: make generated code shorter
