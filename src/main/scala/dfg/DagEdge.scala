@@ -21,4 +21,5 @@ class DagEdge(val inOrder: Int, val outOrder: Int) {
   def toStringInGraph[TSoft, THard <: Data](implicit ref: Dag[TSoft, THard]): String =
     s"$source -> $weight -> $target"
 
+  override def toString = ""
 }

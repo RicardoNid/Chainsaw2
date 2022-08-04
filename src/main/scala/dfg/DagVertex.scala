@@ -10,6 +10,7 @@ class DagVertex[TSoft, THard <: Data](
                                        val name: String,
                                        val latency: Int,
                                        val opType: OpType,
+                                       // TODO: remove implS and TSoft
                                        val implS: Seq[TSoft] => Seq[TSoft] = (data: Seq[TSoft]) => data,
                                        val implH: Seq[THard] => Seq[THard] = (data: Seq[THard]) => data
                                      ) {

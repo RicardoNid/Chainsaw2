@@ -28,16 +28,14 @@ class ArithmeticGraphsTest extends AnyFlatSpec {
   def graphSquare = ArithmeticGraphs.karatsubaGraph(testWidth, 0, SQUARE)
 
   def graphMontMult = ArithmeticGraphs.montgomeryGraph(testWidth, 0, zprizeModulus, square = false, byLUT = false)
+
   def graphMontSquare = ArithmeticGraphs.montgomeryGraph(testWidth, 0, zprizeModulus, square = true, false)
 
   val smallData = (0 until testCaseCount * 2).map(_ => Random.nextBigInt(61))
-  def graphFullSmall = ArithmeticGraphs.karatsubaGraph(61, 0, FULL)
 
-  val addGolden = (data: Seq[BigInt]) => Seq(data.sum)
-  val subGolden = (data: Seq[BigInt]) => Seq(data(0) - data(1))
-  val fullMultGolden = (data: Seq[BigInt]) => Seq(data.product)
-  val lowMultGolden = (data: Seq[BigInt]) => Seq(data.product % (BigInt(1) << testWidth))
-  val squareMultGolden = (data: Seq[BigInt]) => Seq(data.head * data.head)
+  def graphFullSmall = ArithmeticGraphs.karatsubaGraph(61, 0, FULL)
+  def graphLowSmall = ArithmeticGraphs.karatsubaGraph(61, 0, HALF)
+  def graphSquareSmall = ArithmeticGraphs.karatsubaGraph(61, 0, SQUARE)
 
   val zprizeModulus = algos.ZPrizeMSM.baseModulus
   val R = BigInt(1) << zprizeModulus.bitLength
@@ -57,22 +55,28 @@ class ArithmeticGraphsTest extends AnyFlatSpec {
   }
   val montMetric = (yours: Seq[BigInt], golden: Seq[BigInt]) => yours.zip(golden).forall { case (x, y) => x % zprizeModulus == y % zprizeModulus }
 
-  "addGraph" should "work" in (0 until genCount).foreach(_ => TransformTest.test(graphAdd.toTransform(golden = addGolden), data))
-  "subGraph" should "work" in (0 until genCount).foreach(_ => TransformTest.test(graphSub.toTransform(golden = subGolden), data, subMetric))
+  "addGraph" should "work" in (0 until genCount).foreach(_ => TransformTest.test(graphAdd.toTransform, data))
+  "subGraph" should "work" in (0 until genCount).foreach(_ => TransformTest.test(graphSub.toTransform, data, subMetric))
 
   "KaratsubaGraph" should "work for full multiplication on hardware" in (0 until genCount).foreach(_ =>
-    TransformTest.test(graphFull.toTransform(golden = fullMultGolden), data))
+    TransformTest.test(graphFull.toTransform, data))
   it should "work for low-bit multiplication on hardware" in (0 until genCount).foreach(_ =>
-    TransformTest.test(graphLow.toTransform(golden = lowMultGolden), data))
+    TransformTest.test(graphLow.toTransform, data))
   it should "work for square multiplication on hardware" in (0 until genCount).foreach(_ =>
-    TransformTest.test(graphSquare.toTransform(golden = squareMultGolden), data.take(testCaseCount / 2).flatMap(d => Seq(d, d))))
+    TransformTest.test(graphSquare.toTransform, data.take(testCaseCount / 2).flatMap(d => Seq(d, d))))
 
-  it should "work for the toy case" in  (0 until genCount).foreach(_ =>
-    TransformTest.test(graphFullSmall.toTransform(golden = fullMultGolden), smallData))
+  it should "work for the toy case" in (0 until genCount).foreach(_ =>
+    TransformTest.test(graphFullSmall.toTransform, smallData))
+
+  it should "show its structure for the toy case" in {
+    graphFullSmall.simplify().asInstanceOf[RingDag].toPng()
+    graphLowSmall.simplify().asInstanceOf[RingDag].toPng()
+    graphSquareSmall.simplify().asInstanceOf[RingDag].toPng()
+  }
 
   "montgomeryGraph" should "work for modular multiplication on hardware" in (0 until genCount).foreach(_ =>
-    TransformTest.test(graphMontMult.toTransform(golden = montMultGolden), montTestData, montMetric))
+    TransformTest.test(graphMontMult.toTransform, montTestData, montMetric))
   it should "work for modular square multiplication on hardware" in (0 until genCount).foreach(_ =>
-    TransformTest.test(graphMontSquare.toTransform(golden = montMultGolden),
-      montTestData.grouped(4).toSeq.flatMap(group => Seq(group(0), group(0), group(2), group(3))), montMetric))
+    TransformTest.test(graphMontSquare.toTransform,
+      montTestData.grouped(4).toSeq.flatMap(group => Seq(group(0), group(2), group(3))), montMetric))
 }

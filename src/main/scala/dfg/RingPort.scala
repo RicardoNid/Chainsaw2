@@ -21,6 +21,7 @@ case class RingPort(override val vertex: RingVertex, override val order: Int, ov
 
   def width = vertex.widthsOut(order)
 
+  // TODO: remove this property
   def shift = vertex.shiftsOut(order)
 
   /** Split a vertex into multiple
@@ -29,11 +30,9 @@ case class RingPort(override val vertex: RingVertex, override val order: Int, ov
    * @example
    */
   def split(splitPoints: Seq[Int])(implicit dag: RingDag): Seq[RingPort] = {
-    require(this.direction == Out)
     require(splitPoints.nonEmpty && splitPoints.max < this.width && splitPoints.min > 0)
-    val splitVertex = SplitVertex(s"${vertex.name}_split", info, splitPoints)
-    dag.addVertex(splitVertex)
-    dag.addEdge(this, splitVertex.in(0))
+    val splitVertex = SplitVertex(s"split", info, splitPoints)
+    dag.addVertexWithDrivers(splitVertex, this)
     (0 until splitPoints.length + 1).map(splitVertex.out)
   }
 
@@ -42,35 +41,45 @@ case class RingPort(override val vertex: RingVertex, override val order: Int, ov
     (seq(0), seq(1))
   }
 
-  def +^(that: RingPort, carry: RingPort = null)(implicit dag: RingDag): (RingPort, RingPort) = {
-    require(this.direction == Out & that.direction == Out)
+  def addSubBase(that: RingPort, carry: RingPort = null, opType: OpType)(implicit dag: RingDag): (RingPort, RingPort) = {
     val infosIn = if (carry != null) Seq(info, that.info, carry.info) else Seq(info, that.info)
-    val addVertex = Add2Vertex(s"$this+$that", Add2, infosIn)
-    dag.addVertex(addVertex)
-    dag.addEdge(this, addVertex.in(0))
-    dag.addEdge(that, addVertex.in(1))
-    if (carry != null) dag.addEdge(carry, addVertex.in(2))
-    (addVertex.out(0), addVertex.out(1))
+    val name = if (opType == BASEADD) "+" else "-"
+    val vertex = BaseAddSubVertex(name, opType, infosIn)
+    dag.addVertexWithDrivers(vertex, this, that)
+    if (carry != null) dag.addEdge(carry, vertex.in(2))
+    (vertex.out(0), vertex.out(1))
   }
 
-  def -^(that: RingPort, carry: RingPort = null)(implicit dag: RingDag): (RingPort, RingPort) = {
-    require(this.direction == Out & that.direction == Out)
-    val infosIn = if (carry != null) Seq(info, that.info, carry.info) else Seq(info, that.info)
-    val subVertex = Add2Vertex(s"$this+$that", Sub2, infosIn)
-    dag.addVertex(subVertex)
-    dag.addEdge(this, subVertex.in(0))
-    dag.addEdge(that, subVertex.in(1))
-    if (carry != null) dag.addEdge(carry, subVertex.in(2))
-    (subVertex.out(0), subVertex.out(1))
+  def +<(that: RingPort, carry: RingPort = null)(implicit dag: RingDag): (RingPort, RingPort) =
+    addSubBase(that, carry, BASEADD)
+
+  def -<(that: RingPort, carry: RingPort = null)(implicit dag: RingDag): (RingPort, RingPort) =
+    addSubBase(that, carry, BASESUB)
+
+  def addSub(that: RingPort, opType: OpType)(implicit dag: RingDag) = {
+    val name = opType match {
+      case ADD => "++"
+      case SUB => "--"
+      case ADDC => "++^"
+      case SUBC => "--^"
+    }
+    val vertex = AddSubVertex(name, opType, Seq(this.info, that.info))
+    dag.addVertexWithDrivers(vertex, this, that)
+    vertex.out(0)
   }
+
+  def +(that: RingPort)(implicit dag: RingDag) = addSub(that, ADD)
+
+  def -(that: RingPort)(implicit dag: RingDag) = addSub(that, SUB)
+
+  def +^(that: RingPort)(implicit dag: RingDag) = addSub(that, ADDC)
+
+  def -^(that: RingPort)(implicit dag: RingDag) = addSub(that, SUBC)
 
   def merge(tail: Seq[RingPort])(implicit dag: RingDag) = {
-    require(this.direction == Out)
     val all = this +: tail
-    require(all.length > 1)
-    val mergeVertex = MergeVertex(s"${vertex.name}_merge", all.map(_.info))
-    dag.addVertex(mergeVertex)
-    all.zipWithIndex.foreach { case (port, i) => dag.addEdge(port, mergeVertex.in(i)) }
+    val mergeVertex = MergeVertex(s"merge", all.map(_.info))
+    dag.addVertexWithDrivers(mergeVertex, all: _*)
     mergeVertex.out(0)
   }
 
@@ -80,7 +89,7 @@ case class RingPort(override val vertex: RingVertex, override val order: Int, ov
     require(this.direction == Out)
     if (this.width == widthOut) this // skip when it is not necessary
     else {
-      val padVertex = ResizeVertex(s"${vertex.name}_merge", this.info, widthOut)
+      val padVertex = ResizeVertex(s"resize", this.info, widthOut)
       dag.addVertex(padVertex)
       dag.addEdge(this, padVertex.in(0))
       padVertex.out(0)
@@ -89,7 +98,7 @@ case class RingPort(override val vertex: RingVertex, override val order: Int, ov
 
   def mult(a: RingPort, b: RingPort, opType: OpType)(implicit dag: RingDag) = {
     require(a.direction == Out & b.direction == Out)
-    val multVertex = MultVertex(s"$a*$b", opType, Seq(a.info, b.info))
+    val multVertex = MultVertex(s"*", opType, Seq(a.info, b.info))
     dag.addVertex(multVertex)
     dag.addEdge(a, multVertex.in(0))
     dag.addEdge(b, multVertex.in(1))
@@ -111,7 +120,7 @@ case class RingPort(override val vertex: RingVertex, override val order: Int, ov
   }
 
   def +:+^(that: RingPort)(implicit dag: RingDag): RingPort = {
-//    require(this.shift == that.shift)
+    //    require(this.shift == that.shift)
     val widthAdd = this.width max that.width
     val padded = Seq(this, that).map(port => if (port.width < widthAdd) port.resize(widthAdd) else port)
     dag.addGraphsAfter(addGraph(widthAdd, this.shift), padded)
@@ -125,7 +134,7 @@ case class RingPort(override val vertex: RingVertex, override val order: Int, ov
 
   def -:-^(that: RingPort)(implicit dag: RingDag): RingPort = {
     require(this.width >= that.width)
-//    require(this.shift == that.shift)
+    //    require(this.shift == that.shift)
     val widthSub = this.width max that.width
     val padded = that.resize(widthSub)
     dag.addGraphsAfter(subGraph(widthSub, this.shift), Seq(this, padded))
@@ -141,7 +150,8 @@ case class RingPort(override val vertex: RingVertex, override val order: Int, ov
   def bigMult(a: RingPort, b: RingPort, mode: MultiplierMode)(implicit dag: RingDag) = {
     require(a.width == b.width)
     require(a.shift == b.shift)
-    dag.addGraphsAfter(karatsubaGraph(a.width, a.shift, mode), Seq(a, b))
+    val inputs = if (mode == SQUARE) Seq(a) else Seq(a, b)
+    dag.addGraphsAfter(karatsubaGraph(a.width, a.shift, mode), inputs)
       .head.asInstanceOf[RingPort]
   }
 
@@ -152,6 +162,28 @@ case class RingPort(override val vertex: RingVertex, override val order: Int, ov
   def bigSquare(implicit dag: RingDag) = bigMult(this, this, SQUARE)
 
   def bigSquare(that: RingPort)(implicit dag: RingDag) = bigMult(this, that, SQUARE)
+
+  def &(that: RingPort)(implicit dag: RingDag): RingPort = {
+    require(this.width == that.width)
+    val vertex = AndVertex("AND", info)
+    dag.addVertexWithDrivers(vertex, this, that)
+    vertex.out(0)
+  }
+
+  def muxBy(that: RingPort)(implicit dag: RingDag): RingPort = {
+    require(that.width == 1)
+    val vertex = MuxVertex("MUX", Seq(this.info, that.info))
+    dag.addVertexWithDrivers(vertex, this, that)
+    vertex.out(0)
+  }
+
+  def <<(shift: Int)(implicit dag: RingDag) = {
+    val vertex = ShiftVertex("SHIFT", info, shift)
+    dag.addVertexWithDrivers(vertex, this)
+    vertex.out(0)
+  }
+
+  def >>(shift: Int)(implicit dag: RingDag) = <<(-shift)
 
   override def toString = s"${vertex}_$order"
 }
