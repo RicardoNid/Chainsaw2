@@ -10,10 +10,10 @@ import arithmetic.MultplierMode._
 case class MultiplicationByDspConfig(mode: MultiplierMode) extends TransformBase {
 
   val baseWidth = mode match {
-    case Full => 32
-    case Full34 => 34
-    case Low => 34
-    case Square => 34
+    case FULL => 32
+    case FULL34 => 34
+    case HALF => 34
+    case SQUARE => 34
   }
 
   val opWidth = baseWidth / 2
@@ -22,7 +22,7 @@ case class MultiplicationByDspConfig(mode: MultiplierMode) extends TransformBase
     val bigInts = dataIn.asInstanceOf[Seq[BigInt]]
     val prod = bigInts.product
     mode match {
-      case Low => Seq(prod % (BigInt(1) << baseWidth))
+      case HALF => Seq(prod % (BigInt(1) << baseWidth))
       case _ => Seq(prod)
     }
   }
@@ -31,10 +31,10 @@ case class MultiplicationByDspConfig(mode: MultiplierMode) extends TransformBase
 
   //  override def latency = 8
   override def latency = mode match {
-    case Full => 7
-    case Full34 => 7
-    case Low => 6
-    case Square => 5
+    case FULL => 7
+    case FULL34 => 7
+    case HALF => 6
+    case SQUARE => 5
   }
 
   override def implH = MultiplicationByDsp(this)
@@ -52,7 +52,7 @@ case class MultiplicationByDsp(config: MultiplicationByDspConfig) extends Transf
   val Seq(c, d) = y.subdivideIn(2 slices).reverse // yHigh, yLow
 
   val ret = mode match {
-    case Full =>
+    case FULL =>
       // 0-1
       val cPlusD = (c +^ d).d(1)
       // 0-2
@@ -72,7 +72,7 @@ case class MultiplicationByDsp(config: MultiplicationByDspConfig) extends Transf
       val (high, mid, low) = (dsp0.d(4), adbc, dsp1.d(4))
       val ret = ((high @@ low) + (mid << opWidth)).d(1)
       ret
-    case Full34 =>
+    case FULL34 =>
       // 0-1
       val aPlusB = (a +^ b).d(1) // 18 bits
       val cPlusD = (c +^ d).d(1) // 18 bits
@@ -106,7 +106,7 @@ case class MultiplicationByDsp(config: MultiplicationByDspConfig) extends Transf
       val (high, mid, low) = (dsp0.d(4), adPlusBc, dsp1.d(4))
       val ret = ((high @@ low) + (mid << opWidth)).d(1)
       ret
-    case Low =>
+    case HALF =>
       // 0-2
       val dsp0 = Dsp48.ab(b, c)
       val dsp0Low = dsp0.takeLow(opWidth).asUInt
@@ -122,7 +122,7 @@ case class MultiplicationByDsp(config: MultiplicationByDspConfig) extends Transf
       dsp2.addAttribute("use_dsp", "yes")
 
       ret
-    case Square =>
+    case SQUARE =>
       // 0-2
       val dsp0 = Dsp48.ab(a, a)
       val dsp1 = Dsp48.ab(b, b)
@@ -145,10 +145,10 @@ case class MultiplicationByDsp(config: MultiplicationByDspConfig) extends Transf
   }
 
   val defName = mode match {
-    case Full => "FullMult32"
-    case Full34 => "FullMult34"
-    case Low => "LowMult34"
-    case Square => "SquareMult34"
+    case FULL => "FullMult32"
+    case FULL34 => "FullMult34"
+    case HALF => "LowMult34"
+    case SQUARE => "SquareMult34"
   }
 
   setDefinitionName(defName)

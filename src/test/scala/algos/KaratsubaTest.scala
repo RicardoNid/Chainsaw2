@@ -24,18 +24,18 @@ class KaratsubaTest extends AnyFlatSpec {
   }
 
   "Karatsuba Algo" should "work for all situation" in {
-    val modes = Seq(Full, Low, Square)
+    val modes = Seq(FULL, HALF, SQUARE)
     modes.foreach{ mode =>
       val kara = Karatsuba(width, mode, baseWidth)
-      xs.zip(ys).foreach { case (x, y) => if(mode == Square) kara.mult(x, x) else kara.mult(x, y)}
+      xs.zip(ys).foreach { case (x, y) => if(mode == SQUARE) kara.mult(x, x) else kara.mult(x, y)}
     }
   }
 
   "3-stage Karatsuba Algo" should "work for all situation" in {
-    val modes = Seq(Full, Low, Square)
+    val modes = Seq(FULL, HALF, SQUARE)
     modes.foreach{ mode =>
       val kara = Karatsuba(width, mode, baseWidth)
-      xs.zip(ys).foreach { case (x, y) => if(mode == Square) kara.multImproved(x, x) else kara.multImproved(x, y)}
+      xs.zip(ys).foreach { case (x, y) => if(mode == SQUARE) kara.multImproved(x, x) else kara.multImproved(x, y)}
     }
   }
 

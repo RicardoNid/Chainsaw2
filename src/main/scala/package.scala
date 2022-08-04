@@ -257,4 +257,8 @@ package object datenlord {
 
   var usePrimitives = false
   val unisimPath = "/tools/Xilinx/Vivado/2021.1/data/verilog/src/unisims"
+
+  import org.scalatest.Tag
+
+  object SynthTest extends Tag("datenlord.tags.Synth")
 }

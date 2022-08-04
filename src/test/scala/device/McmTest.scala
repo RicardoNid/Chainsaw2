@@ -26,7 +26,7 @@ class McmTest extends AnyFlatSpec {
     TransformTest.test(config3.implH, data, name = "PagMcmPrime")
   }
 
-  it should "synth" in {
+  ignore should "synth for BLS-377 modulus" in {
     VivadoSynth(config0.implH, "SpiralMcmBase")
     VivadoSynth(config1.implH, "PagMcmBase")
     VivadoSynth(config2.implH, "SpiralMcmPrime")

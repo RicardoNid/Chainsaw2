@@ -1,7 +1,7 @@
 package org.datenlord
 package dfg
 
-import arithmetic.MultplierMode.{Full, Low, Square}
+import arithmetic.MultplierMode.{FULL, HALF, SQUARE}
 import device.MultiplicationByDspConfig
 import dfg.OpType._
 
@@ -51,9 +51,9 @@ object MultVertex {
     val lowWidth = (widthsIn.sum + 1) / 2
 
     val config = opType match {
-      case FullMult => MultiplicationByDspConfig(Full)
-      case LowMult => MultiplicationByDspConfig(Low)
-      case SquareMult => MultiplicationByDspConfig(Square)
+      case FullMult => MultiplicationByDspConfig(FULL)
+      case LowMult => MultiplicationByDspConfig(HALF)
+      case SquareMult => MultiplicationByDspConfig(SQUARE)
     }
 
     val latency = config.latency

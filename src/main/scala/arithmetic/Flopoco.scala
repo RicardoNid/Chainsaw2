@@ -8,6 +8,7 @@ import scala.language.postfixOps
 import scala.sys.process._
 import scala.util.Random
 
+// TODO: implement more operators in Flopoco
 case class ScmConfig(constant: BigInt, widthIn: Int, plain: Boolean) extends TransformBase {
   override def impl(dataIn: Seq[Any]) = Seq(dataIn.head.asInstanceOf[BigInt] * constant)
 
@@ -18,6 +19,7 @@ case class ScmConfig(constant: BigInt, widthIn: Int, plain: Boolean) extends Tra
   override def implH = Scm(this)
 }
 
+// TODO: merge this to Mcm, as Scm is a special case of mcm
 case class Scm(config: ScmConfig) extends TransformModule[UInt, UInt] {
 
   import config._
@@ -78,6 +80,7 @@ case class FlopocoMult(widthX: Int, widthY:Int) extends BlackBox {
   addRTLPath(s"/home/ltr/IdeaProjects/Chainsaw2/$fileName")
 }
 
+// FIXME: currently, this module won't work, synth result cost nothing
 case class BigMult(widthX: Int, widthY:Int) extends Component{
   val X= in UInt (widthX bits)
   val Y = in UInt (widthY bits)
@@ -90,6 +93,6 @@ case class BigMult(widthX: Int, widthY:Int) extends Component{
 
 object BigMult {
   def main(args: Array[String]): Unit = {
-    VivadoSynth(BigMult(64,64))
+    VivadoSynth(BigMult(128,128))
   }
 }

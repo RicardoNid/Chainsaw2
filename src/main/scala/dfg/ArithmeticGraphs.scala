@@ -75,7 +75,7 @@ object ArithmeticGraphs {
     val x = graph.addInput(s"bigMultX", ArithInfo(width, shift))
     val y = graph.addInput("bigMultY", ArithInfo(width, shift))
     val widthOut = mode match {
-      case Low => width
+      case HALF => width
       case _ => width * 2
     }
     val z = graph.addOutput(s"bigMultZ_$mode", ArithInfo(widthOut, shift))
@@ -83,9 +83,9 @@ object ArithmeticGraphs {
     def recursiveTask(width: Int, x: RingPort, y: RingPort, mode: MultiplierMode): RingPort = {
 
       val baseWidth = mode match {
-        case Full => 32
-        case Low => 34
-        case Square => 34
+        case FULL => 32
+        case HALF => 34
+        case SQUARE => 34
       }
 
       val ret = if (width <= baseWidth) {
@@ -108,14 +108,14 @@ object ArithmeticGraphs {
         val Seq(yHigh, yLow) = y.split(Seq(split))
 
         mode match {
-          case Full =>
+          case FULL =>
             val aPlusB = xHigh +:+^ xLow
             val cPlusD = yHigh +:+^ yLow
             logger.info(s"high ${xHigh.shift}, low: ${xLow.shift}")
 
-            val ac = recursiveTask(widthHigh, xHigh, yHigh, Full)
-            val bd = recursiveTask(widthLow, xLow, yLow, Full)
-            val all = recursiveTask(widthCross + 1, aPlusB, cPlusD, Full)
+            val ac = recursiveTask(widthHigh, xHigh, yHigh, FULL)
+            val bd = recursiveTask(widthLow, xLow, yLow, FULL)
+            val all = recursiveTask(widthCross + 1, aPlusB, cPlusD, FULL)
 
             val partial = all -:- ac
             val adbc = partial -:- bd
@@ -126,20 +126,20 @@ object ArithmeticGraphs {
             val highSum = high +:+ adbc
             highSum @@ low
 
-          case Low =>
-            val bd = recursiveTask(widthLow, xLow, yLow, Full)
-            val cb = recursiveTask(widthCross, xLow.resize(widthCross), yHigh.resize(widthCross), Low)
-            val ad = recursiveTask(widthCross, xHigh.resize(widthCross), yLow.resize(widthCross), Low)
+          case HALF =>
+            val bd = recursiveTask(widthLow, xLow, yLow, FULL)
+            val cb = recursiveTask(widthCross, xLow.resize(widthCross), yHigh.resize(widthCross), HALF)
+            val ad = recursiveTask(widthCross, xHigh.resize(widthCross), yLow.resize(widthCross), HALF)
             val partial = cb.resize(widthCross) +:+ ad.resize(widthCross)
             if (split >= bd.width) logger.warn(s"problem: $split >= ${bd.width}")
             val (high, low) = bd.splitAt(split)
             val highSum = high +:+ partial
             highSum @@ low
 
-          case Square =>
-            val bd = recursiveTask(widthLow, xLow, xLow, Square)
-            val cb = recursiveTask(widthCross, xHigh.resize(widthCross), xLow.resize(widthCross), Full)
-            val ac = recursiveTask(widthHigh, xHigh, xHigh, Square)
+          case SQUARE =>
+            val bd = recursiveTask(widthLow, xLow, xLow, SQUARE)
+            val cb = recursiveTask(widthCross, xHigh.resize(widthCross), xLow.resize(widthCross), FULL)
+            val ac = recursiveTask(widthHigh, xHigh, xHigh, SQUARE)
 
             val full = ac @@ bd
             if (split + 1 >= full.width) logger.warn(s"problem: ${split + 1} >= ${full.width}")
@@ -148,7 +148,7 @@ object ArithmeticGraphs {
             highSum @@ low
         }
       }
-      ret.resize(if (mode == Low) width else width * 2)
+      ret.resize(if (mode == HALF) width else width * 2)
     }
 
     val ret: RingPort = recursiveTask(width, x, y, mode)

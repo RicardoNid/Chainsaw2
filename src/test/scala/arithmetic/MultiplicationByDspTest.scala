@@ -8,15 +8,16 @@ import xilinx.VivadoUtilRequirement
 import org.scalatest.flatspec.AnyFlatSpec
 import spinal.core.IntToBuilder
 
+import scala.language.postfixOps
 import scala.util.Random
 
 class MultiplicationByDspTest extends AnyFlatSpec {
 
   val testCount = 1000
-  val config0 = MultiplicationByDspConfig(Full)
-  val config1 = MultiplicationByDspConfig(Low)
-  val config2 = MultiplicationByDspConfig(Square)
-  val config3 = MultiplicationByDspConfig(Full34)
+  val config0 = MultiplicationByDspConfig(FULL)
+  val config1 = MultiplicationByDspConfig(HALF)
+  val config2 = MultiplicationByDspConfig(SQUARE)
+  val config3 = MultiplicationByDspConfig(FULL34)
 
   val data16 = (0 until testCount * 2).map(_ => Random.nextBigInt(32))
   val data17 = (0 until testCount * 2).map(_ => Random.nextBigInt(34))
@@ -33,8 +34,8 @@ class MultiplicationByDspTest extends AnyFlatSpec {
   val utilRequirement = VivadoUtilRequirement(dsp = 3)
   val fmaxRequirement = 800 MHz
 
-  it should "synth for full multiplication " in VivadoSynth(config0.implH, "Mult32ForFull").require(utilRequirement, fmaxRequirement)
-  it should "synth for low-bit multiplication " in VivadoSynth(config1.implH, "Mult34ForLow").require(utilRequirement, fmaxRequirement)
-  it should "synth for squaring " in VivadoSynth(config2.implH, "Mult34ForSquare").require(utilRequirement, fmaxRequirement)
-  it should "synth for full 34 " in VivadoSynth(config3.implH, "Mult34ForFull").require(utilRequirement, fmaxRequirement)
+  ignore should "synth for full multiplication " in VivadoSynth(config0.implH, "Mult32ForFull").require(utilRequirement, fmaxRequirement)
+  ignore should "synth for low-bit multiplication " in VivadoSynth(config1.implH, "Mult34ForLow").require(utilRequirement, fmaxRequirement)
+  ignore should "synth for squaring " in VivadoSynth(config2.implH, "Mult34ForSquare").require(utilRequirement, fmaxRequirement)
+  ignore should "synth for full 34 " in VivadoSynth(config3.implH, "Mult34ForFull").require(utilRequirement, fmaxRequirement)
 }

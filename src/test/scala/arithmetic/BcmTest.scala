@@ -15,10 +15,10 @@ class BcmTest extends AnyFlatSpec {
   val coeffWidth = 63
   val data = (0 until 1000).map(_ => Random.nextBigInt(dataWidth))
   val coeff = Random.nextBigInt(coeffWidth - 1) + (BigInt(1) << (coeffWidth - 1))
+  val config = BcmConfig(baseModulus, dataWidth)
 
-  "BCM" should "work for BLS-377 modulus" in {
-    val config = BcmConfig(baseModulus, dataWidth)
-    VivadoSynth(config.implH, name = "CBM")
-  }
+  "Big Constant Multiplier" should "work for BLS-377 modulus" in TransformTest.test(config.implH, data)
+
+  ignore should "synth for BLS-377 modulus" in VivadoSynth(config.implH, "ZPRIZE_modulus_BCM")
 
 }

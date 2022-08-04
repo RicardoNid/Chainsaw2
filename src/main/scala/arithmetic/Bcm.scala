@@ -61,6 +61,7 @@ case class Bcm(config: BcmConfig)
 
   val rets = compressorConfig.implH.asNode(partialProds)
 
+  // TODO: output should be registered
   dataOut.fragment.head := (rets(0) +^ rets(1)).resized
   autoValid()
   autoLast()

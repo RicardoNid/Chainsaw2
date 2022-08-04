@@ -21,17 +21,17 @@ class ArithmeticGraphsTest extends AnyFlatSpec {
 
   def graphSub = ArithmeticGraphs.subGraph(testWidth, 0)
 
-  def graphFull = ArithmeticGraphs.karatsubaGraph(testWidth, 0, Full)
+  def graphFull = ArithmeticGraphs.karatsubaGraph(testWidth, 0, FULL)
 
-  def graphLow = ArithmeticGraphs.karatsubaGraph(testWidth, 0, Low)
+  def graphLow = ArithmeticGraphs.karatsubaGraph(testWidth, 0, HALF)
 
-  def graphSquare = ArithmeticGraphs.karatsubaGraph(testWidth, 0, Square)
+  def graphSquare = ArithmeticGraphs.karatsubaGraph(testWidth, 0, SQUARE)
 
   def graphMontMult = ArithmeticGraphs.montgomeryGraph(testWidth, 0, zprizeModulus, square = false, byLUT = false)
   def graphMontSquare = ArithmeticGraphs.montgomeryGraph(testWidth, 0, zprizeModulus, square = true, false)
 
   val smallData = (0 until testCaseCount * 2).map(_ => Random.nextBigInt(61))
-  def graphFullSmall = ArithmeticGraphs.karatsubaGraph(61, 0, Full)
+  def graphFullSmall = ArithmeticGraphs.karatsubaGraph(61, 0, FULL)
 
   val addGolden = (data: Seq[BigInt]) => Seq(data.sum)
   val subGolden = (data: Seq[BigInt]) => Seq(data(0) - data(1))

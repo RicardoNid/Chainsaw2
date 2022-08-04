@@ -18,7 +18,7 @@ class PipelinedBigAdderTest extends AnyFlatSpec {
 
   "PipelinedBigAdder" should "work by algo" in assert(config.graph.evaluateS(data.take(2)).head == data.take(2).sum)
 
-  "PipelinedBigAdder" should "work" in TransformTest.test(config.implH, data)
+  it should "work" in TransformTest.test(config.implH, data)
 
   case class BaseAddition(width: Int) extends Component {
     val a, b = in UInt (width bits)
@@ -27,12 +27,10 @@ class PipelinedBigAdderTest extends AnyFlatSpec {
     c := (a.d(1) +^ b.d(1) + carry).d(1)
   }
 
-  "PipelinedBigAdder" should "synth and compare with plain implementation" in {
+  ignore should "synth and compare with plain implementation" in {
     val config0 = PipelinedBigAdderConfig(377, 127)
     val config1 = PipelinedBigAdderConfig(377, 128)
-    //    VivadoSynth(BaseAddition(377), "bigAdd_377_base")
-    //    Seq(31, 63, 95, 127, 159, 191, 223, 255).foreach(i => VivadoSynth(BaseAddition(i), s"bigAdd_${i}_base"))
     VivadoSynth(config0.implH, "bigAdd_377_127")
-    //    VivadoSynth(config1.implH, "bigAdd_377_128")
+    VivadoSynth(config1.implH, "bigAdd_377_128")
   }
 }

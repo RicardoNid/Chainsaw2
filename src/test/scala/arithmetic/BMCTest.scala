@@ -19,7 +19,7 @@ class BMCTest extends AnyFlatSpec {
 
   "UInt Compressor" should "work" in TransformTest.test(config.implH, operands, config.metric)
 
-  it should "synth" in VivadoSynth(config.implH, "UIntCompressor")
-  it should "synth by naive impl" in VivadoSynth(config.naiveImplH, "UIntSum")
+  ignore should "synth" in VivadoSynth(config.implH, "UIntCompressor")
+  ignore should "synth by naive impl" in VivadoSynth(config.naiveImplH, "UIntSum")
 
 }

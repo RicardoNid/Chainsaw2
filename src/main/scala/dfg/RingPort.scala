@@ -104,9 +104,9 @@ case class RingPort(override val vertex: RingVertex, override val order: Int, ov
 
   def multByMode(that: RingPort, mode: MultiplierMode)(implicit dag: RingDag) = {
     mode match {
-      case Full => this * that
-      case Low => this *% that
-      case Square => this.square
+      case FULL => this * that
+      case HALF => this *% that
+      case SQUARE => this.square
     }
   }
 
@@ -145,13 +145,13 @@ case class RingPort(override val vertex: RingVertex, override val order: Int, ov
       .head.asInstanceOf[RingPort]
   }
 
-  def *:*(that: RingPort)(implicit dag: RingDag) = bigMult(this, that, Full)
+  def *:*(that: RingPort)(implicit dag: RingDag) = bigMult(this, that, FULL)
 
-  def *%:*%(that: RingPort)(implicit dag: RingDag) = bigMult(this, that, Low)
+  def *%:*%(that: RingPort)(implicit dag: RingDag) = bigMult(this, that, HALF)
 
-  def bigSquare(implicit dag: RingDag) = bigMult(this, this, Square)
+  def bigSquare(implicit dag: RingDag) = bigMult(this, this, SQUARE)
 
-  def bigSquare(that: RingPort)(implicit dag: RingDag) = bigMult(this, that, Square)
+  def bigSquare(that: RingPort)(implicit dag: RingDag) = bigMult(this, that, SQUARE)
 
   override def toString = s"${vertex}_$order"
 }
