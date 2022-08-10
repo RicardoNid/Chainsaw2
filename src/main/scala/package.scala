@@ -34,6 +34,7 @@ package object datenlord {
   }
 
   def VivadoImpl[T <: Component](gen: => T, name: String = "temp", xdcPath: String = null) = {
+    useFlopoco = true
     val report = VivadoFlow(design = gen, taskType = IMPL, topModuleName = name, workspacePath = s"synthWorkspace/$name").doFlow()
     report.printArea()
     report.printFMax()
@@ -41,6 +42,7 @@ package object datenlord {
   }
 
   def VivadoSynth[T <: Component](gen: => T, name: String = "temp"): VivadoReport = {
+    useFlopoco = true
     val report = VivadoFlow(design = gen, taskType = SYNTH, topModuleName = name, workspacePath = s"synthWorkspace/$name").doFlow()
     report.printArea()
     report.printFMax()
@@ -55,7 +57,7 @@ package object datenlord {
     def split(splitPoints: Seq[Int]): Seq[Bits] = {
       var current = data.asBits
       val ret = ArrayBuffer[Bits]()
-      splitPoints.foreach{ point =>
+      splitPoints.foreach { point =>
         val (high, low) = current.splitAt(point)
         ret += high
         current = low
@@ -67,15 +69,41 @@ package object datenlord {
 
   implicit class BigIntUtil(bi: BigInt) {
 
+    def to2sComplement =
+      if (bi > 0) s"0${bi.toString(2)}"
+      // TODO: better implementation for 0 and -1
+      else if (bi == 0) "00"
+      else if (bi == -1) "11"
+      else {
+        val complement = (BigInt(1) << bi.bitLength) + bi
+        s"1${complement.toString(2).padToLeft(bi.bitLength, '0')}"
+      }
+
+    def from2sComplement(bits: String) = {
+      val sign = bits.take(1)
+      val main = BigInt(bits.tail, 2)
+      main - (BigInt(sign, 2) << (bits.length - 1))
+    }
+
     /**
      * @example 10100.splitAt(3) = (10,100), not (101,11)
      */
-    def split(lowWidth: Int) = (bi >> lowWidth, bi % (BigInt(1) << lowWidth))
+    def split(lowWidth: Int) = {
+      val base = BigInt(1) << lowWidth
+      if (bi < BigInt(0)) (bi >> lowWidth,  if (bi % base < 0) bi % base + base else bi % base)
+      else (bi >> lowWidth, bi % base)
+    }
 
+    /** Split BigInt into segments according to split point
+     *
+     * @param splitPoints split points high to low
+     * @return segments low to high
+     */
     def split(splitPoints: Seq[Int]): Seq[BigInt] = {
+      require(splitPoints.sorted.reverse.equals(splitPoints), "split points should be descending order")
       var current = bi
       val ret = ArrayBuffer[BigInt]()
-      splitPoints.foreach{ point =>
+      splitPoints.foreach { point =>
         val (high, low) = current.split(point)
         ret += high
         current = low
@@ -91,6 +119,11 @@ package object datenlord {
       val from = bi.bitLength - range.head - 1
       val until = bi.bitLength - range.last
       BigInt(bi.toString(2).slice(from, until), 2)
+    }
+
+    def getLow(n: Int) = {
+      require(bi >= BigInt(0), s"$bi")
+      bi.split(n)._2
     }
 
     /** Get words from low to high, the highest word can be incomplete
@@ -246,7 +279,7 @@ package object datenlord {
       Process(command, new java.io.File(path)) !
   }
 
-  def doCmdAndGetLine(command: String, path: String): String = { // do cmd at the workSpace
+  def doCmdAndGetLines(command: String, path: String): String = { // do cmd at the workSpace
     println(command)
     val isWindows = System.getProperty("os.name").toLowerCase().contains("win")
     if (isWindows)
@@ -256,6 +289,7 @@ package object datenlord {
   }
 
   var usePrimitives = false
+  var useFlopoco = false
   val unisimPath = "/tools/Xilinx/Vivado/2021.1/data/verilog/src/unisims"
 
   import org.scalatest.Tag

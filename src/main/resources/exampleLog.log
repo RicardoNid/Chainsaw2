@@ -1,0 +1,791 @@
+#-----------------------------------------------------------
+# Vivado v2021.1 (64-bit)
+# SW Build 3247384 on Thu Jun 10 19:36:07 MDT 2021
+# IP Build 3246043 on Fri Jun 11 00:30:35 MDT 2021
+# Start of session at: Fri Aug  5 10:38:30 2022
+# Process ID: 101831
+# Current directory: /home/ltr/IdeaProjects/Chainsaw2/synthWorkspace/UIntCompressor
+# Command line: vivado -stack 2000 -nojournal -log doit.log -mode batch -source doit.tcl
+# Log file: /home/ltr/IdeaProjects/Chainsaw2/synthWorkspace/UIntCompressor/doit.log
+# Journal file: 
+#-----------------------------------------------------------
+source doit.tcl
+# read_verilog UIntCompressor.v 
+# read_verilog /home/ltr/IdeaProjects/Chainsaw2/src/main/resources/blackboxes/TernaryAdder.v 
+# read_xdc doit.xdc
+# synth_design -part xcvu9p-flga2104-2-i -top UIntCompressor -mode out_of_context
+Command: synth_design -part xcvu9p-flga2104-2-i -top UIntCompressor -mode out_of_context
+Starting synth_design
+Attempting to get a license for feature 'Synthesis' and/or device 'xcvu9p'
+INFO: [Common 17-349] Got license for feature 'Synthesis' and/or device 'xcvu9p'
+INFO: [Device 21-403] Loading part xcvu9p-flga2104-2-i
+INFO: [Synth 8-7079] Multithreading enabled for synth_design using a maximum of 4 processes.
+INFO: [Synth 8-7078] Launching helper process for spawning children vivado processes
+INFO: [Synth 8-7075] Helper process launched with PID 102069
+---------------------------------------------------------------------------------
+Starting RTL Elaboration : Time (s): cpu = 00:00:02 ; elapsed = 00:00:02 . Memory (MB): peak = 5033.176 ; gain = 224.652 ; free physical = 22754 ; free virtual = 38082
+---------------------------------------------------------------------------------
+INFO: [Synth 8-6157] synthesizing module 'UIntCompressor' [/home/ltr/IdeaProjects/Chainsaw2/synthWorkspace/UIntCompressor/UIntCompressor.v:7]
+INFO: [Synth 8-6157] synthesizing module 'TernaryAdder' [/home/ltr/IdeaProjects/Chainsaw2/synthWorkspace/UIntCompressor/UIntCompressor.v:22828]
+INFO: [Synth 8-6157] synthesizing module 'TernaryAdderXilinx' [/home/ltr/IdeaProjects/Chainsaw2/src/main/resources/blackboxes/TernaryAdder.v:3]
+	Parameter width bound to: 126 - type: integer 
+	Parameter mode bound to: 0 - type: integer 
+INFO: [Synth 8-6155] done synthesizing module 'TernaryAdderXilinx' (1#1) [/home/ltr/IdeaProjects/Chainsaw2/src/main/resources/blackboxes/TernaryAdder.v:3]
+INFO: [Synth 8-6155] done synthesizing module 'TernaryAdder' (2#1) [/home/ltr/IdeaProjects/Chainsaw2/synthWorkspace/UIntCompressor/UIntCompressor.v:22828]
+INFO: [Synth 8-6157] synthesizing module 'TernaryAdder_46' [/home/ltr/IdeaProjects/Chainsaw2/synthWorkspace/UIntCompressor/UIntCompressor.v:22691]
+INFO: [Synth 8-6157] synthesizing module 'TernaryAdderXilinx__parameterized0' [/home/ltr/IdeaProjects/Chainsaw2/src/main/resources/blackboxes/TernaryAdder.v:3]
+	Parameter width bound to: 118 - type: integer 
+	Parameter mode bound to: 0 - type: integer 
+INFO: [Synth 8-6155] done synthesizing module 'TernaryAdderXilinx__parameterized0' (2#1) [/home/ltr/IdeaProjects/Chainsaw2/src/main/resources/blackboxes/TernaryAdder.v:3]
+INFO: [Synth 8-6155] done synthesizing module 'TernaryAdder_46' (3#1) [/home/ltr/IdeaProjects/Chainsaw2/synthWorkspace/UIntCompressor/UIntCompressor.v:22691]
+INFO: [Synth 8-6157] synthesizing module 'TernaryAdder_47' [/home/ltr/IdeaProjects/Chainsaw2/synthWorkspace/UIntCompressor/UIntCompressor.v:22644]
+INFO: [Synth 8-6157] synthesizing module 'TernaryAdderXilinx__parameterized1' [/home/ltr/IdeaProjects/Chainsaw2/src/main/resources/blackboxes/TernaryAdder.v:3]
+	Parameter width bound to: 116 - type: integer 
+	Parameter mode bound to: 0 - type: integer 
+INFO: [Synth 8-6155] done synthesizing module 'TernaryAdderXilinx__parameterized1' (3#1) [/home/ltr/IdeaProjects/Chainsaw2/src/main/resources/blackboxes/TernaryAdder.v:3]
+INFO: [Synth 8-6155] done synthesizing module 'TernaryAdder_47' (4#1) [/home/ltr/IdeaProjects/Chainsaw2/synthWorkspace/UIntCompressor/UIntCompressor.v:22644]
+INFO: [Synth 8-6157] synthesizing module 'TernaryAdder_48' [/home/ltr/IdeaProjects/Chainsaw2/synthWorkspace/UIntCompressor/UIntCompressor.v:22597]
+INFO: [Synth 8-6157] synthesizing module 'TernaryAdderXilinx__parameterized2' [/home/ltr/IdeaProjects/Chainsaw2/src/main/resources/blackboxes/TernaryAdder.v:3]
+	Parameter width bound to: 2 - type: integer 
+	Parameter mode bound to: 0 - type: integer 
+INFO: [Synth 8-6155] done synthesizing module 'TernaryAdderXilinx__parameterized2' (4#1) [/home/ltr/IdeaProjects/Chainsaw2/src/main/resources/blackboxes/TernaryAdder.v:3]
+INFO: [Synth 8-6155] done synthesizing module 'TernaryAdder_48' (5#1) [/home/ltr/IdeaProjects/Chainsaw2/synthWorkspace/UIntCompressor/UIntCompressor.v:22597]
+INFO: [Synth 8-6157] synthesizing module 'TernaryAdder_61' [/home/ltr/IdeaProjects/Chainsaw2/synthWorkspace/UIntCompressor/UIntCompressor.v:22526]
+INFO: [Synth 8-6157] synthesizing module 'TernaryAdderXilinx__parameterized3' [/home/ltr/IdeaProjects/Chainsaw2/src/main/resources/blackboxes/TernaryAdder.v:3]
+	Parameter width bound to: 1 - type: integer 
+	Parameter mode bound to: 0 - type: integer 
+INFO: [Synth 8-6155] done synthesizing module 'TernaryAdderXilinx__parameterized3' (5#1) [/home/ltr/IdeaProjects/Chainsaw2/src/main/resources/blackboxes/TernaryAdder.v:3]
+INFO: [Synth 8-6155] done synthesizing module 'TernaryAdder_61' (6#1) [/home/ltr/IdeaProjects/Chainsaw2/synthWorkspace/UIntCompressor/UIntCompressor.v:22526]
+INFO: [Synth 8-6157] synthesizing module 'TernaryAdder_68' [/home/ltr/IdeaProjects/Chainsaw2/synthWorkspace/UIntCompressor/UIntCompressor.v:22467]
+INFO: [Synth 8-6157] synthesizing module 'TernaryAdderXilinx__parameterized4' [/home/ltr/IdeaProjects/Chainsaw2/src/main/resources/blackboxes/TernaryAdder.v:3]
+	Parameter width bound to: 119 - type: integer 
+	Parameter mode bound to: 0 - type: integer 
+INFO: [Synth 8-6155] done synthesizing module 'TernaryAdderXilinx__parameterized4' (6#1) [/home/ltr/IdeaProjects/Chainsaw2/src/main/resources/blackboxes/TernaryAdder.v:3]
+INFO: [Synth 8-6155] done synthesizing module 'TernaryAdder_68' (7#1) [/home/ltr/IdeaProjects/Chainsaw2/synthWorkspace/UIntCompressor/UIntCompressor.v:22467]
+INFO: [Synth 8-6157] synthesizing module 'TernaryAdder_70' [/home/ltr/IdeaProjects/Chainsaw2/synthWorkspace/UIntCompressor/UIntCompressor.v:22418]
+INFO: [Synth 8-6157] synthesizing module 'TernaryAdderXilinx__parameterized5' [/home/ltr/IdeaProjects/Chainsaw2/src/main/resources/blackboxes/TernaryAdder.v:3]
+	Parameter width bound to: 8 - type: integer 
+	Parameter mode bound to: 0 - type: integer 
+INFO: [Synth 8-6155] done synthesizing module 'TernaryAdderXilinx__parameterized5' (7#1) [/home/ltr/IdeaProjects/Chainsaw2/src/main/resources/blackboxes/TernaryAdder.v:3]
+INFO: [Synth 8-6155] done synthesizing module 'TernaryAdder_70' (8#1) [/home/ltr/IdeaProjects/Chainsaw2/synthWorkspace/UIntCompressor/UIntCompressor.v:22418]
+INFO: [Synth 8-6157] synthesizing module 'TernaryAdder_71' [/home/ltr/IdeaProjects/Chainsaw2/synthWorkspace/UIntCompressor/UIntCompressor.v:22371]
+INFO: [Synth 8-6157] synthesizing module 'TernaryAdderXilinx__parameterized6' [/home/ltr/IdeaProjects/Chainsaw2/src/main/resources/blackboxes/TernaryAdder.v:3]
+	Parameter width bound to: 5 - type: integer 
+	Parameter mode bound to: 0 - type: integer 
+INFO: [Synth 8-6155] done synthesizing module 'TernaryAdderXilinx__parameterized6' (8#1) [/home/ltr/IdeaProjects/Chainsaw2/src/main/resources/blackboxes/TernaryAdder.v:3]
+INFO: [Synth 8-6155] done synthesizing module 'TernaryAdder_71' (9#1) [/home/ltr/IdeaProjects/Chainsaw2/synthWorkspace/UIntCompressor/UIntCompressor.v:22371]
+INFO: [Synth 8-6157] synthesizing module 'TernaryAdder_72' [/home/ltr/IdeaProjects/Chainsaw2/synthWorkspace/UIntCompressor/UIntCompressor.v:22324]
+INFO: [Synth 8-6157] synthesizing module 'TernaryAdderXilinx__parameterized7' [/home/ltr/IdeaProjects/Chainsaw2/src/main/resources/blackboxes/TernaryAdder.v:3]
+	Parameter width bound to: 4 - type: integer 
+	Parameter mode bound to: 0 - type: integer 
+INFO: [Synth 8-6155] done synthesizing module 'TernaryAdderXilinx__parameterized7' (9#1) [/home/ltr/IdeaProjects/Chainsaw2/src/main/resources/blackboxes/TernaryAdder.v:3]
+INFO: [Synth 8-6155] done synthesizing module 'TernaryAdder_72' (10#1) [/home/ltr/IdeaProjects/Chainsaw2/synthWorkspace/UIntCompressor/UIntCompressor.v:22324]
+INFO: [Synth 8-6157] synthesizing module 'TernaryAdder_80' [/home/ltr/IdeaProjects/Chainsaw2/synthWorkspace/UIntCompressor/UIntCompressor.v:22263]
+INFO: [Synth 8-6157] synthesizing module 'TernaryAdderXilinx__parameterized8' [/home/ltr/IdeaProjects/Chainsaw2/src/main/resources/blackboxes/TernaryAdder.v:3]
+	Parameter width bound to: 3 - type: integer 
+	Parameter mode bound to: 0 - type: integer 
+INFO: [Synth 8-6155] done synthesizing module 'TernaryAdderXilinx__parameterized8' (10#1) [/home/ltr/IdeaProjects/Chainsaw2/src/main/resources/blackboxes/TernaryAdder.v:3]
+INFO: [Synth 8-6155] done synthesizing module 'TernaryAdder_80' (11#1) [/home/ltr/IdeaProjects/Chainsaw2/synthWorkspace/UIntCompressor/UIntCompressor.v:22263]
+INFO: [Synth 8-6157] synthesizing module 'TernaryAdder_89' [/home/ltr/IdeaProjects/Chainsaw2/synthWorkspace/UIntCompressor/UIntCompressor.v:22200]
+INFO: [Synth 8-6157] synthesizing module 'TernaryAdderXilinx__parameterized9' [/home/ltr/IdeaProjects/Chainsaw2/src/main/resources/blackboxes/TernaryAdder.v:3]
+	Parameter width bound to: 13 - type: integer 
+	Parameter mode bound to: 0 - type: integer 
+INFO: [Synth 8-6155] done synthesizing module 'TernaryAdderXilinx__parameterized9' (11#1) [/home/ltr/IdeaProjects/Chainsaw2/src/main/resources/blackboxes/TernaryAdder.v:3]
+INFO: [Synth 8-6155] done synthesizing module 'TernaryAdder_89' (12#1) [/home/ltr/IdeaProjects/Chainsaw2/synthWorkspace/UIntCompressor/UIntCompressor.v:22200]
+INFO: [Synth 8-6157] synthesizing module 'TernaryAdder_90' [/home/ltr/IdeaProjects/Chainsaw2/synthWorkspace/UIntCompressor/UIntCompressor.v:22153]
+INFO: [Synth 8-6157] synthesizing module 'TernaryAdderXilinx__parameterized10' [/home/ltr/IdeaProjects/Chainsaw2/src/main/resources/blackboxes/TernaryAdder.v:3]
+	Parameter width bound to: 12 - type: integer 
+	Parameter mode bound to: 0 - type: integer 
+INFO: [Synth 8-6155] done synthesizing module 'TernaryAdderXilinx__parameterized10' (12#1) [/home/ltr/IdeaProjects/Chainsaw2/src/main/resources/blackboxes/TernaryAdder.v:3]
+INFO: [Synth 8-6155] done synthesizing module 'TernaryAdder_90' (13#1) [/home/ltr/IdeaProjects/Chainsaw2/synthWorkspace/UIntCompressor/UIntCompressor.v:22153]
+INFO: [Synth 8-6157] synthesizing module 'TernaryAdder_94' [/home/ltr/IdeaProjects/Chainsaw2/synthWorkspace/UIntCompressor/UIntCompressor.v:22100]
+INFO: [Synth 8-6157] synthesizing module 'TernaryAdderXilinx__parameterized11' [/home/ltr/IdeaProjects/Chainsaw2/src/main/resources/blackboxes/TernaryAdder.v:3]
+	Parameter width bound to: 122 - type: integer 
+	Parameter mode bound to: 0 - type: integer 
+INFO: [Synth 8-6155] done synthesizing module 'TernaryAdderXilinx__parameterized11' (13#1) [/home/ltr/IdeaProjects/Chainsaw2/src/main/resources/blackboxes/TernaryAdder.v:3]
+INFO: [Synth 8-6155] done synthesizing module 'TernaryAdder_94' (14#1) [/home/ltr/IdeaProjects/Chainsaw2/synthWorkspace/UIntCompressor/UIntCompressor.v:22100]
+INFO: [Synth 8-6157] synthesizing module 'TernaryAdder_96' [/home/ltr/IdeaProjects/Chainsaw2/synthWorkspace/UIntCompressor/UIntCompressor.v:22051]
+INFO: [Synth 8-6157] synthesizing module 'TernaryAdderXilinx__parameterized12' [/home/ltr/IdeaProjects/Chainsaw2/src/main/resources/blackboxes/TernaryAdder.v:3]
+	Parameter width bound to: 113 - type: integer 
+	Parameter mode bound to: 0 - type: integer 
+INFO: [Synth 8-6155] done synthesizing module 'TernaryAdderXilinx__parameterized12' (14#1) [/home/ltr/IdeaProjects/Chainsaw2/src/main/resources/blackboxes/TernaryAdder.v:3]
+INFO: [Synth 8-6155] done synthesizing module 'TernaryAdder_96' (15#1) [/home/ltr/IdeaProjects/Chainsaw2/synthWorkspace/UIntCompressor/UIntCompressor.v:22051]
+INFO: [Synth 8-6157] synthesizing module 'TernaryAdder_98' [/home/ltr/IdeaProjects/Chainsaw2/synthWorkspace/UIntCompressor/UIntCompressor.v:22002]
+INFO: [Synth 8-6157] synthesizing module 'TernaryAdderXilinx__parameterized13' [/home/ltr/IdeaProjects/Chainsaw2/src/main/resources/blackboxes/TernaryAdder.v:3]
+	Parameter width bound to: 114 - type: integer 
+	Parameter mode bound to: 0 - type: integer 
+INFO: [Synth 8-6155] done synthesizing module 'TernaryAdderXilinx__parameterized13' (15#1) [/home/ltr/IdeaProjects/Chainsaw2/src/main/resources/blackboxes/TernaryAdder.v:3]
+INFO: [Synth 8-6155] done synthesizing module 'TernaryAdder_98' (16#1) [/home/ltr/IdeaProjects/Chainsaw2/synthWorkspace/UIntCompressor/UIntCompressor.v:22002]
+INFO: [Synth 8-6157] synthesizing module 'TernaryAdder_99' [/home/ltr/IdeaProjects/Chainsaw2/synthWorkspace/UIntCompressor/UIntCompressor.v:21955]
+INFO: [Synth 8-6157] synthesizing module 'TernaryAdderXilinx__parameterized14' [/home/ltr/IdeaProjects/Chainsaw2/src/main/resources/blackboxes/TernaryAdder.v:3]
+	Parameter width bound to: 6 - type: integer 
+	Parameter mode bound to: 0 - type: integer 
+INFO: [Synth 8-6155] done synthesizing module 'TernaryAdderXilinx__parameterized14' (16#1) [/home/ltr/IdeaProjects/Chainsaw2/src/main/resources/blackboxes/TernaryAdder.v:3]
+INFO: [Synth 8-6155] done synthesizing module 'TernaryAdder_99' (17#1) [/home/ltr/IdeaProjects/Chainsaw2/synthWorkspace/UIntCompressor/UIntCompressor.v:21955]
+INFO: [Synth 8-6155] done synthesizing module 'UIntCompressor' (18#1) [/home/ltr/IdeaProjects/Chainsaw2/synthWorkspace/UIntCompressor/UIntCompressor.v:7]
+---------------------------------------------------------------------------------
+Finished RTL Elaboration : Time (s): cpu = 00:00:07 ; elapsed = 00:00:07 . Memory (MB): peak = 5263.129 ; gain = 454.605 ; free physical = 23257 ; free virtual = 38590
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Handling Custom Attributes
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Handling Custom Attributes : Time (s): cpu = 00:00:08 ; elapsed = 00:00:08 . Memory (MB): peak = 5263.129 ; gain = 454.605 ; free physical = 23280 ; free virtual = 38610
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished RTL Optimization Phase 1 : Time (s): cpu = 00:00:08 ; elapsed = 00:00:08 . Memory (MB): peak = 5263.129 ; gain = 454.605 ; free physical = 23280 ; free virtual = 38610
+---------------------------------------------------------------------------------
+Netlist sorting complete. Time (s): cpu = 00:00:00.28 ; elapsed = 00:00:00.28 . Memory (MB): peak = 5263.129 ; gain = 0.000 ; free physical = 23251 ; free virtual = 38581
+INFO: [Project 1-570] Preparing netlist for logic optimization
+
+Processing XDC Constraints
+Initializing timing engine
+Parsing XDC File [/home/ltr/IdeaProjects/Chainsaw2/synthWorkspace/UIntCompressor/doit.xdc]
+Finished Parsing XDC File [/home/ltr/IdeaProjects/Chainsaw2/synthWorkspace/UIntCompressor/doit.xdc]
+Completed Processing XDC Constraints
+
+Netlist sorting complete. Time (s): cpu = 00:00:00 ; elapsed = 00:00:00 . Memory (MB): peak = 5434.543 ; gain = 0.000 ; free physical = 23094 ; free virtual = 38424
+INFO: [Project 1-111] Unisim Transformation Summary:
+No Unisim elements were transformed.
+
+Constraint Validation Runtime : Time (s): cpu = 00:00:00.29 ; elapsed = 00:00:00.13 . Memory (MB): peak = 5434.543 ; gain = 0.000 ; free physical = 23090 ; free virtual = 38420
+---------------------------------------------------------------------------------
+Finished Constraint Validation : Time (s): cpu = 00:00:17 ; elapsed = 00:00:17 . Memory (MB): peak = 5434.543 ; gain = 626.020 ; free physical = 23268 ; free virtual = 38599
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Loading Part and Timing Information
+---------------------------------------------------------------------------------
+Loading part: xcvu9p-flga2104-2-i
+INFO: [Synth 8-6742] Reading net delay rules and data
+---------------------------------------------------------------------------------
+Finished Loading Part and Timing Information : Time (s): cpu = 00:00:17 ; elapsed = 00:00:17 . Memory (MB): peak = 5434.543 ; gain = 626.020 ; free physical = 23268 ; free virtual = 38599
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Applying 'set_property' XDC Constraints
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished applying 'set_property' XDC Constraints : Time (s): cpu = 00:00:17 ; elapsed = 00:00:17 . Memory (MB): peak = 5434.543 ; gain = 626.020 ; free physical = 23269 ; free virtual = 38599
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished RTL Optimization Phase 2 : Time (s): cpu = 00:00:22 ; elapsed = 00:00:22 . Memory (MB): peak = 5434.543 ; gain = 626.020 ; free physical = 23263 ; free virtual = 38595
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start RTL Component Statistics 
+---------------------------------------------------------------------------------
+Detailed RTL Component Info : 
++---Adders : 
+	   3 Input  128 Bit       Adders := 69    
+	   3 Input  124 Bit       Adders := 1     
+	   3 Input  121 Bit       Adders := 1     
+	   3 Input  120 Bit       Adders := 1     
+	   3 Input  118 Bit       Adders := 1     
+	   3 Input  116 Bit       Adders := 1     
+	   3 Input  115 Bit       Adders := 1     
+	   3 Input   15 Bit       Adders := 1     
+	   3 Input   14 Bit       Adders := 1     
+	   3 Input   10 Bit       Adders := 2     
+	   3 Input    8 Bit       Adders := 1     
+	   3 Input    7 Bit       Adders := 2     
+	   3 Input    6 Bit       Adders := 4     
+	   3 Input    5 Bit       Adders := 4     
+	   3 Input    4 Bit       Adders := 8     
+	   3 Input    3 Bit       Adders := 4     
++---Registers : 
+	              128 Bit    Registers := 69    
+	              124 Bit    Registers := 1     
+	              121 Bit    Registers := 1     
+	              120 Bit    Registers := 1     
+	              118 Bit    Registers := 1     
+	              116 Bit    Registers := 1     
+	              115 Bit    Registers := 1     
+	               15 Bit    Registers := 1     
+	               14 Bit    Registers := 1     
+	               10 Bit    Registers := 2     
+	                8 Bit    Registers := 1     
+	                7 Bit    Registers := 2     
+	                6 Bit    Registers := 4     
+	                5 Bit    Registers := 4     
+	                4 Bit    Registers := 8     
+	                3 Bit    Registers := 4     
+	                1 Bit    Registers := 2204  
+---------------------------------------------------------------------------------
+Finished RTL Component Statistics 
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Part Resource Summary
+---------------------------------------------------------------------------------
+Part Resources:
+DSPs: 6840 (col length:120)
+BRAMs: 4320 (col length: RAMB18 360 RAMB36 180)
+---------------------------------------------------------------------------------
+Finished Part Resource Summary
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Cross Boundary and Area Optimization
+---------------------------------------------------------------------------------
+INFO: [Synth 8-3333] propagating constant 0 across sequential element (_zz_dataOut_payload_fragment_1_2_reg)
+INFO: [Synth 8-3333] propagating constant 0 across sequential element (\ternaryAdder_190/_zz_dataOut_payload_fragment_0_reg[3] )
+INFO: [Synth 8-3333] propagating constant 0 across sequential element (\ternaryAdder_203/_zz_dataOut_payload_fragment_0_reg[4] )
+INFO: [Synth 8-3333] propagating constant 0 across sequential element (_zz_dataOut_payload_fragment_1_6_reg)
+INFO: [Synth 8-3333] propagating constant 0 across sequential element (_zz_dataOut_payload_fragment_1_11_reg)
+INFO: [Synth 8-3333] propagating constant 0 across sequential element (_zz_dataOut_payload_fragment_1_24_reg)
+INFO: [Synth 8-3333] propagating constant 0 across sequential element (ternaryAdder_202/\_zz_dataOut_payload_fragment_0_reg[5] )
+---------------------------------------------------------------------------------
+Finished Cross Boundary and Area Optimization : Time (s): cpu = 00:00:26 ; elapsed = 00:00:49 . Memory (MB): peak = 5434.543 ; gain = 626.020 ; free physical = 16743 ; free virtual = 32098
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Applying XDC Timing Constraints
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Applying XDC Timing Constraints : Time (s): cpu = 00:00:32 ; elapsed = 00:00:56 . Memory (MB): peak = 5566.762 ; gain = 758.238 ; free physical = 16271 ; free virtual = 31643
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Timing Optimization
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Timing Optimization : Time (s): cpu = 00:00:43 ; elapsed = 00:01:07 . Memory (MB): peak = 5667.770 ; gain = 859.246 ; free physical = 16178 ; free virtual = 31553
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Technology Mapping
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Technology Mapping : Time (s): cpu = 00:00:46 ; elapsed = 00:01:19 . Memory (MB): peak = 5695.711 ; gain = 887.188 ; free physical = 14060 ; free virtual = 29438
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start IO Insertion
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Flattening Before IO Insertion
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Flattening Before IO Insertion
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Final Netlist Cleanup
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Final Netlist Cleanup
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished IO Insertion : Time (s): cpu = 00:00:50 ; elapsed = 00:01:22 . Memory (MB): peak = 5704.250 ; gain = 895.727 ; free physical = 14043 ; free virtual = 29433
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Renaming Generated Instances
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Renaming Generated Instances : Time (s): cpu = 00:00:50 ; elapsed = 00:01:23 . Memory (MB): peak = 5704.250 ; gain = 895.727 ; free physical = 14043 ; free virtual = 29433
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Rebuilding User Hierarchy
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Rebuilding User Hierarchy : Time (s): cpu = 00:00:52 ; elapsed = 00:01:25 . Memory (MB): peak = 5704.250 ; gain = 895.727 ; free physical = 14030 ; free virtual = 29421
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Renaming Generated Ports
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Renaming Generated Ports : Time (s): cpu = 00:00:52 ; elapsed = 00:01:25 . Memory (MB): peak = 5704.250 ; gain = 895.727 ; free physical = 14030 ; free virtual = 29421
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Handling Custom Attributes
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Handling Custom Attributes : Time (s): cpu = 00:00:52 ; elapsed = 00:01:25 . Memory (MB): peak = 5704.250 ; gain = 895.727 ; free physical = 14031 ; free virtual = 29421
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Renaming Generated Nets
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Renaming Generated Nets : Time (s): cpu = 00:00:52 ; elapsed = 00:01:25 . Memory (MB): peak = 5704.250 ; gain = 895.727 ; free physical = 14031 ; free virtual = 29421
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start ROM, RAM, DSP, Shift Register and Retiming Reporting
+---------------------------------------------------------------------------------
+
+Static Shift Register Report:
++---------------+---------------------------------------+--------+-------+--------------+--------------------+-------------------+--------+---------+
+|Module Name    | RTL Name                              | Length | Width | Reset Signal | Pull out first Reg | Pull out last Reg | SRL16E | SRLC32E | 
++---------------+---------------------------------------+--------+-------+--------------+--------------------+-------------------+--------+---------+
+|UIntCompressor | _zz_dataOut_payload_fragment_0_25_reg | 4      | 1     | NO           | NO                 | YES               | 1      | 0       | 
+|UIntCompressor | _zz_dataOut_payload_fragment_0_26_reg | 3      | 1     | NO           | NO                 | YES               | 1      | 0       | 
+|UIntCompressor | _zz_dataOut_payload_fragment_0_27_reg | 3      | 1     | NO           | NO                 | YES               | 1      | 0       | 
+|UIntCompressor | _zz_dataIn_payload_fragment_1_656_reg | 4      | 1     | NO           | YES                | YES               | 1      | 0       | 
+|UIntCompressor | _zz_dataIn_payload_fragment_1_658_reg | 3      | 1     | NO           | NO                 | YES               | 1      | 0       | 
+|UIntCompressor | _zz_dataIn_payload_fragment_2_470_reg | 4      | 1     | NO           | YES                | YES               | 1      | 0       | 
+|UIntCompressor | _zz_dataIn_payload_fragment_1_781_reg | 5      | 1     | NO           | YES                | YES               | 1      | 0       | 
+|UIntCompressor | _zz_dataIn_payload_fragment_1_782_reg | 3      | 1     | NO           | NO                 | YES               | 1      | 0       | 
+|UIntCompressor | _zz_dataIn_payload_fragment_1_783_reg | 3      | 1     | NO           | NO                 | YES               | 1      | 0       | 
+|UIntCompressor | _zz_dataIn_payload_fragment_2_478_reg | 3      | 1     | NO           | NO                 | YES               | 1      | 0       | 
+|UIntCompressor | _zz_dataIn_payload_fragment_2_480_reg | 3      | 1     | NO           | NO                 | YES               | 1      | 0       | 
+|UIntCompressor | _zz_dataIn_payload_fragment_2_481_reg | 4      | 1     | NO           | YES                | YES               | 1      | 0       | 
+|UIntCompressor | _zz_dataIn_payload_fragment_2_471_reg | 4      | 1     | NO           | YES                | YES               | 1      | 0       | 
+|UIntCompressor | _zz_dataOut_payload_fragment_0_24_reg | 6      | 1     | NO           | YES                | YES               | 1      | 0       | 
+|UIntCompressor | _zz_dataIn_payload_fragment_1_785_reg | 3      | 1     | NO           | NO                 | YES               | 1      | 0       | 
+|UIntCompressor | _zz_dataIn_payload_fragment_1_786_reg | 4      | 1     | NO           | YES                | YES               | 1      | 0       | 
+|UIntCompressor | _zz_dataIn_payload_fragment_2_491_reg | 3      | 1     | NO           | NO                 | YES               | 1      | 0       | 
+|UIntCompressor | _zz_dataIn_payload_fragment_0_372_reg | 3      | 1     | NO           | NO                 | YES               | 1      | 0       | 
+|UIntCompressor | _zz_dataOut_payload_fragment_1_27_reg | 3      | 1     | NO           | NO                 | YES               | 1      | 0       | 
+|UIntCompressor | _zz_dataOut_payload_fragment_1_30_reg | 3      | 1     | NO           | NO                 | YES               | 1      | 0       | 
+|UIntCompressor | _zz_dataOut_payload_fragment_1_32_reg | 3      | 1     | NO           | NO                 | YES               | 1      | 0       | 
+|UIntCompressor | _zz_dataOut_payload_fragment_1_33_reg | 4      | 1     | NO           | NO                 | YES               | 1      | 0       | 
+|UIntCompressor | _zz_dataIn_payload_fragment_1_775_reg | 3      | 1     | NO           | NO                 | YES               | 1      | 0       | 
+|UIntCompressor | _zz_dataIn_payload_fragment_1_776_reg | 3      | 1     | NO           | NO                 | YES               | 1      | 0       | 
+|UIntCompressor | _zz_dataIn_payload_fragment_2_484_reg | 4      | 1     | NO           | YES                | YES               | 1      | 0       | 
+|UIntCompressor | _zz_dataIn_payload_fragment_2_485_reg | 4      | 1     | NO           | YES                | YES               | 1      | 0       | 
+|UIntCompressor | _zz_dataIn_payload_fragment_2_486_reg | 3      | 1     | NO           | NO                 | YES               | 1      | 0       | 
+|UIntCompressor | _zz_dataIn_payload_fragment_2_487_reg | 3      | 1     | NO           | NO                 | YES               | 1      | 0       | 
+|UIntCompressor | _zz_dataIn_payload_fragment_2_488_reg | 4      | 1     | NO           | YES                | YES               | 1      | 0       | 
+|UIntCompressor | _zz_dataIn_payload_fragment_2_490_reg | 4      | 1     | NO           | YES                | YES               | 1      | 0       | 
+|UIntCompressor | dataIn_valid_delay_6_reg              | 6      | 1     | YES          | NO                 | YES               | 1      | 0       | 
+|UIntCompressor | dataIn_payload_last_delay_6_reg       | 6      | 1     | YES          | NO                 | YES               | 1      | 0       | 
++---------------+---------------------------------------+--------+-------+--------------+--------------------+-------------------+--------+---------+
+
+---------------------------------------------------------------------------------
+Finished ROM, RAM, DSP, Shift Register and Retiming Reporting
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Writing Synthesis Report
+---------------------------------------------------------------------------------
+
+Report BlackBoxes: 
++-+--------------+----------+
+| |BlackBox name |Instances |
++-+--------------+----------+
++-+--------------+----------+
+
+Report Cell Usage: 
++------+-------+------+
+|      |Cell   |Count |
++------+-------+------+
+|1     |CARRY8 |  1205|
+|2     |LUT2   |   349|
+|3     |LUT3   |  9224|
+|4     |LUT4   |  6543|
+|5     |LUT5   |    44|
+|6     |LUT6   |  2857|
+|7     |SRL16E |    32|
+|8     |FDCE   |     7|
+|9     |FDRE   | 11619|
++------+-------+------+
+---------------------------------------------------------------------------------
+Finished Writing Synthesis Report : Time (s): cpu = 00:00:52 ; elapsed = 00:01:25 . Memory (MB): peak = 5704.250 ; gain = 895.727 ; free physical = 14030 ; free virtual = 29420
+---------------------------------------------------------------------------------
+Synthesis finished with 0 errors, 0 critical warnings and 0 warnings.
+Synthesis Optimization Runtime : Time (s): cpu = 00:00:49 ; elapsed = 00:01:24 . Memory (MB): peak = 5708.160 ; gain = 728.223 ; free physical = 22783 ; free virtual = 38173
+Synthesis Optimization Complete : Time (s): cpu = 00:00:56 ; elapsed = 00:01:30 . Memory (MB): peak = 5708.160 ; gain = 899.637 ; free physical = 22789 ; free virtual = 38174
+INFO: [Project 1-571] Translating synthesized netlist
+Netlist sorting complete. Time (s): cpu = 00:00:00.37 ; elapsed = 00:00:00.37 . Memory (MB): peak = 5715.219 ; gain = 0.000 ; free physical = 22751 ; free virtual = 38136
+INFO: [Netlist 29-17] Analyzing 1205 Unisim elements for replacement
+INFO: [Netlist 29-28] Unisim Transformation completed in 0 CPU seconds
+INFO: [Project 1-570] Preparing netlist for logic optimization
+Parsing XDC File [/home/ltr/IdeaProjects/Chainsaw2/synthWorkspace/UIntCompressor/doit.xdc]
+Finished Parsing XDC File [/home/ltr/IdeaProjects/Chainsaw2/synthWorkspace/UIntCompressor/doit.xdc]
+INFO: [Opt 31-138] Pushed 0 inverter(s) to 0 load pin(s).
+Netlist sorting complete. Time (s): cpu = 00:00:00 ; elapsed = 00:00:00 . Memory (MB): peak = 5845.977 ; gain = 0.000 ; free physical = 22633 ; free virtual = 38018
+INFO: [Project 1-111] Unisim Transformation Summary:
+No Unisim elements were transformed.
+
+Synth Design complete, checksum: 19314a19
+INFO: [Common 17-83] Releasing license: Synthesis
+88 Infos, 0 Warnings, 0 Critical Warnings and 0 Errors encountered.
+synth_design completed successfully
+synth_design: Time (s): cpu = 00:01:11 ; elapsed = 00:01:46 . Memory (MB): peak = 5845.977 ; gain = 1223.461 ; free physical = 22805 ; free virtual = 38190
+# write_checkpoint -force UIntCompressor_after_synth.dcp
+INFO: [Timing 38-35] Done setting XDC timing constraints.
+INFO: [Timing 38-480] Writing timing data to binary archive.
+INFO: [Common 17-1381] The checkpoint '/home/ltr/IdeaProjects/Chainsaw2/synthWorkspace/UIntCompressor/UIntCompressor_after_synth.dcp' has been generated.
+write_checkpoint: Time (s): cpu = 00:00:09 ; elapsed = 00:00:06 . Memory (MB): peak = 6001.840 ; gain = 155.863 ; free physical = 22738 ; free virtual = 38160
+# report_utilization
+Copyright 1986-2021 Xilinx, Inc. All Rights Reserved.
+------------------------------------------------------------------------------------
+| Tool Version : Vivado v.2021.1 (lin64) Build 3247384 Thu Jun 10 19:36:07 MDT 2021
+| Date         : Fri Aug  5 10:40:28 2022
+| Host         : FPGA-311 running 64-bit Ubuntu 18.04.2 LTS
+| Command      : report_utilization
+| Design       : UIntCompressor
+| Device       : xcvu9pflga2104-2
+| Design State : Synthesized
+------------------------------------------------------------------------------------
+
+Utilization Design Information
+
+Table of Contents
+-----------------
+1. CLB Logic
+1.1 Summary of Registers by Type
+2. BLOCKRAM
+3. ARITHMETIC
+4. I/O
+5. CLOCK
+6. ADVANCED
+7. CONFIGURATION
+8. Primitives
+9. Black Boxes
+10. Instantiated Netlists
+11. SLR Connectivity
+12. SLR Connectivity Matrix
+13. SLR CLB Logic and Dedicated Block Utilization
+14. SLR IO Utilization
+
+1. CLB Logic
+------------
+
++----------------------------+-------+-------+------------+-----------+-------+
+|          Site Type         |  Used | Fixed | Prohibited | Available | Util% |
++----------------------------+-------+-------+------------+-----------+-------+
+| CLB LUTs*                  | 12612 |     0 |          0 |   1182240 |  1.07 |
+|   LUT as Logic             | 12580 |     0 |          0 |   1182240 |  1.06 |
+|   LUT as Memory            |    32 |     0 |          0 |    591840 | <0.01 |
+|     LUT as Distributed RAM |     0 |     0 |            |           |       |
+|     LUT as Shift Register  |    32 |     0 |            |           |       |
+| CLB Registers              | 11626 |     0 |          0 |   2364480 |  0.49 |
+|   Register as Flip Flop    | 11626 |     0 |          0 |   2364480 |  0.49 |
+|   Register as Latch        |     0 |     0 |          0 |   2364480 |  0.00 |
+| CARRY8                     |  1205 |     0 |          0 |    147780 |  0.82 |
+| F7 Muxes                   |     0 |     0 |          0 |    591120 |  0.00 |
+| F8 Muxes                   |     0 |     0 |          0 |    295560 |  0.00 |
+| F9 Muxes                   |     0 |     0 |          0 |    147780 |  0.00 |
++----------------------------+-------+-------+------------+-----------+-------+
+* Warning! The Final LUT count, after physical optimizations and full implementation, is typically lower. Run opt_design after synthesis, if not already completed, for a more realistic count.
+
+
+1.1 Summary of Registers by Type
+--------------------------------
+
++-------+--------------+-------------+--------------+
+| Total | Clock Enable | Synchronous | Asynchronous |
++-------+--------------+-------------+--------------+
+| 0     |            _ |           - |            - |
+| 0     |            _ |           - |          Set |
+| 0     |            _ |           - |        Reset |
+| 0     |            _ |         Set |            - |
+| 0     |            _ |       Reset |            - |
+| 0     |          Yes |           - |            - |
+| 0     |          Yes |           - |          Set |
+| 7     |          Yes |           - |        Reset |
+| 0     |          Yes |         Set |            - |
+| 11619 |          Yes |       Reset |            - |
++-------+--------------+-------------+--------------+
+
+
+2. BLOCKRAM
+-----------
+
++----------------+------+-------+------------+-----------+-------+
+|    Site Type   | Used | Fixed | Prohibited | Available | Util% |
++----------------+------+-------+------------+-----------+-------+
+| Block RAM Tile |    0 |     0 |          0 |      2160 |  0.00 |
+|   RAMB36/FIFO* |    0 |     0 |          0 |      2160 |  0.00 |
+|   RAMB18       |    0 |     0 |          0 |      4320 |  0.00 |
+| URAM           |    0 |     0 |          0 |       960 |  0.00 |
++----------------+------+-------+------------+-----------+-------+
+* Note: Each Block RAM Tile only has one FIFO logic available and therefore can accommodate only one FIFO36E2 or one FIFO18E2. However, if a FIFO18E2 occupies a Block RAM Tile, that tile can still accommodate a RAMB18E2
+
+
+3. ARITHMETIC
+-------------
+
++-----------+------+-------+------------+-----------+-------+
+| Site Type | Used | Fixed | Prohibited | Available | Util% |
++-----------+------+-------+------------+-----------+-------+
+| DSPs      |    0 |     0 |          0 |      6840 |  0.00 |
++-----------+------+-------+------------+-----------+-------+
+
+
+4. I/O
+------
+
++------------+------+-------+------------+-----------+-------+
+|  Site Type | Used | Fixed | Prohibited | Available | Util% |
++------------+------+-------+------------+-----------+-------+
+| Bonded IOB |    0 |     0 |          0 |       832 |  0.00 |
++------------+------+-------+------------+-----------+-------+
+
+
+5. CLOCK
+--------
+
++----------------------+------+-------+------------+-----------+-------+
+|       Site Type      | Used | Fixed | Prohibited | Available | Util% |
++----------------------+------+-------+------------+-----------+-------+
+| GLOBAL CLOCK BUFFERs |    0 |     0 |          0 |      1800 |  0.00 |
+|   BUFGCE             |    0 |     0 |          0 |       720 |  0.00 |
+|   BUFGCE_DIV         |    0 |     0 |          0 |       120 |  0.00 |
+|   BUFG_GT            |    0 |     0 |          0 |       720 |  0.00 |
+|   BUFGCTRL*          |    0 |     0 |          0 |       240 |  0.00 |
+| PLL                  |    0 |     0 |          0 |        60 |  0.00 |
+| MMCM                 |    0 |     0 |          0 |        30 |  0.00 |
++----------------------+------+-------+------------+-----------+-------+
+* Note: Each used BUFGCTRL counts as two GLOBAL CLOCK BUFFERs. This table does not include global clocking resources, only buffer cell usage. See the Clock Utilization Report (report_clock_utilization) for detailed accounting of global clocking resource availability.
+
+
+6. ADVANCED
+-----------
+
++-----------------+------+-------+------------+-----------+-------+
+|    Site Type    | Used | Fixed | Prohibited | Available | Util% |
++-----------------+------+-------+------------+-----------+-------+
+| CMACE4          |    0 |     0 |          0 |         9 |  0.00 |
+| GTYE4_CHANNEL   |    0 |     0 |          0 |        52 |  0.00 |
+| GTYE4_COMMON    |    0 |     0 |          0 |        13 |  0.00 |
+| ILKNE4          |    0 |     0 |          0 |         9 |  0.00 |
+| OBUFDS_GTE4     |    0 |     0 |          0 |        26 |  0.00 |
+| OBUFDS_GTE4_ADV |    0 |     0 |          0 |        26 |  0.00 |
+| PCIE40E4        |    0 |     0 |          0 |         6 |  0.00 |
+| SYSMONE4        |    0 |     0 |          0 |         3 |  0.00 |
++-----------------+------+-------+------------+-----------+-------+
+
+
+7. CONFIGURATION
+----------------
+
++-------------+------+-------+------------+-----------+-------+
+|  Site Type  | Used | Fixed | Prohibited | Available | Util% |
++-------------+------+-------+------------+-----------+-------+
+| BSCANE2     |    0 |     0 |          0 |        12 |  0.00 |
+| DNA_PORTE2  |    0 |     0 |          0 |         3 |  0.00 |
+| EFUSE_USR   |    0 |     0 |          0 |         3 |  0.00 |
+| FRAME_ECCE4 |    0 |     0 |          0 |         3 |  0.00 |
+| ICAPE3      |    0 |     0 |          0 |         6 |  0.00 |
+| MASTER_JTAG |    0 |     0 |          0 |         3 |  0.00 |
+| STARTUPE3   |    0 |     0 |          0 |         3 |  0.00 |
++-------------+------+-------+------------+-----------+-------+
+
+
+8. Primitives
+-------------
+
++----------+-------+---------------------+
+| Ref Name |  Used | Functional Category |
++----------+-------+---------------------+
+| FDRE     | 11619 |            Register |
+| LUT3     |  9224 |                 CLB |
+| LUT4     |  6543 |                 CLB |
+| LUT6     |  2857 |                 CLB |
+| CARRY8   |  1205 |                 CLB |
+| LUT2     |   349 |                 CLB |
+| LUT5     |    44 |                 CLB |
+| SRL16E   |    32 |                 CLB |
+| FDCE     |     7 |            Register |
++----------+-------+---------------------+
+
+
+9. Black Boxes
+--------------
+
++----------+------+
+| Ref Name | Used |
++----------+------+
+
+
+10. Instantiated Netlists
+-------------------------
+
++----------+------+
+| Ref Name | Used |
++----------+------+
+
+
+11. SLR Connectivity
+--------------------
+
++----------------------------------+------+-------+-----------+-------+
+|                                  | Used | Fixed | Available | Util% |
++----------------------------------+------+-------+-----------+-------+
+| SLR2 <-> SLR1                    |    0 |       |     17280 |  0.00 |
+|   SLR1 -> SLR2                   |    0 |       |           |  0.00 |
+|     Using TX_REG only            |    0 |     0 |           |       |
+|     Using RX_REG only            |    0 |     0 |           |       |
+|     Using Both TX_REG and RX_REG |    0 |     0 |           |       |
+|   SLR2 -> SLR1                   |    0 |       |           |  0.00 |
+|     Using TX_REG only            |    0 |     0 |           |       |
+|     Using RX_REG only            |    0 |     0 |           |       |
+|     Using Both TX_REG and RX_REG |    0 |     0 |           |       |
+| SLR1 <-> SLR0                    |    0 |       |     17280 |  0.00 |
+|   SLR0 -> SLR1                   |    0 |       |           |  0.00 |
+|     Using TX_REG only            |    0 |     0 |           |       |
+|     Using RX_REG only            |    0 |     0 |           |       |
+|     Using Both TX_REG and RX_REG |    0 |     0 |           |       |
+|   SLR1 -> SLR0                   |    0 |       |           |  0.00 |
+|     Using TX_REG only            |    0 |     0 |           |       |
+|     Using RX_REG only            |    0 |     0 |           |       |
+|     Using Both TX_REG and RX_REG |    0 |     0 |           |       |
++----------------------------------+------+-------+-----------+-------+
+| Total SLLs Used                  |    0 |       |           |       |
++----------------------------------+------+-------+-----------+-------+
+
+
+12. SLR Connectivity Matrix
+---------------------------
+
++-----------+------+------+------+
+| FROM \ TO | SLR2 | SLR1 | SLR0 |
++-----------+------+------+------+
+| SLR2      |    0 |    0 |    0 |
+| SLR1      |    0 |    0 |    0 |
+| SLR0      |    0 |    0 |    0 |
++-----------+------+------+------+
+
+
+13. SLR CLB Logic and Dedicated Block Utilization
+-------------------------------------------------
+
++----------------------------+------+------+------+--------+--------+--------+
+|          Site Type         | SLR0 | SLR1 | SLR2 | SLR0 % | SLR1 % | SLR2 % |
++----------------------------+------+------+------+--------+--------+--------+
+| CLB                        |    0 |    0 |    0 |   0.00 |   0.00 |   0.00 |
+|   CLBL                     |    0 |    0 |    0 |   0.00 |   0.00 |   0.00 |
+|   CLBM                     |    0 |    0 |    0 |   0.00 |   0.00 |   0.00 |
+| CLB LUTs                   |    0 |    0 |    0 |   0.00 |   0.00 |   0.00 |
+|   LUT as Logic             |    0 |    0 |    0 |   0.00 |   0.00 |   0.00 |
+|   LUT as Memory            |    0 |    0 |    0 |   0.00 |   0.00 |   0.00 |
+|     LUT as Distributed RAM |    0 |    0 |    0 |   0.00 |   0.00 |   0.00 |
+|     LUT as Shift Register  |    0 |    0 |    0 |   0.00 |   0.00 |   0.00 |
+| CLB Registers              |    0 |    0 |    0 |   0.00 |   0.00 |   0.00 |
+| CARRY8                     |    0 |    0 |    0 |   0.00 |   0.00 |   0.00 |
+| F7 Muxes                   |    0 |    0 |    0 |   0.00 |   0.00 |   0.00 |
+| F8 Muxes                   |    0 |    0 |    0 |   0.00 |   0.00 |   0.00 |
+| F9 Muxes                   |    0 |    0 |    0 |   0.00 |   0.00 |   0.00 |
+| Block RAM Tile             |    0 |    0 |    0 |   0.00 |   0.00 |   0.00 |
+|   RAMB36/FIFO              |    0 |    0 |    0 |   0.00 |   0.00 |   0.00 |
+|   RAMB18                   |    0 |    0 |    0 |   0.00 |   0.00 |   0.00 |
+| URAM                       |    0 |    0 |    0 |   0.00 |   0.00 |   0.00 |
+| DSPs                       |    0 |    0 |    0 |   0.00 |   0.00 |   0.00 |
+| PLL                        |    0 |    0 |    0 |   0.00 |   0.00 |   0.00 |
+| MMCM                       |    0 |    0 |    0 |   0.00 |   0.00 |   0.00 |
+| Unique Control Sets        |    0 |    0 |    0 |   0.00 |   0.00 |   0.00 |
++----------------------------+------+------+------+--------+--------+--------+
+* Note: Available Control Sets based on CLB Registers / 8
+
+
+14. SLR IO Utilization
+----------------------
+
++-----------+-----------+---------+------------+----------+------------+----------+-----+
+| SLR Index | Used IOBs | (%)IOBs | Used IPADs | (%)IPADs | Used OPADs | (%)OPADs | GTs |
++-----------+-----------+---------+------------+----------+------------+----------+-----+
+| SLR2      |         0 |    0.00 |          0 |     0.00 |          0 |     0.00 |   0 |
+| SLR1      |         0 |    0.00 |          0 |     0.00 |          0 |     0.00 |   0 |
+| SLR0      |         0 |    0.00 |          0 |     0.00 |          0 |     0.00 |   0 |
++-----------+-----------+---------+------------+----------+------------+----------+-----+
+| Total     |         0 |         |          0 |          |          0 |          |   0 |
++-----------+-----------+---------+------------+----------+------------+----------+-----+
+
+
+# report_timing
+INFO: [Timing 38-91] UpdateTimingParams: Speed grade: -2, Temperature grade: I, Delay Type: max.
+INFO: [Timing 38-191] Multithreading enabled for timing update using a maximum of 8 CPUs
+WARNING: [Timing 38-242] The property HD.CLK_SRC of clock port "clk" is not set. In out-of-context mode, this prevents timing estimation for clock delay/skew
+Resolution: Set the HD.CLK_SRC property of the out-of-context port to the location of the clock buffer instance in the top-level design
+INFO: [Timing 38-78] ReportTimingParams: -max_paths 1 -nworst 1 -delay_type max -sort_by slack.
+Copyright 1986-2021 Xilinx, Inc. All Rights Reserved.
+-----------------------------------------------------------------------------------------
+| Tool Version      : Vivado v.2021.1 (lin64) Build 3247384 Thu Jun 10 19:36:07 MDT 2021
+| Date              : Fri Aug  5 10:41:46 2022
+| Host              : FPGA-311 running 64-bit Ubuntu 18.04.2 LTS
+| Command           : report_timing
+| Design            : UIntCompressor
+| Device            : xcvu9p-flga2104
+| Speed File        : -2  PRODUCTION 1.27 02-28-2020
+| Temperature Grade : I
+-----------------------------------------------------------------------------------------
+
+Timing Report
+
+Slack (MET) :             0.059ns  (required time - arrival time)
+  Source:                 _zz_dataIn_payload_fragment_2_148_reg/C
+                            (rising edge-triggered cell FDRE clocked by clk  {rise@0.000ns fall@0.625ns period=1.250ns})
+  Destination:            ternaryAdder_160/_zz_dataOut_payload_fragment_0_reg[127]/D
+                            (rising edge-triggered cell FDRE clocked by clk  {rise@0.000ns fall@0.625ns period=1.250ns})
+  Path Group:             clk
+  Path Type:              Setup (Max at Slow Process Corner)
+  Requirement:            1.250ns  (clk rise@1.250ns - clk rise@0.000ns)
+  Data Path Delay:        1.181ns  (logic 0.700ns (59.272%)  route 0.481ns (40.728%))
+  Logic Levels:           17  (CARRY8=16 LUT3=1)
+  Clock Uncertainty:      0.035ns  ((TSJ^2 + TIJ^2)^1/2 + DJ) / 2 + PE
+    Total System Jitter     (TSJ):    0.071ns
+    Total Input Jitter      (TIJ):    0.000ns
+    Discrete Jitter          (DJ):    0.000ns
+    Phase Error              (PE):    0.000ns
+
+    Location             Delay type                Incr(ns)  Path(ns)    Netlist Resource(s)
+  -------------------------------------------------------------------    -------------------
+                         (clock clk rise edge)        0.000     0.000 r  
+                                                      0.000     0.000 r  clk (IN)
+                         net (fo=11657, unset)        0.000     0.000    clk
+                         FDRE                                         r  _zz_dataIn_payload_fragment_2_148_reg/C
+  -------------------------------------------------------------------    -------------------
+                         FDRE (Prop_FDRE_C_Q)         0.077     0.077 r  _zz_dataIn_payload_fragment_2_148_reg/Q
+                         net (fo=4, unplaced)         0.162     0.239    ternaryAdder_160/impl/_zz_dataIn_payload_fragment_2_148
+                         LUT3 (Prop_LUT3_I2_O)        0.072     0.311 r  ternaryAdder_160/impl/_zz_dataOut_payload_fragment_0[7]_i_8/O
+                         net (fo=1, unplaced)         0.218     0.529    ternaryAdder_160/impl/_zz_dataOut_payload_fragment_0[7]_i_8_n_0
+                         CARRY8 (Prop_CARRY8_DI[1]_CO[7])
+                                                      0.127     0.656 r  ternaryAdder_160/impl/_zz_dataOut_payload_fragment_0_reg[7]_i_1/CO[7]
+                         net (fo=1, unplaced)         0.005     0.661    ternaryAdder_160/impl/_zz_dataOut_payload_fragment_0_reg[7]_i_1_n_0
+                         CARRY8 (Prop_CARRY8_CI_CO[7])
+                                                      0.022     0.683 r  ternaryAdder_160/impl/_zz_dataOut_payload_fragment_0_reg[15]_i_1/CO[7]
+                         net (fo=1, unplaced)         0.005     0.688    ternaryAdder_160/impl/_zz_dataOut_payload_fragment_0_reg[15]_i_1_n_0
+                         CARRY8 (Prop_CARRY8_CI_CO[7])
+                                                      0.022     0.710 r  ternaryAdder_160/impl/_zz_dataOut_payload_fragment_0_reg[23]_i_1/CO[7]
+                         net (fo=1, unplaced)         0.005     0.715    ternaryAdder_160/impl/_zz_dataOut_payload_fragment_0_reg[23]_i_1_n_0
+                         CARRY8 (Prop_CARRY8_CI_CO[7])
+                                                      0.022     0.737 r  ternaryAdder_160/impl/_zz_dataOut_payload_fragment_0_reg[31]_i_1/CO[7]
+                         net (fo=1, unplaced)         0.005     0.742    ternaryAdder_160/impl/_zz_dataOut_payload_fragment_0_reg[31]_i_1_n_0
+                         CARRY8 (Prop_CARRY8_CI_CO[7])
+                                                      0.022     0.764 r  ternaryAdder_160/impl/_zz_dataOut_payload_fragment_0_reg[39]_i_1/CO[7]
+                         net (fo=1, unplaced)         0.005     0.769    ternaryAdder_160/impl/_zz_dataOut_payload_fragment_0_reg[39]_i_1_n_0
+                         CARRY8 (Prop_CARRY8_CI_CO[7])
+                                                      0.022     0.791 r  ternaryAdder_160/impl/_zz_dataOut_payload_fragment_0_reg[47]_i_1/CO[7]
+                         net (fo=1, unplaced)         0.005     0.796    ternaryAdder_160/impl/_zz_dataOut_payload_fragment_0_reg[47]_i_1_n_0
+                         CARRY8 (Prop_CARRY8_CI_CO[7])
+                                                      0.022     0.818 r  ternaryAdder_160/impl/_zz_dataOut_payload_fragment_0_reg[55]_i_1/CO[7]
+                         net (fo=1, unplaced)         0.005     0.823    ternaryAdder_160/impl/_zz_dataOut_payload_fragment_0_reg[55]_i_1_n_0
+                         CARRY8 (Prop_CARRY8_CI_CO[7])
+                                                      0.022     0.845 r  ternaryAdder_160/impl/_zz_dataOut_payload_fragment_0_reg[63]_i_1/CO[7]
+                         net (fo=1, unplaced)         0.005     0.850    ternaryAdder_160/impl/_zz_dataOut_payload_fragment_0_reg[63]_i_1_n_0
+                         CARRY8 (Prop_CARRY8_CI_CO[7])
+                                                      0.022     0.872 r  ternaryAdder_160/impl/_zz_dataOut_payload_fragment_0_reg[71]_i_1/CO[7]
+                         net (fo=1, unplaced)         0.005     0.877    ternaryAdder_160/impl/_zz_dataOut_payload_fragment_0_reg[71]_i_1_n_0
+                         CARRY8 (Prop_CARRY8_CI_CO[7])
+                                                      0.022     0.899 r  ternaryAdder_160/impl/_zz_dataOut_payload_fragment_0_reg[79]_i_1/CO[7]
+                         net (fo=1, unplaced)         0.005     0.904    ternaryAdder_160/impl/_zz_dataOut_payload_fragment_0_reg[79]_i_1_n_0
+                         CARRY8 (Prop_CARRY8_CI_CO[7])
+                                                      0.022     0.926 r  ternaryAdder_160/impl/_zz_dataOut_payload_fragment_0_reg[87]_i_1/CO[7]
+                         net (fo=1, unplaced)         0.005     0.931    ternaryAdder_160/impl/_zz_dataOut_payload_fragment_0_reg[87]_i_1_n_0
+                         CARRY8 (Prop_CARRY8_CI_CO[7])
+                                                      0.022     0.953 r  ternaryAdder_160/impl/_zz_dataOut_payload_fragment_0_reg[95]_i_1/CO[7]
+                         net (fo=1, unplaced)         0.005     0.958    ternaryAdder_160/impl/_zz_dataOut_payload_fragment_0_reg[95]_i_1_n_0
+                         CARRY8 (Prop_CARRY8_CI_CO[7])
+                                                      0.022     0.980 r  ternaryAdder_160/impl/_zz_dataOut_payload_fragment_0_reg[103]_i_1/CO[7]
+                         net (fo=1, unplaced)         0.005     0.985    ternaryAdder_160/impl/_zz_dataOut_payload_fragment_0_reg[103]_i_1_n_0
+                         CARRY8 (Prop_CARRY8_CI_CO[7])
+                                                      0.022     1.007 r  ternaryAdder_160/impl/_zz_dataOut_payload_fragment_0_reg[111]_i_1/CO[7]
+                         net (fo=1, unplaced)         0.005     1.012    ternaryAdder_160/impl/_zz_dataOut_payload_fragment_0_reg[111]_i_1_n_0
+                         CARRY8 (Prop_CARRY8_CI_CO[7])
+                                                      0.022     1.034 r  ternaryAdder_160/impl/_zz_dataOut_payload_fragment_0_reg[119]_i_1/CO[7]
+                         net (fo=1, unplaced)         0.005     1.039    ternaryAdder_160/impl/_zz_dataOut_payload_fragment_0_reg[119]_i_1_n_0
+                         CARRY8 (Prop_CARRY8_CI_O[7])
+                                                      0.116     1.155 r  ternaryAdder_160/impl/_zz_dataOut_payload_fragment_0_reg[127]_i_1/O[7]
+                         net (fo=1, unplaced)         0.026     1.181    ternaryAdder_160/impl_dataOut[127]
+                         FDRE                                         r  ternaryAdder_160/_zz_dataOut_payload_fragment_0_reg[127]/D
+  -------------------------------------------------------------------    -------------------
+
+                         (clock clk rise edge)        1.250     1.250 r  
+                                                      0.000     1.250 r  clk (IN)
+                         net (fo=11657, unset)        0.000     1.250    ternaryAdder_160/clk
+                         FDRE                                         r  ternaryAdder_160/_zz_dataOut_payload_fragment_0_reg[127]/C
+                         clock pessimism              0.000     1.250    
+                         clock uncertainty           -0.035     1.215    
+                         FDRE (Setup_FDRE_C_D)        0.025     1.240    ternaryAdder_160/_zz_dataOut_payload_fragment_0_reg[127]
+  -------------------------------------------------------------------
+                         required time                          1.240    
+                         arrival time                          -1.181    
+  -------------------------------------------------------------------
+                         slack                                  0.059    
+
+
+
+
+report_timing: Time (s): cpu = 00:07:58 ; elapsed = 00:01:19 . Memory (MB): peak = 6739.082 ; gain = 737.242 ; free physical = 22271 ; free virtual = 37674
+INFO: [Common 17-206] Exiting Vivado at Fri Aug  5 10:41:46 2022...

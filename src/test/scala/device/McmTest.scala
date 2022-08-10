@@ -32,4 +32,15 @@ class McmTest extends AnyFlatSpec {
     VivadoSynth(config2.implH, "SpiralMcmPrime")
     VivadoSynth(config3.implH, "PagMcmPrime")
   }
+
+  it should "generate a kernel of 16 neighbors" in {
+    val coeffs = (0 until 16).map(_ => Random.nextBigInt(8))
+    val config = McmConfig(coeffs, 8, PAG)
+    val data8 = (0 until 1000).map(_ => Random.nextBigInt(8))
+    TransformTest.test(config.implH, data8, name = "example")
+    VivadoSynth(config.implH)
+  }
+
+  it should "show" in println((algos.ZPrizeMSM.baseModulus - 1).toString(2).reverse.takeWhile(_ == '0').size)
+
 }

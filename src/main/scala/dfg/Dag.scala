@@ -13,7 +13,7 @@ import scala.collection.mutable.ArrayBuffer
 
 object OpType extends Enumeration {
   val Var = Value // variable (opposite to operation)
-  val FullMult, LowMult, SquareMult, BASEADD, BASESUB, ADD, SUB, ADDC, SUBC, Merge, Split, Resize, MUX, AND, SHIFT = Value // Ring operations
+  val FullMult, LowMult, SquareMult, BASEADD, BASESUB, ADD, SUB, ADDC, SUBC, Merge, Split, RESIZE, MUX, AND, SHIFT, COMPRESS, KARA = Value // Ring operations
   type OpType = Value
 }
 
@@ -104,6 +104,8 @@ class Dag[TSoft, THard <: Data](val name: String)
 
     doDrc()
 
+    var watch = 0
+
     val signalMap = mutable.Map[V, Seq[THard]]()
 
     // vertices already implemented
@@ -122,11 +124,33 @@ class Dag[TSoft, THard <: Data](val name: String)
         signal.d(getEdgeWeight(e).toInt - getEdgeSource(e).latency)
       }
       val rets = target.implH(dataIns)
+      //      if (target.opType == SHIFT) {
+      //        rets.foreach(ret => ret.setName(s"watch_$watch"))
+      //        watch += 1
+      //      }
+      //
+      //      if (target.opType == KARA) {
+      //        rets.foreach { ret =>
+      //          ret.setName(s"watch_kara_$watch")
+      //          watch += 1
+      //        }
+      //      }
+
+      if (target.opType == Split) {
+        rets.foreach { ret =>
+          ret.setName(s"after_split_$watch")
+          watch += 1
+        }
+      }
+
       signalMap += target -> rets
     }
 
     // initialize signalMap
     inputs.zip(dataIns).foreach { case (input, bits) => signalMap += input -> Seq(bits) }
+    inputs.foreach(input => logger.info(input.toString))
+    logger.info(s"init ${signalMap.mkString(" ")}")
+
     // implement vertices until no available vertices exist
     while (nextStage.nonEmpty) nextStage.foreach(implVertex)
 
@@ -171,13 +195,18 @@ class Dag[TSoft, THard <: Data](val name: String)
       current = current.targets.head
       path += current
     }
+    logger.info(s"io path ${path.mkString("->")}")
     path
   }
 
   /** This latency is true only when the graph is homogeneous
    */
   def latency = getIoPath.init.zip(getIoPath.tail)
-    .map { case (s, t) => getEdge(s, t).weight }.sum.toInt
+    .map { case (s, t) =>
+      val weight = getEdge(s, t).weight
+      logger.info(s"weight on path $weight")
+      weight
+    }.sum.toInt
 
   def pathToString(path: GraphPath[V, E]) = {
     path.getVertexList.zip(path.getEdgeList)

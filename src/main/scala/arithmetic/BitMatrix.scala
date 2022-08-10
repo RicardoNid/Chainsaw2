@@ -13,9 +13,9 @@ import scala.util.Random
  * @param baseCompressor a basic compressor which will be repeatedly used to compress the matrix
  * @param pipeline       used to connect a stage with the stage after
  * @param baseWidth      length upper bound of a base compressor, making it carry-save
- * @example [[BMC]] is a hardware instance of bit matrix compressor
+ * @example [[Bmc]] is a hardware instance of bit matrix compressor
  */
-case class BitMatrixCompressor[T](baseCompressor: Seq[Seq[T]] => Seq[T], pipeline: T => T, baseWidth: Int) {
+case class BitMatrixCompressor[T](baseCompressor: (Seq[Seq[T]], Int) => Seq[T], pipeline: T => T, baseWidth: Int) {
 
   def compressOnce(matrix: BitMatrix[T]): (BitMatrix[T], Int) = {
     val table = matrix.table
@@ -44,7 +44,7 @@ case class BitMatrixCompressor[T](baseCompressor: Seq[Seq[T]] => Seq[T], pipelin
       val width = slice.length + 2
       val inputs: Seq[ArrayBuffer[T]] = slice.map(_.take(3))
       slice.zip(inputs).foreach { case (whole, part) => whole --= part }
-      val operand = baseCompressor(inputs)
+      val operand = baseCompressor(inputs, slice.length)
       operands += operand
       infos += ArithInfo(width, matrix.shift + start)
       cost += slice.length
@@ -53,7 +53,8 @@ case class BitMatrixCompressor[T](baseCompressor: Seq[Seq[T]] => Seq[T], pipelin
     val ret = BitMatrix.apply(operands, infos) + pipelinedMatrix
     val bitsCountAfter = ret.bitsCount
     val bitsReduction = bitsCountBefore - bitsCountAfter
-    //    logger.info(s"height = $height, cost = $cost, bits reduction = $bitsReduction, ratio = ${cost.toDouble / bitsReduction}")
+    logger.info(s"height = $height, cost = $cost, bits reduction = $bitsReduction, ratio = ${cost.toDouble / bitsReduction}")
+    //    logger.info(s"bit matrix before reduction: $ret")
     (ret, cost)
   }
 
@@ -75,6 +76,7 @@ case class BitMatrixCompressor[T](baseCompressor: Seq[Seq[T]] => Seq[T], pipelin
 }
 
 /** Storing information of a bit matrix, while providing util methods, making operations on bit matrix easier
+ *
  * @param table the bits
  * @param shift the base shift of the whole bit matrix, this is necessary as a bit matrix can merge with others
  */
@@ -94,7 +96,7 @@ case class BitMatrix[T](table: ArrayBuffer[ArrayBuffer[T]], shift: Int) {
 
   def bitsCount = table.map(_.length).sum
 
-  override def toString = s"bit matrix starts from $shift:\n${table.map(_.length).mkString(",")}"
+  override def toString = s"bit matrix starts from $shift:\n${table.map(_.length).mkString(",")}\n${table.map(_.mkString(" ")).mkString("\n")}"
 }
 
 object BitMatrix {
@@ -122,8 +124,8 @@ object BitMatrix {
     BitMatrix(table, positionLow)
   }
 
-  def getLatency(infos: Seq[ArithInfo], baseWidth: Int) = {
-    def compressor: Seq[Seq[Char]] => Seq[Char] = (dataIn: Seq[Seq[Char]]) => {
+  def getInfoOfCompressor(infos: Seq[ArithInfo], baseWidth: Int) = {
+    def compressor: (Seq[Seq[Char]], Int) => Seq[Char] = (dataIn: Seq[Seq[Char]], width:Int) => {
       val width = dataIn.length
       val padded = dataIn.map(_.padTo(3, '0'))
       val sum = padded.transpose.map(operand2BigInt).sum
@@ -136,8 +138,11 @@ object BitMatrix {
 
     def operand2BigInt(operand: Seq[Char]) = BigInt(operand.mkString("").reverse, 2)
 
-    val operands = infos.map(_.width).map(width => Random.nextBigInt(width - 1) + (BigInt(1) << (width - 1)))
+    val operands = infos.map(_.width).map(width => (BigInt(1) << width) - 1)
+    //    val operands = infos.map(_.width).map(width => Random.nextBigInt(width - 1) + (BigInt(1) << (width - 1)))
     val original = BitMatrix(operands.map(bigInt2Operand), infos)
-    BitMatrixCompressor(compressor, pipeline, baseWidth).compressAll(original)._3
+    val (matrix, cost, latency) = BitMatrixCompressor(compressor, pipeline, baseWidth).compressAll(original)
+    val widthOut = matrix.table.length + matrix.shift
+    (widthOut, latency, cost)
   }
 }

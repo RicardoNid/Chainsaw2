@@ -31,4 +31,8 @@ object ZPrizeMSM {
     val dbl = (a: EcPointAffine) => a + a
     Pippenger(N, W, w, add, dbl, EcZeroAffine).doPippenger(k.map(_.toBigInt), p)
   }
+
+  def main(args: Array[String]): Unit = {
+    println(baseModulus.bitLength)
+  }
 }

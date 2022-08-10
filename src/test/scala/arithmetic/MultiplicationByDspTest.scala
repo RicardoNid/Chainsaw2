@@ -34,7 +34,7 @@ class MultiplicationByDspTest extends AnyFlatSpec {
   val utilRequirement = VivadoUtilRequirement(dsp = 3)
   val fmaxRequirement = 800 MHz
 
-  ignore should "synth for full multiplication " in VivadoSynth(config0.implH, "Mult32ForFull").require(utilRequirement, fmaxRequirement)
+  it should "synth for full multiplication " in VivadoSynth(config0.implH, "Mult32ForFull").require(utilRequirement, fmaxRequirement)
   ignore should "synth for low-bit multiplication " in VivadoSynth(config1.implH, "Mult34ForLow").require(utilRequirement, fmaxRequirement)
   ignore should "synth for squaring " in VivadoSynth(config2.implH, "Mult34ForSquare").require(utilRequirement, fmaxRequirement)
   ignore should "synth for full 34 " in VivadoSynth(config3.implH, "Mult34ForFull").require(utilRequirement, fmaxRequirement)

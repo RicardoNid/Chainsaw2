@@ -143,6 +143,7 @@ object SplitVertex {
     require(infoIn.width > splitPoints.max)
     val latency = 0
     val widthsOut = (infoIn.width +: splitPoints).zip(splitPoints :+ 0).map { case (width, low) => width - low }
+    logger.info(s"split widths out: ${widthsOut.mkString(" ")}")
     val shiftsOut = Seq.fill(splitPoints.length + 1)(infoIn.shift)
     val infosOut = widthsOut.zip(shiftsOut).map { case (width, shift) => ArithInfo(width, shift) }
     // example: 110011101.split(Seq(6,3)) = Seq(110, 011, 101), high to low
@@ -169,7 +170,7 @@ object ResizeVertex {
   def apply(name: String, infoIn: ArithInfo, widthOut: Int) = {
     val latency = 0
     val implH = (data: Seq[UInt]) => Seq(data.head.resize(widthOut))
-    new RingVertex(name, latency, null, implH, Resize, Seq(infoIn), Seq(ArithInfo(widthOut, infoIn.shift)))
+    new RingVertex(name, latency, null, implH, RESIZE, Seq(infoIn), Seq(ArithInfo(widthOut, infoIn.shift)))
   }
 }
 
@@ -192,11 +193,35 @@ object AndVertex {
 
 object ShiftVertex {
   def apply(name: String, infoIn: ArithInfo, shiftLeft: Int) = {
-    val latency = 0
     val implH = (data: Seq[UInt]) => if (shiftLeft >= 0) data.map(_ << shiftLeft) else data.map(_ >> -shiftLeft)
-    //    val infoOut = ArithInfo(infoIn.width, infoIn.shift + shiftLeft)
     val infoOut = ArithInfo(infoIn.width + shiftLeft, infoIn.shift)
-    new RingVertex(name, latency, null, implH, SHIFT, Seq(infoIn), Seq(infoOut))
+    new RingVertex(name, 0, null, implH, SHIFT, Seq(infoIn), Seq(infoOut))
+  }
+}
+
+object CompressorVertex {
+  def apply(name: String, infosIn: Seq[ArithInfo]) = {
+    logger.info(s"compress $name:\n${infosIn.mkString(" ")}")
+    val config = arithmetic.BmcConfig(infosIn)
+    val op = config.op
+    val implH = (data: Seq[UInt]) => op(data)
+    val infoOut = ArithInfo(config.widthOut, infosIn.head.shift)
+    logger.info(s"bmc vertex out $name ${config.widthOut}")
+    new RingVertex(s"$name${config.widthOut}", config.fixedLatency, null, implH, COMPRESS, infosIn, Seq(infoOut, infoOut))
+  }
+}
+
+object KaraVertex {
+  def apply(name: String, infosIn: Seq[ArithInfo]) = {
+    val config = device.KaraBaseConfig()
+    val op = config.op
+    val implH = (data: Seq[UInt]) => op(data)
+    val Seq(w0, w1, w2, w3) = infosIn.map(_.width)
+    // TODO: better
+    val widthsOut = Seq(w0 + w2, w0 + w2 + 1, w1 + w3)
+    logger.info(s"vertex with ${w0 + w2}, ${w0 + w2 + 1}, ${w1 + w3}")
+    val infosOut = widthsOut.map(ArithInfo(_, 0))
+    new RingVertex(s"$name", 5, null, implH, KARA, infosIn, infosOut)
   }
 }
 

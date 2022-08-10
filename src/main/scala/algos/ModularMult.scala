@@ -2,10 +2,10 @@ package org.datenlord
 package algos
 
 import spinal.core._
-import scala.language.postfixOps
-import org.datenlord._
 
-object MontMult { // all kinds of algorithm for modular multiplication
+import scala.language.postfixOps
+
+object ModularMult { // all kinds of algorithm for modular multiplication
 
   /** Montgomery modular multiplication
    *
@@ -33,9 +33,28 @@ object MontMult { // all kinds of algorithm for modular multiplication
     ret
   }
 
+  def barrett(x: BigInt, y: BigInt, M: BigInt, k: Int) = {
+    require(M.bitLength <= k)
+    assert(M > (BigInt(1) << (k - 1)) && M < (BigInt(1) << k))
+    val golden = (x * y) % M
+    // precomputation
+    val MPrime = (BigInt(1) << (2 * k)) / M
+    // mults
+    val N = x * y // mult0 k & k
+    val E = (MPrime * (N >> (k - 1))) >> (k + 1) // mult1 k+1 & k+1
+    val EM = (M * E).getLow(k + 2) // mult2 k+1 & k
+    // subs and fine reduction
+    val TFake = N.getLow(k + 2) - EM // sub0
+    val T = if (TFake < BigInt(0)) TFake + (BigInt(1) << (k + 2)) else TFake // unsigned subtraction
+    val sub1 = T - M
+    val sub2 = T - sub1
+    val ret = Seq(T, sub1, sub2).find(ret => ret >= BigInt(0) && ret < M).get
+    assert(ret == golden, s"$T, $golden")
+  }
+
   /** high-radix montgomery modular multiplication
    */
-  def hrmmm(x: BigInt, y: BigInt, N: BigInt, lN:Int, wordWidth: Int): BigInt = {
+  def hrmmm(x: BigInt, y: BigInt, N: BigInt, lN: Int, wordWidth: Int): BigInt = {
     require(N.bitLength <= lN)
     val wordCount = lN / wordWidth
     val radix = BigInt(1) << wordWidth
@@ -75,4 +94,5 @@ object MontMult { // all kinds of algorithm for modular multiplication
     assert(ret % N == golden % N, s"\ngolden: $golden, \nyours : $ret")
     ret
   }
+
 }

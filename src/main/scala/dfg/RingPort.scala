@@ -30,8 +30,12 @@ case class RingPort(override val vertex: RingVertex, override val order: Int, ov
    * @example
    */
   def split(splitPoints: Seq[Int])(implicit dag: RingDag): Seq[RingPort] = {
-    require(splitPoints.nonEmpty && splitPoints.max < this.width && splitPoints.min > 0)
-    val splitVertex = SplitVertex(s"split", info, splitPoints)
+    require(splitPoints.nonEmpty
+      && splitPoints.max < this.width
+      && splitPoints.min > 0
+      && splitPoints.sorted.equals(splitPoints.reverse),
+      s"width: ${this.width}, splits: ${splitPoints.mkString(" ")}, split points should be high to low")
+    val splitVertex = SplitVertex(s"split_${splitPoints.mkString(" ")}", info, splitPoints)
     dag.addVertexWithDrivers(splitVertex, this)
     (0 until splitPoints.length + 1).map(splitVertex.out)
   }
@@ -43,7 +47,7 @@ case class RingPort(override val vertex: RingVertex, override val order: Int, ov
 
   def addSubBase(that: RingPort, carry: RingPort = null, opType: OpType)(implicit dag: RingDag): (RingPort, RingPort) = {
     val infosIn = if (carry != null) Seq(info, that.info, carry.info) else Seq(info, that.info)
-    val name = if (opType == BASEADD) "+" else "-"
+    val name = if (opType == BASEADD) "+<" else "-<"
     val vertex = BaseAddSubVertex(name, opType, infosIn)
     dag.addVertexWithDrivers(vertex, this, that)
     if (carry != null) dag.addEdge(carry, vertex.in(2))
@@ -103,6 +107,12 @@ case class RingPort(override val vertex: RingVertex, override val order: Int, ov
     dag.addEdge(a, multVertex.in(0))
     dag.addEdge(b, multVertex.in(1))
     multVertex.out(0)
+  }
+
+  def karaWith(b: RingPort, c: RingPort, d: RingPort)(implicit dag: RingDag) = {
+    val karaVertex = KaraVertex(s"kara", Seq(this, b, c, d).map(_.info))
+    dag.addVertexWithDrivers(karaVertex, this, b, c, d)
+    (karaVertex.out(0), karaVertex.out(1), karaVertex.out(2))
   }
 
   def *(that: RingPort)(implicit dag: RingDag): RingPort = mult(this, that, FullMult)
@@ -178,7 +188,7 @@ case class RingPort(override val vertex: RingVertex, override val order: Int, ov
   }
 
   def <<(shift: Int)(implicit dag: RingDag) = {
-    val vertex = ShiftVertex("SHIFT", info, shift)
+    val vertex = ShiftVertex(s"SHIFT$shift", info, shift)
     dag.addVertexWithDrivers(vertex, this)
     vertex.out(0)
   }

@@ -23,7 +23,7 @@ object SpiralParser {
     val command = s"acm ${constantsGt1.mkString(" ")} -gc"
 
     val file = File(filepath)
-    if (!file.exists) file.writeAll(doCmdAndGetLine(command, spiralDir))
+    if (!file.exists) file.writeAll(doCmdAndGetLines(command, spiralDir))
     val src = Source.fromFile(filepath)
     src.getLines().mkString("\n")
   }

@@ -7,7 +7,10 @@ import spinal.lib._
 import scala.language.postfixOps
 import arithmetic.MultplierMode._
 
-case class MultiplicationByDspConfig(mode: MultiplierMode) extends TransformBase {
+/** Dedicated pipeline for 34 * 52 multipliers
+ */
+case class MultiplicationByDspConfig(mode: MultiplierMode)
+  extends TransformBase {
 
   val baseWidth = mode match {
     case FULL => 32
@@ -45,6 +48,7 @@ case class MultiplicationByDsp(config: MultiplicationByDspConfig) extends Transf
   import config._
 
   val dataIn = slave Flow Fragment(Vec(UInt(baseWidth bits), 2))
+
   val dataOut = master Flow Fragment(Vec(UInt(baseWidth * 2 bits)))
 
   val Seq(x, y) = dataIn.fragment
@@ -70,40 +74,6 @@ case class MultiplicationByDsp(config: MultiplicationByDspConfig) extends Transf
       adbc.addAttribute("use_dsp", "no")
       // 6-7
       val (high, mid, low) = (dsp0.d(4), adbc, dsp1.d(4))
-      val ret = ((high @@ low) + (mid << opWidth)).d(1)
-      ret
-    case FULL34 =>
-      // 0-1
-      val aPlusB = (a +^ b).d(1) // 18 bits
-      val cPlusD = (c +^ d).d(1) // 18 bits
-      val (abMsb, abMain) = aPlusB.splitAt(17)
-      val (cdMsb, cdMain) = cPlusD.splitAt(17)
-      // 0-2
-      val dsp0 = Dsp48.ab(a, c)
-      val dsp1 = Dsp48.ab(b, d)
-      // 1-3
-      val dsp2 = Dsp48.ab(abMain.asUInt, cdMain.asUInt)
-      dsp0.addAttribute("use_dsp", "yes")
-      dsp1.addAttribute("use_dsp", "yes")
-      dsp2.addAttribute("use_dsp", "yes")
-      val cdOption = Mux(abMsb.asBool, cdMain.asUInt, U(0, 17 bits)).d(2)
-      val abOption = Mux(cdMsb.asBool, abMain.asUInt, U(0, 17 bits)).d(2)
-      val msbOption = (abMsb & cdMsb).asUInt.d(2)
-      //      val cdOption = (abMsb.asUInt * cdMain.asUInt).d(2)
-      //      val abOption = (cdMsb.asUInt * abMain.asUInt).d(2)
-      //      val msbOption = (abMsb.asUInt * cdMsb.asUInt).d(2)
-      // 3-4
-      val almostAll = TernaryAdderConfig(34).implH.asNode(
-        Seq(dsp2, cdOption << 17, abOption << 17)
-      ).head
-      // 4-5
-      val all = (almostAll + (msbOption.d(1) << 34)).d(1)
-      // 5-6
-      val adPlusBc = TernaryAdderConfig(36, 2).implH.asNode(
-        Seq(all, dsp0.d(3), dsp1.d(3))
-      ).head
-      // 6-7
-      val (high, mid, low) = (dsp0.d(4), adPlusBc, dsp1.d(4))
       val ret = ((high @@ low) + (mid << opWidth)).d(1)
       ret
     case HALF =>
@@ -146,7 +116,6 @@ case class MultiplicationByDsp(config: MultiplicationByDspConfig) extends Transf
 
   val defName = mode match {
     case FULL => "FullMult32"
-    case FULL34 => "FullMult34"
     case HALF => "LowMult34"
     case SQUARE => "SquareMult34"
   }

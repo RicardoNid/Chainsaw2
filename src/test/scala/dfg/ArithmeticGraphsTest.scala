@@ -1,9 +1,12 @@
 package org.datenlord
 package dfg
 
+import arithmetic._
 import arithmetic.MultplierMode._
 
+import org.datenlord.xilinx.VivadoUtilRequirement
 import org.scalatest.flatspec.AnyFlatSpec
+import spinal.core.IntToBuilder
 
 import scala.util.Random
 
@@ -15,6 +18,7 @@ class ArithmeticGraphsTest extends AnyFlatSpec {
   val testWidth = 377
   Random.setSeed(42)
   val data = (0 until testCaseCount * 2).map(_ => Random.nextBigInt(testWidth))
+
 
   // get a brand new graph every time we need it
   def graphAdd = ArithmeticGraphs.addGraph(testWidth, 0)
@@ -34,7 +38,9 @@ class ArithmeticGraphsTest extends AnyFlatSpec {
   val smallData = (0 until testCaseCount * 2).map(_ => Random.nextBigInt(61))
 
   def graphFullSmall = ArithmeticGraphs.karatsubaGraph(61, 0, FULL)
+
   def graphLowSmall = ArithmeticGraphs.karatsubaGraph(61, 0, HALF)
+
   def graphSquareSmall = ArithmeticGraphs.karatsubaGraph(61, 0, SQUARE)
 
   val zprizeModulus = algos.ZPrizeMSM.baseModulus
@@ -65,13 +71,10 @@ class ArithmeticGraphsTest extends AnyFlatSpec {
   it should "work for square multiplication on hardware" in (0 until genCount).foreach(_ =>
     TransformTest.test(graphSquare.toTransform, data.take(testCaseCount / 2).flatMap(d => Seq(d, d))))
 
-  it should "work for the toy case" in (0 until genCount).foreach(_ =>
-    TransformTest.test(graphFullSmall.toTransform, smallData))
-
-  it should "show its structure for the toy case" in {
-    graphFullSmall.simplify().asInstanceOf[RingDag].toPng()
-    graphLowSmall.simplify().asInstanceOf[RingDag].toPng()
-    graphSquareSmall.simplify().asInstanceOf[RingDag].toPng()
+  it should "work for the toy case" in {
+    println(s"data:${smallData(0)}, ${smallData(1)}")
+    graphFullSmall.validate().toPng()
+    TransformTest.test(graphFullSmall.toTransform, smallData, name = "Small")
   }
 
   "montgomeryGraph" should "work for modular multiplication on hardware" in (0 until genCount).foreach(_ =>
@@ -79,4 +82,6 @@ class ArithmeticGraphsTest extends AnyFlatSpec {
   it should "work for modular square multiplication on hardware" in (0 until genCount).foreach(_ =>
     TransformTest.test(graphMontSquare.toTransform,
       montTestData.grouped(4).toSeq.flatMap(group => Seq(group(0), group(2), group(3))), montMetric))
+
+
 }

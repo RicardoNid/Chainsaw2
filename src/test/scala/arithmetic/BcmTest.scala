@@ -19,6 +19,6 @@ class BcmTest extends AnyFlatSpec {
 
   "Big Constant Multiplier" should "work for BLS-377 modulus" in TransformTest.test(config.implH, data)
 
-  ignore should "synth for BLS-377 modulus" in VivadoSynth(config.implH, "ZPRIZE_modulus_BCM")
+  it should "synth for BLS-377 modulus" in VivadoSynth(config.implH, "ZPRIZE_modulus_BCM")
 
 }

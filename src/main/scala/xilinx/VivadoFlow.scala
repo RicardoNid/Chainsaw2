@@ -10,6 +10,8 @@ import scala.language.postfixOps
 import scala.sys.process._
 import xilinx.VivadoTaskType._
 
+import java.nio.file.Paths
+
 /** used to generate sources for a Vivado flow and invoke Vivado to run it
  */
 class VivadoFlow[T <: Component](
@@ -40,7 +42,7 @@ class VivadoFlow[T <: Component](
     // run vivado
     doCmd(s"${vivadoConfig.vivadoPath}/vivado -stack 2000 -nojournal -log doit.log -mode batch -source doit.tcl", workspacePath)
     // parse log file to get report
-    new VivadoReport(workspacePath, xilinxDevice.family, xilinxDevice.fmax)
+    new VivadoReport(s"$workspacePath/doit.log", xilinxDevice.family)
   }
 
   /**
@@ -109,7 +111,7 @@ object VivadoFlow {
   def apply[T <: Component](
                              design: => T, taskType: VivadoTaskType,
                              vivadoConfig: VivadoConfig = VivadoConfig(),
-                             xilinxDevice: XilinxDevice = vu9p,
+                             xilinxDevice: XilinxDevice = defaultDevice,
                              topModuleName: String = null, workspacePath: String = null, alterXdc: String = null, extraRtlSources: Seq[String] = null): VivadoFlow[T] =
     new VivadoFlow(design, taskType, vivadoConfig, xilinxDevice, topModuleName, workspacePath, alterXdc, extraRtlSources)
 }

@@ -25,19 +25,19 @@ class DagVertex[TSoft, THard <: Data](
 
   def outDegree(implicit ref: Dag[TSoft, THard]) = ref.outDegreeOf(this)
 
-  def incomingEdges(implicit ref: Dag[TSoft, THard]) = ref.incomingEdgesOf(this)
+  def incomingEdges(implicit ref: Dag[TSoft, THard]) =
+    ref.incomingEdgesOf(this).toSeq
 
   def sources(implicit ref: Dag[TSoft, THard]) =
-    this.incomingEdges
-      .toSeq.sortBy(_.inOrder)
+    this.incomingEdges.sortBy(_.inOrder)
       .map(ref.getEdgeSource)
 
   def sourcePorts(implicit ref: Dag[TSoft, THard]) =
-    this.incomingEdges
-      .toSeq.sortBy(_.inOrder)
+    this.incomingEdges.sortBy(_.inOrder)
       .map(e => DagPort(ref.getEdgeSource(e), e.outOrder, Out))
 
-  def outgoingEdges(implicit ref: Dag[TSoft, THard]) = ref.outgoingEdgesOf(this)
+  def outgoingEdges(implicit ref: Dag[TSoft, THard]) =
+    ref.outgoingEdgesOf(this).toSeq
 
   def targets(implicit ref: Dag[TSoft, THard]) =
     this.outgoingEdges

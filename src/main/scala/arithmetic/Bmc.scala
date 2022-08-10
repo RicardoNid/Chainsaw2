@@ -19,14 +19,13 @@ case class BmcConfig(infos: Seq[ArithInfo]) extends TransformBase {
 
   // TODO: adjustable baseWidth
   val baseWidth = 126
-  val fixedLatency = BitMatrix.getLatency(infos, baseWidth)
+  val (widthOut, fixedLatency, cost) = BitMatrix.getInfoOfCompressor(infos, baseWidth)
 
   override def latency = fixedLatency
 
-  override def implH = BMC(this)
+  override def implH = Bmc(this)
 
-  def compressor: Seq[Seq[Bool]] => Vec[Bool] = (dataIn: Seq[Seq[Bool]]) => {
-    val width = dataIn.length
+  def compressor: (Seq[Seq[Bool]], Int) => Vec[Bool] = (dataIn: Seq[Seq[Bool]], width:Int) => {
     val core = device.TernaryAdderConfig(width).implH
     val operands = dataIn
       .map(_.padTo(3, False))
@@ -49,23 +48,28 @@ case class BmcConfig(infos: Seq[ArithInfo]) extends TransformBase {
     val pipeline = (a: UInt, level: Int) => a.d(1)
     dataOut := dataIn.reduceBalancedTree(add, pipeline)
   }
+
+  def op: Seq[UInt] => Seq[UInt] = (dataIn: Seq[UInt]) => {
+    val inOperands = dataIn.map(_.asBools)
+    val bitMatrix: BitMatrix[Bool] = BitMatrix(inOperands, infos)
+    val retBitMatrix = BitMatrixCompressor(compressor, pipeline, baseWidth).compressAll(bitMatrix)._1.table.map(_.padTo(2, False))
+    val ret = retBitMatrix.transpose.map(_.asBits.asUInt).map(_ << infos.map(_.shift).min)
+    logger.info(s"bmc out: ${ret.map(_.getBitsWidth).mkString(" ")}")
+    ret
+  }
+
 }
 
-case class BMC(config: BmcConfig)
+case class Bmc(config: BmcConfig)
   extends TransformModule[UInt, UInt] {
 
   import config._
+
   logger.info(s"latency of UInt Compressor = $fixedLatency")
 
   override val dataIn = slave Flow Fragment(Vec(infos.map(info => UInt(info.width bits))))
   override val dataOut = master Flow Fragment(Vec(UInt(), 2))
-
-  val inOperands = dataIn.fragment.map(_.asBools)
-  val bitMatrix: BitMatrix[Bool] = BitMatrix(inOperands, infos)
-  val retBitMatrix = BitMatrixCompressor(compressor, pipeline, baseWidth).compressAll(bitMatrix)._1.table.map(_.padTo(2, False))
-
-  val retOperands = Vec(retBitMatrix.transpose.map(_.asBits.asUInt))
-  dataOut.fragment := retOperands
+  dataOut.fragment := Vec(op(dataIn.fragment))
 
   autoValid()
   autoLast()

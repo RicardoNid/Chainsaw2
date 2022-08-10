@@ -6,6 +6,7 @@ import ilog.cplex.IloCplex
 import spinal.core._
 
 import scala.collection.JavaConversions._
+import scala.math.log
 
 object AutoPipeline {
   /** in-place rewrite method that allocate latencies on edges which: 1. guarantee enough latency spaces for vertices 2. has minimum overall latency for graph, solved by linear programming
@@ -23,6 +24,7 @@ object AutoPipeline {
     val vertices = dag.vertexSet().toSeq.toArray
     val lowerBounds = vertices.map(_ => 0.0)
     val upperBounds = vertices.map(_ => 200.0)
+
     val variables: Array[IloNumVar] = cplex.numVarArray(vertices.length, lowerBounds, upperBounds)
     val variableMap = vertices.zip(variables).toMap
     // construct cost function for minimum number of registers
@@ -38,10 +40,19 @@ object AutoPipeline {
       cplex.addLe(expr, dag.getEdgeWeight(e) - e.source.latency)
       //      logger.info(s"add constraint: ${e.source} - ${e.target} < ${getEdgeWeight(e) - e.source.latency}")
     }
+
+    dag.inputs.init.zip(dag.inputs.tail).foreach { case (a, b) =>
+      val inputA = variableMap(a)
+      val inputB = variableMap(b)
+      val expr = cplex.scalProd(Array(inputA, inputB), coeffForSub)
+      cplex.addEq(expr, 0)
+    }
+
     // set linear programming problem and solve it
     cplex.solve()
     import scala.math.round
     val solution = vertices.zip(cplex.getValues(variables).map(round).map(_.toInt)).toMap
+    logger.info(s"solution: ${solution.mkString(" ")}")
     logger.info(s"solution status: ${cplex.getStatus}")
     logger.info(s"solution latency = ${round(cplex.getObjValue())}")
     cplex.end()

@@ -74,6 +74,8 @@ object ArithmeticGraphs {
 
   def karatsubaGraph(width: Int, shift: Int, mode: MultiplierMode, noWidthGrowth: Boolean = true) = {
 
+    val useCompressorTree = true
+
     val baseWidth = 32
     val stageRule = (x: Int) => if (noWidthGrowth) 2 * x else 2 * (x - 1)
     logger.info(s"stages: ${Seq.iterate(baseWidth, 10)(stageRule).mkString(" ")} ")
@@ -130,43 +132,54 @@ object ArithmeticGraphs {
                 val allMain = recursiveTask(crossWidth, abMain, cdMain, FULL)
 
                 // combine four parts of all
-                //                val (allMainHigh, allMainLow) = allMain.splitAt(lowWidth)
-                //                val muxedSum = abMuxed +:+^ cdMuxed
-                //                val allHighTemp = muxedSum +:+^ allMainHigh
-                //                val (allHigh, allMid) = allHighTemp.splitAt(lowWidth)
-                //                (allHigh +:+^ allTop) @@ (allMid @@ allMainLow)
-                allMain +^ ((abMuxed +^ cdMuxed) << lowWidth) + (allTop << doubleWidth)
+                if (!useCompressorTree) {
+                  val (allMainHigh, allMainLow) = allMain.splitAt(lowWidth)
+                  val muxedSum = abMuxed +:+^ cdMuxed
+                  val allHighTemp = muxedSum +:+^ allMainHigh
+                  val (allHigh, allMid) = allHighTemp.splitAt(lowWidth)
+                  (allHigh +:+^ allTop) @@ (allMid @@ allMainLow)
+                }
+                else allMain +^ ((abMuxed +^ cdMuxed) << lowWidth) + (allTop << doubleWidth)
               }
 
-            val adbc = all - ac - bd
-
-            //            val full = ac @@ bd
-            //            val (high, low) = full.splitAt(lowWidth)
-            //            val highSum = high +:+ adbc
-            //            highSum @@ low
-
-            bd +^ (adbc << lowWidth) + (ac << doubleWidth)
+            if (!useCompressorTree) {
+              val adbc = all -:- ac -:- bd
+              val full = ac @@ bd
+              val (high, low) = full.splitAt(lowWidth)
+              val highSum = high +:+ adbc
+              highSum @@ low
+            }
+            else {
+              val adbc = all - ac - bd
+              bd +^ (adbc << lowWidth) + (ac << doubleWidth)
+            }
 
           case HALF =>
             val bd = recursiveTask(lowWidth, xLow, yLow, FULL)
             val cb = recursiveTask(crossWidth, xLow.resize(crossWidth), yHigh.resize(crossWidth), HALF)
             val ad = recursiveTask(crossWidth, xHigh.resize(crossWidth), yLow.resize(crossWidth), HALF)
-            val partial = cb.resize(crossWidth) +:+ ad.resize(crossWidth)
-            if (lowWidth >= bd.width) logger.warn(s"problem: $lowWidth >= ${bd.width}")
-            val (high, low) = bd.splitAt(lowWidth)
-            val highSum = high +:+ partial
-            highSum @@ low
+            if (!useCompressorTree) {
+              val partial = cb.resize(crossWidth) +:+ ad.resize(crossWidth)
+              if (lowWidth >= bd.width) logger.warn(s"problem: $lowWidth >= ${bd.width}")
+              val (high, low) = bd.splitAt(lowWidth)
+              val highSum = high +:+ partial
+              highSum @@ low
+            }
+            else bd + ((ad + cb) << lowWidth)
 
           case SQUARE =>
             val bd = recursiveTask(lowWidth, xLow, xLow, SQUARE)
             val cb = recursiveTask(crossWidth, xHigh.resize(crossWidth), xLow.resize(crossWidth), FULL)
             val ac = recursiveTask(highWidth, xHigh, xHigh, SQUARE)
 
-            val full = ac @@ bd
-            if (lowWidth + 1 >= full.width) logger.warn(s"problem: ${lowWidth + 1} >= ${full.width}")
-            val (high, low) = full.splitAt(lowWidth + 1)
-            val highSum = high +:+ cb
-            highSum @@ low
+            if (!useCompressorTree) {
+              val full = ac @@ bd
+              if (lowWidth + 1 >= full.width) logger.warn(s"problem: ${lowWidth + 1} >= ${full.width}")
+              val (high, low) = full.splitAt(lowWidth + 1)
+              val highSum = high +:+ cb
+              highSum @@ low
+            }
+            else bd +^ (cb << (lowWidth + 1)) + (ac << doubleWidth)
         }
       }
       ret.resize(if (mode == HALF) width else width * 2)
@@ -178,6 +191,9 @@ object ArithmeticGraphs {
     logger.info(s"$mode mult graph built")
     graph
   }
+
+
+
 
   // TODO: implement constant in graphs, remove input port for NPrime
   def montgomeryGraph(width: Int, shift: Int, modulus: BigInt, square: Boolean = false, byLUT: Boolean = false) = {

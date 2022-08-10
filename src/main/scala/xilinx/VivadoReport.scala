@@ -5,7 +5,6 @@ import xilinx.XilinxDeviceFamily._
 
 import spinal.core._
 
-import java.nio.file.Paths
 import scala.io.Source
 import scala.language.postfixOps
 import scala.util.Try
@@ -30,21 +29,45 @@ object VivadoUtil {
   def apply(values: Seq[Int]): VivadoUtil = new VivadoUtil(values(0), values(1), values(2), values(3), values(4))
 }
 
-object VivadoUtilRequirement{
+object VivadoUtilRequirement {
   val limit = Int.MaxValue
+
   def apply(lut: Int = limit, ff: Int = limit, dsp: Int = limit, bram36: Int = limit, carry8: Int = limit) =
     VivadoUtil(lut, ff, dsp, bram36, carry8)
 }
 
+/** this class is designed to extract information from Vivado log file(synth or impl)
+ *
+ */
 class VivadoReport(
-                    workspacePath: String,
-                    deviceFamily: XilinxDeviceFamily,
-                    fmax: HertzNumber = null
+                    logPath: String,
+                    deviceFamily: XilinxDeviceFamily
                   ) {
 
-  val log = Source.fromFile(Paths.get(workspacePath, "doit.log").toFile)
-  private val report = log.getLines.mkString("\n")
-  log.close()
+  val log = Source.fromFile(logPath)
+  val lines = log.getLines.toSeq
+  private val report = lines.mkString("\n")
+
+  val patternAdder = """\s*(\d+)\s*Input\s*(\d+)\s*Bit\s*Adders :=\s*(\d+)\s*""".r
+  val patternReg = """\s*(\d+)\s*Bit\s*Registers\s*:=\s*(\d+)\s*""".r
+
+  // retailed components analysis
+  var binaryAdderCost = 0
+  var ternaryAdderCost = 0
+  var registerCost = 0
+
+  lines.foreach {
+    case patternAdder(input, width, number) =>
+      if(input.toInt == 2) binaryAdderCost += width.toInt * number.toInt
+      if(input.toInt == 3) ternaryAdderCost += width.toInt * number.toInt
+    case patternReg(width, number) =>
+      registerCost += width.toInt * number.toInt
+    case _ =>
+  }
+
+  logger.info(s"binary adder cost = $binaryAdderCost")
+  logger.info(s"ternary adder cost = $ternaryAdderCost")
+  logger.info(s"reg cost = $registerCost")
 
   // patterns
   private val intFind = "[0-9]\\d*"
@@ -62,7 +85,8 @@ class VivadoReport(
     extract more attribute from doit.log
    */
 
-  val LUT = if (deviceFamily == UltraScale) getIntAfterHeader("CLB LUTs\\*")
+  // TODO: extract information from detailed components
+  val LUT = if (deviceFamily == UltraScale) getIntAfterHeader("CLB LUTs\\*") // FIXME: impl log doesn't have *
   else getIntAfterHeader("Slice LUTs")
 
   val FF = if (deviceFamily == UltraScale) getIntAfterHeader("CLB Registers")
@@ -75,8 +99,6 @@ class VivadoReport(
   val delayEx = s"Data Path Delay:\\s*(${doubleFind})ns"
   val DatapathDelay = delayEx.r.findFirstMatchIn(report).get.group(1).toDouble
 
-  // TODO: extract slack info
-  private val targetPeriod = fmax.toTime.toDouble
   val Frequency = 1.0 / DatapathDelay * 1e9
 
   val util = VivadoUtil(LUT, FF, DSP, BRAM, CARRY8)
@@ -91,8 +113,10 @@ class VivadoReport(
 
   override def toString: String = s"LUT $LUT, FF $FF, DSP $DSP, BRAM $BRAM, CARRY8 $CARRY8, Freq $Frequency"
 
-  def require(utilRequirement: VivadoUtil, fmaxRequirement:HertzNumber) = {
+  def require(utilRequirement: VivadoUtil, fmaxRequirement: HertzNumber) = {
     assert(this.util <= utilRequirement, s"util failed: yours: $util, target: $utilRequirement")
     assert(this.Frequency >= fmaxRequirement.toDouble, s"critical path failed: yours: ${Frequency / 1e6} MHz, target: $fmaxRequirement")
   }
+
+  log.close()
 }

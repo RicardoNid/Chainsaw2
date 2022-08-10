@@ -1,98 +1,182 @@
 package org.datenlord
 package arithmetic
 
+import xilinx.XilinxDeviceFamily._
+
 import spinal.core._
 import spinal.lib._
 
+import scala.io.Source
 import scala.language.postfixOps
-import scala.sys.process._
 import scala.util.Random
 
-// TODO: implement more operators in Flopoco
-case class ScmConfig(constant: BigInt, widthIn: Int, plain: Boolean) extends TransformBase {
-  override def impl(dataIn: Seq[Any]) = Seq(dataIn.head.asInstanceOf[BigInt] * constant)
+abstract class Flopoco extends TransformBase {
 
-  override val size = (1, 1)
+  val operatorName: String
+  val params: Seq[(String, Any)]
+  val frequency: HertzNumber
+  val family: XilinxDeviceFamily
 
-  override def latency = 1
+  val flopocoPath = "/home/ltr/flopoco/build/flopoco" // TODO: MAKE THIS ADJUSTABLE
+  val outputDir = s"/home/ltr/IdeaProjects/Chainsaw2/src/main/resources/flopocoGenerated" // TODO: MAKE THIS RELATIVE
 
-  override def implH = Scm(this)
+  def rtlPath = {
+    val paramsInName = (params :+ ("target", family)).map { case (param, value) => s"${param}_$value" }.mkString("_")
+    val filename = s"${operatorName}_$paramsInName.vhd"
+    s"$outputDir/$filename"
+  }
+
+  def flopocoRun() = {
+
+    val familyLine = family match {
+      case UltraScale => "VirtexUltrascalePlus"
+      case Series7 => "Kintex7"
+    }
+    val paramsLine = params.map { case (param, value) => s"$param=$value" }.mkString(" ")
+
+    // TODO: figure out whether cplex will be useful or not
+    val command = s"$flopocoPath frequency=${frequency.toInt / 1e6} target=$familyLine verbose=1 outputFile=$rtlPath ilpSolver=cplex $operatorName $paramsLine"
+    doCmdAndGetLines(command, outputDir)
+  }
+
+  def getInfoFromRtl = {
+    val src = Source.fromFile(rtlPath)
+    val lines = src.getLines().toSeq
+    val lineIndex = lines.indexWhere(_.contains(s"${operatorName}_"))
+    val linesForSearch = lines.drop(lineIndex)
+    val latency = linesForSearch
+      .filter(_.startsWith("-- Pipeline depth: ")).head
+      .filter(_.isDigit).mkString("").toInt
+    val defName = linesForSearch
+      .filter(_.startsWith(s"entity ${operatorName}_")).head
+      .split(" ")(1)
+    src.close()
+    (latency, defName)
+  }
+
+  override def latency = {
+    if (!new java.io.File(rtlPath).exists()) flopocoRun()
+    val latency = getInfoFromRtl._1
+    logger.info(s"flopoco latency = $latency")
+    latency
+  }
+
+  def moduleName = {
+    if (!new java.io.File(rtlPath).exists()) flopocoRun()
+    val moduleName = getInfoFromRtl._2
+    logger.info(s"flopoco module name = $moduleName")
+    moduleName
+  }
+
+  val widthsIn: Seq[Int]
+
+  def blackbox: FlopocoBlackBox
+
+  def model(dataIn: Seq[UInt]): Seq[UInt]
+
+  override def implH = {
+    val theConfig = this
+    new TransformModule[UInt, UInt] {
+      override val config = theConfig
+
+      override val dataIn = slave Flow Fragment(Vec(widthsIn.map(width => UInt(width bits))))
+      override val dataOut = master Flow Fragment(Vec(UInt(), size._2))
+      val ret =
+        if (!useFlopoco)
+          model(dataIn.fragment.map(_.d(latency)))
+        else {
+          val box = blackbox
+          box.addRTLPath(rtlPath)
+          box.definitionName = moduleName
+          box.asNode(dataIn.fragment)
+        }
+      dataOut.fragment := Vec(ret)
+      autoValid()
+      autoLast()
+    }
+  }
 }
 
-// TODO: merge this to Mcm, as Scm is a special case of mcm
-case class Scm(config: ScmConfig) extends TransformModule[UInt, UInt] {
+abstract class FlopocoBlackBox() extends BlackBox {
+
+  val clk = in Bool()
+  mapCurrentClockDomain(clk)
+
+  val config: Flopoco
+
+  def asNode: Seq[UInt] => Seq[UInt]
+}
+
+case class IntMultiAdderConfig(widthIn: Int, n: Int) extends Flopoco {
+  override val operatorName = "IntMultiAdder"
+  override val params = Seq(("signedIn", 0), ("n", n), ("wIn", widthIn))
+  override val frequency = 800 MHz
+  override val family = UltraScale
+  override val widthsIn = Seq.fill(n)(widthIn)
+
+  override def blackbox = IntMultiAdder(this)
+
+  override def model(dataIn: Seq[UInt]) = Seq(dataIn.reduceBalancedTree(_ +^ _))
+
+  override def impl(dataIn: Seq[Any]) = Seq(dataIn.asInstanceOf[Seq[BigInt]].sum)
+
+  override val size = (n, 1)
+}
+
+case class IntMultiAdder(config: IntMultiAdderConfig) extends FlopocoBlackBox {
 
   import config._
 
-  override val dataIn = slave Flow Fragment(Vec(UInt(widthIn bits), 1))
-  val widthOut = widthIn + constant.bitLength
-  override val dataOut = master Flow Fragment(Vec(UInt(widthOut bits), 1))
+  val X = in Vec(UInt(widthIn bits), n)
+  X.zipWithIndex.foreach { case (int, i) => int.setName(s"X$i") }
+  val widthOut = widthsIn.head + log2Up(n)
+  val R = out UInt (widthOut bits)
 
-  if (plain) {
-    val product = dataIn.payload.head.d(1) * U(constant)
-    product.addAttribute("use_dsp", "no")
-    dataOut.payload.head := product.d(1)
-  } else {
-    val flopoco = FlopocoSCM(widthIn, constant)
-    flopoco.X := dataIn.payload.head.d(1)
-    dataOut.payload.head := flopoco.Y.d(1)
-  }
-
-  autoValid()
-  autoLast()
-}
-
-object Scm {
-  def main(args: Array[String]): Unit = {
-    val constant = BigInt(62317)
-    val length = constant.bitLength
-    val config0 = ScmConfig(constant, length, plain = true)
-    val config1 = ScmConfig(constant, length, plain = false)
-    val testCases = (0 until 100).map(_ => Random.nextBigInt(length))
-    //    TransformTest.test(SCM(config0), testCases, name = "testSCM")
-    //    TransformTest.test(SCM(config1), testCases, name = "testSCM")
-    VivadoSynth(Scm(config0))
-    VivadoSynth(Scm(config1))
+  override def asNode = (dataIn: Seq[UInt]) => {
+    val core = this
+    core.X := Vec(dataIn)
+    Seq(core.R)
   }
 }
 
-case class FlopocoSCM(widthIn: Int, constant: BigInt) extends BlackBox {
-  val X = in UInt (widthIn bits)
-  X.setName("X0")
-  val Y = out UInt (widthIn + constant.bitLength bits)
-  Y.setName(s"R_c$constant")
-  val defName = s"IntConstMultShiftAddOpt_${constant}_${widthIn}"
-  setDefinitionName(defName)
-  val fileName = s"$defName.vhd"
-  doCmd(s"/home/ltr/flopoco/build/flopoco frequency=800 outputFile=$fileName IntConstMultShiftAddOpt wIn=$widthIn constant=$constant", "/home/ltr/IdeaProjects/Chainsaw2")
-  addRTLPath(s"/home/ltr/IdeaProjects/Chainsaw2/$fileName")
-}
-
-case class FlopocoMult(widthX: Int, widthY:Int) extends BlackBox {
-  val X= in UInt (widthX bits)
-  val Y = in UInt (widthY bits)
-  val R = out UInt (widthX + widthY bits)
-  val frequency = 800
-  val defName = s"IntMultiplier_F${frequency}_uid2"
-  setDefinitionName(defName)
-  val fileName = s"$defName.vhd"
-  doCmd(s"/home/ltr/flopoco/build/flopoco frequency=$frequency outputFile=$fileName IntMultiplier wX=$widthX wY=$widthY useKaratsuba=1", "/home/ltr/IdeaProjects/Chainsaw2")
-  addRTLPath(s"/home/ltr/IdeaProjects/Chainsaw2/$fileName")
-}
-
-// FIXME: currently, this module won't work, synth result cost nothing
-case class BigMult(widthX: Int, widthY:Int) extends Component{
-  val X= in UInt (widthX bits)
-  val Y = in UInt (widthY bits)
-  val R = out UInt (widthX + widthY bits)
-  val core = FlopocoMult(widthX, widthY)
-  core.X := X
-  core.Y := Y
-  R := core.R
-}
-
-object BigMult {
+object IntMultiAdder {
   def main(args: Array[String]): Unit = {
-    VivadoSynth(BigMult(128,128))
+    //    val config = IntMultiAdderConfig(100, 20)
+    val config = IntMultiplierConfig(377, 377, 162)
+    val data = (0 until 20).map(_ => Random.nextBigInt(96))
+    TransformTest.test(config.implH, data)
+    //    VivadoSynth(config.implH, "testCompressor")
+    //    VivadoSynth(IntMultiAdderConfig(100, 20).implH, "testCompressor")
+  }
+}
+
+case class IntMultiplierConfig(widthX: Int, widthY: Int, maxDSP: Int) extends Flopoco {
+  override val operatorName = "IntMultiplier"
+  override val params = Seq(("wX", widthX), ("wY", widthY), ("maxDSP", maxDSP), ("useKaratsuba", 1))
+  override val frequency = 800 MHz
+  override val family = UltraScale
+  override val widthsIn = Seq(widthX, widthY)
+
+  override def blackbox = IntMultiplier(this)
+
+  override def model(dataIn: Seq[UInt]) = Seq(dataIn.reduce(_ * _))
+
+  override def impl(dataIn: Seq[Any]) = Seq(dataIn.asInstanceOf[Seq[BigInt]].product)
+
+  override val size = (2, 1)
+}
+
+case class IntMultiplier(config: IntMultiplierConfig) extends FlopocoBlackBox {
+
+  import config._
+
+  val X = in UInt (widthX bits)
+  val Y = in UInt (widthY bits)
+  val R = out UInt (widthX + widthY bits)
+
+  override def asNode = (dataIn: Seq[UInt]) => {
+    this.X := dataIn(0)
+    this.Y := dataIn(1)
+    Seq(this.R)
   }
 }
