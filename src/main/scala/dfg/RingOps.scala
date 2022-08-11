@@ -1,17 +1,21 @@
 package org.datenlord
 package dfg
 
-import arithmetic.MultplierMode.{FULL, HALF, SQUARE}
+import arithmetic.MultplierMode.{FULL, HALFLOW, SQUARE}
 import device.MultiplicationByDspConfig
 import dfg.OpType._
 
 import org.datenlord.dfg.Direction.{In, Out}
 import spinal.core._
 
-case class ArithInfo(width: Int, shift: Int) {
+case class ArithInfo(width: Int, shift: Int, sign: Boolean = true) {
   val low = shift
   val high = low + width
   val range = (high - 1) downto low
+
+  def <<(shiftLeft: Int) = ArithInfo(width, shift + shiftLeft, sign)
+
+  def unary_- = ArithInfo(width, shift, !sign)
 }
 
 /** This is for crypto implementation on FPGAs of Xilinx UltraScale family
@@ -62,7 +66,7 @@ object MultVertex {
 
     val config = opType match {
       case FullMult => MultiplicationByDspConfig(FULL)
-      case LowMult => MultiplicationByDspConfig(HALF)
+      case LowMult => MultiplicationByDspConfig(HALFLOW)
       case SquareMult => MultiplicationByDspConfig(SQUARE)
     }
 

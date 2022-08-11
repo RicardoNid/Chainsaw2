@@ -15,7 +15,7 @@ class MultiplicationByDspTest extends AnyFlatSpec {
 
   val testCount = 1000
   val config0 = MultiplicationByDspConfig(FULL)
-  val config1 = MultiplicationByDspConfig(HALF)
+  val config1 = MultiplicationByDspConfig(HALFLOW)
   val config2 = MultiplicationByDspConfig(SQUARE)
   val config3 = MultiplicationByDspConfig(FULL34)
 

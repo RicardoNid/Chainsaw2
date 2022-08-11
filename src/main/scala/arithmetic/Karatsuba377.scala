@@ -3,21 +3,50 @@ package arithmetic
 
 import dfg._
 
-object Karatsuba96 {
+object Karatsuba377 {
 
   def apply() = {
     val golden = (data: Seq[BigInt]) => Seq(data.product)
     //    val golden = (data: Seq[BigInt]) => Seq.fill(18)(BigInt(0))
     implicit val graph: RingDag = new RingDag(s"karatsubaGraph96", golden)
 
-    val a = graph.addInput("Mult96A", ArithInfo(96, 0))
-    val b = graph.addInput("Mult96B", ArithInfo(96, 0))
+    val a = graph.addInput("Mult377A", ArithInfo(378, 0))
+    val b = graph.addInput("Mult377B", ArithInfo(378, 0))
 
+    def rec(x: RingPort, y: RingPort, width: Int): RingPort = {
+      if (width == 96) buildKara96(x, y)(graph)
+      else {
+
+        val (xHigh, xLow) = x.splitAt(width / 2)
+        val (yHigh, yLow) = y.splitAt(width / 2)
+
+        val xMerge = xHigh +:+^ xLow
+        val yMerge = yHigh +:+^ yLow
+
+        val widthNext = width / 2 + 1
+        val high = rec(xHigh.resize(widthNext), yHigh.resize(widthNext), widthNext)
+        val low = rec(xLow.resize(widthNext), yLow.resize(widthNext), widthNext)
+        val all = rec(xMerge, yMerge, widthNext)
+
+        val mid = all - high - low
+        (high << width) +^ (mid << width / 2) +^ low
+      }
+    }
+
+    val ret = rec(a, b, 378)
+    val resized = ret.resize(756)
+    val z = graph.addOutput(s"Mult377Z", ArithInfo(756, 0))
+    graph.addEdge(resized, z)
+    graph.toPng("karatsuba377")
+    graph
+  }
+
+  def buildKara96(x: RingPort, y: RingPort)(implicit dag: RingDag) = {
     val splitsA = (1 until 6).map(_ * 16).reverse
     val splitsB = (1 until 4).map(_ * 24).reverse
 
-    val aWords = a.split(splitsA).reverse // low to high
-    val bWords = b.split(splitsB).reverse // low to high
+    val aWords = x.split(splitsA).reverse // low to high
+    val bWords = y.split(splitsB).reverse // low to high
 
     val tiles = Seq.tabulate(6, 4) { (i, j) =>
       val (aWord, bWord) = (aWords(i), bWords(j))
@@ -36,20 +65,10 @@ object Karatsuba96 {
         val (high, mid, low) = aHigh.karaWith(aLow, bHigh, bLow) // high to low
         val posHigh = aPos0 + bPos1
         val posLow = aPos1 + bPos0
-        logger.info(s"pos $posHigh, $pos, $posLow")
-        assert(posHigh - pos == 48 && pos - posLow == 48)
         Seq((high, posHigh), (mid, pos), (low, posLow))
       }
 
     val ret = partials.sortBy(_._2).map { case (port, shift) => port << shift }.reduce(_ +^ _)
-    val resized = ret.resize(192)
-
-    val z = graph.addOutput(s"Mult96Z", ArithInfo(192, 0))
-    graph.addEdge(resized, z)
-
-    logger.info(graph.toString)
-    graph.toPng("kara96_before")
-    logger.info(s"karatsuba96 graph built")
-    graph
+    ret.resize(192)
   }
 }

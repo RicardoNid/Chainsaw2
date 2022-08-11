@@ -15,7 +15,7 @@ case class MultiplicationByDspConfig(mode: MultiplierMode)
   val baseWidth = mode match {
     case FULL => 32
     case FULL34 => 34
-    case HALF => 34
+    case HALFLOW => 34
     case SQUARE => 34
   }
 
@@ -25,7 +25,7 @@ case class MultiplicationByDspConfig(mode: MultiplierMode)
     val bigInts = dataIn.asInstanceOf[Seq[BigInt]]
     val prod = bigInts.product
     mode match {
-      case HALF => Seq(prod % (BigInt(1) << baseWidth))
+      case HALFLOW => Seq(prod % (BigInt(1) << baseWidth))
       case _ => Seq(prod)
     }
   }
@@ -36,7 +36,7 @@ case class MultiplicationByDspConfig(mode: MultiplierMode)
   override def latency = mode match {
     case FULL => 7
     case FULL34 => 7
-    case HALF => 6
+    case HALFLOW => 6
     case SQUARE => 5
   }
 
@@ -76,7 +76,7 @@ case class MultiplicationByDsp(config: MultiplicationByDspConfig) extends Transf
       val (high, mid, low) = (dsp0.d(4), adbc, dsp1.d(4))
       val ret = ((high @@ low) + (mid << opWidth)).d(1)
       ret
-    case HALF =>
+    case HALFLOW =>
       // 0-2
       val dsp0 = Dsp48.ab(b, c)
       val dsp0Low = dsp0.takeLow(opWidth).asUInt
@@ -116,7 +116,7 @@ case class MultiplicationByDsp(config: MultiplicationByDspConfig) extends Transf
 
   val defName = mode match {
     case FULL => "FullMult32"
-    case HALF => "LowMult34"
+    case HALFLOW => "LowMult34"
     case SQUARE => "SquareMult34"
   }
 

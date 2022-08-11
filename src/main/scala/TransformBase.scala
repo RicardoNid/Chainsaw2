@@ -1,5 +1,6 @@
 package org.datenlord
 
+import org.datenlord.xilinx.VivadoUtilRequirement
 import spinal.core.UInt
 
 abstract class TransformBase extends TransformConfig {
@@ -23,4 +24,6 @@ abstract class TransformBase extends TransformConfig {
   def getConfigWithFoldsChanged(spaceFold: Int, timeFold: Int): TransformBase = throw new IllegalArgumentException("this transform is not foldable")
 
   def flowFormat = MeshFormat(this, Repetition.unit, Reuse(1, 1, spaceFold, timeFold))
+
+  def utilRequirement = VivadoUtilRequirement()
 }

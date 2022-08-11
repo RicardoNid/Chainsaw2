@@ -1,76 +1,10 @@
 package org.datenlord
-package dfg
+package arithmetic
 
-import scala.collection.mutable.ArrayBuffer
-import arithmetic.MultplierMode._
+import arithmetic.MultplierMode.{FULL, HALFLOW, MultiplierMode, SQUARE}
+import dfg.{ArithInfo, RingDag, RingPort}
 
-
-import scala.collection.JavaConversions._
-
-object ArithmeticGraphs {
-
-  def addGraph(addWidth: Int, shift: Int, baseWidth: Int = 127) = {
-
-    val addGolden = (data: Seq[BigInt]) => Seq(data.sum)
-
-    implicit val graph: RingDag = new RingDag("pipelinedAdder", addGolden)
-    val x = graph.addInput("bigAddX", ArithInfo(addWidth, shift))
-    val y = graph.addInput("bigAddY", ArithInfo(addWidth, shift))
-    val z = graph.addOutput("bigAddZ", ArithInfo(addWidth + 1, shift))
-
-    val splitPoints = (0 until (addWidth - 1) / baseWidth).reverse.map(i => (i + 1) * baseWidth)
-    val xs = if (splitPoints.isEmpty) Seq(x) else x.split(splitPoints).reverse // low -> high
-    val ys = if (splitPoints.isEmpty) Seq(y) else y.split(splitPoints).reverse
-
-    require(xs.forall(_.width <= baseWidth))
-    require(ys.forall(_.width <= baseWidth))
-
-    val carries = ArrayBuffer[RingPort]()
-    val sums = ArrayBuffer[RingPort]()
-
-    xs.zip(ys).foreach { case (x, y) =>
-      val (carry, sum) =
-        if (carries.nonEmpty) x.+<(y, carries.last)
-        else x +< y
-      carries += carry
-      sums += sum
-    }
-
-    val ret = carries.last.merge(sums.reverse) // high -> low
-    graph.addEdge(ret, z)
-
-    graph
-  }
-
-  // this subtraction has no carry out, so make sure that when you use it for a - b, a is always greater than b
-  def subGraph(addWidth: Int, shift: Int, baseWidth: Int = 127) = {
-
-    val subGolden = (data: Seq[BigInt]) => Seq(data(0) - data(1))
-
-    implicit val graph: RingDag = new RingDag("pipelinedSubtractor", subGolden)
-    val x = graph.addInput("bigSubX", ArithInfo(addWidth, shift))
-    val y = graph.addInput("bigSubY", ArithInfo(addWidth, shift))
-    val z = graph.addOutput("bigSubZ", ArithInfo(addWidth + 1, shift))
-
-    val splitPoints = (0 until (addWidth - 1) / baseWidth).reverse.map(i => (i + 1) * baseWidth)
-    val xs = if (splitPoints.isEmpty) Seq(x) else x.split(splitPoints).reverse // low -> high
-    val ys = if (splitPoints.isEmpty) Seq(y) else y.split(splitPoints).reverse
-
-    val carries = ArrayBuffer[RingPort]()
-    val sums = ArrayBuffer[RingPort]()
-
-    xs.zip(ys).foreach { case (x, y) =>
-      val (carry, sum) =
-        if (carries.nonEmpty) x.-<(y, carries.last)
-        else x -< y
-      carries += carry
-      sums += sum
-    }
-
-    val ret = carries.last.merge(sums.reverse)
-    graph.addEdge(ret, z)
-    graph
-  }
+object Karatsuba {
 
   def karatsubaGraph(width: Int, shift: Int, mode: MultiplierMode, noWidthGrowth: Boolean = true) = {
 
@@ -189,50 +123,6 @@ object ArithmeticGraphs {
     val z = graph.addOutput(s"bigMultZ_$mode", ArithInfo(widthOut, shift))
     graph.addEdge(ret, z)
     logger.info(s"$mode mult graph built")
-    graph
-  }
-
-  // TODO: implement constant in graphs, remove input port for NPrime
-  def montgomeryGraph(width: Int, shift: Int, modulus: BigInt, square: Boolean = false, byLUT: Boolean = false) = {
-
-    require(modulus.bitLength <= width)
-
-    val R = BigInt(1) << modulus.bitLength
-    val RInverse = R.modInverse(modulus)
-
-    val montMultGolden = (data: Seq[BigInt]) => {
-      val Seq(x, y, modulus, nprime) = data
-      val ret = (x * y * RInverse) % modulus
-      Seq(ret)
-    }
-
-    val montSquareGolden = (data: Seq[BigInt]) => {
-      val Seq(x, modulus, nprime) = data
-      val ret = (x * x * RInverse) % modulus
-      Seq(ret)
-    }
-
-    val golden = if (square) montSquareGolden else montMultGolden
-
-    implicit val graph: RingDag = new RingDag("MontgomeryGraph", golden)
-    val x = graph.addInput("montX", ArithInfo(width, shift))
-    val y = if (!square) graph.addInput("montY", ArithInfo(width, shift)) else null
-    val modulusInput = graph.addInput("modulus", ArithInfo(width, shift))
-    val nprimeInput = graph.addInput("np", ArithInfo(width, shift))
-    val z = graph.addOutput("montRet", ArithInfo(width + 1, shift))
-
-    val T = if (!square) x *:* y else x bigSquare x
-    val TLow = T.resize(width)
-
-    val m = TLow *%:*% nprimeInput
-    val prod = m *:* modulusInput
-    val full = prod +:+^ T
-    val t = full.splitAt(width)._1
-
-
-    graph.addEdge(t, z)
-    logger.info(s"mont graph built")
-    println(graph.vertexSet().filter(_.inDegree == 0).mkString(" "))
     graph
   }
 

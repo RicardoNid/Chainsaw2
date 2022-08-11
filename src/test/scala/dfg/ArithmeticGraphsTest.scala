@@ -12,7 +12,6 @@ import scala.util.Random
 
 class ArithmeticGraphsTest extends AnyFlatSpec {
 
-  val genCount = 1
   val testCaseCount = 10000
   val complexTestCaseCount = 100
   val testWidth = 377
@@ -27,7 +26,7 @@ class ArithmeticGraphsTest extends AnyFlatSpec {
 
   def graphFull = ArithmeticGraphs.karatsubaGraph(testWidth, 0, FULL)
 
-  def graphLow = ArithmeticGraphs.karatsubaGraph(testWidth, 0, HALF)
+  def graphLow = ArithmeticGraphs.karatsubaGraph(testWidth, 0, HALFLOW)
 
   def graphSquare = ArithmeticGraphs.karatsubaGraph(testWidth, 0, SQUARE)
 
@@ -39,7 +38,7 @@ class ArithmeticGraphsTest extends AnyFlatSpec {
 
   def graphFullSmall = ArithmeticGraphs.karatsubaGraph(61, 0, FULL)
 
-  def graphLowSmall = ArithmeticGraphs.karatsubaGraph(61, 0, HALF)
+  def graphLowSmall = ArithmeticGraphs.karatsubaGraph(61, 0, HALFLOW)
 
   def graphSquareSmall = ArithmeticGraphs.karatsubaGraph(61, 0, SQUARE)
 
@@ -61,15 +60,16 @@ class ArithmeticGraphsTest extends AnyFlatSpec {
   }
   val montMetric = (yours: Seq[BigInt], golden: Seq[BigInt]) => yours.zip(golden).forall { case (x, y) => x % zprizeModulus == y % zprizeModulus }
 
-  "addGraph" should "work" in (0 until genCount).foreach(_ => TransformTest.test(graphAdd.toTransform, data))
-  "subGraph" should "work" in (0 until genCount).foreach(_ => TransformTest.test(graphSub.toTransform, data, subMetric))
+  "addGraph" should "work" in {
+    graphAdd.toPng("graphAddBefore")
+    graphAdd.toPng("graphAddAfter")
+    TransformTest.test(graphAdd.toTransform, data)
+  }
+  "subGraph" should "work" in TransformTest.test(graphSub.toTransform, data, subMetric)
 
-  "KaratsubaGraph" should "work for full multiplication on hardware" in (0 until genCount).foreach(_ =>
-    TransformTest.test(graphFull.toTransform, data))
-  it should "work for low-bit multiplication on hardware" in (0 until genCount).foreach(_ =>
-    TransformTest.test(graphLow.toTransform, data))
-  it should "work for square multiplication on hardware" in (0 until genCount).foreach(_ =>
-    TransformTest.test(graphSquare.toTransform, data.take(testCaseCount / 2).flatMap(d => Seq(d, d))))
+  "KaratsubaGraph" should "work for full multiplication on hardware" in TransformTest.test(graphFull.toTransform, data)
+  it should "work for low-bit multiplication on hardware" in TransformTest.test(graphLow.toTransform, data)
+  it should "work for square multiplication on hardware" in TransformTest.test(graphSquare.toTransform, data.take(testCaseCount / 2).flatMap(d => Seq(d, d)))
 
   it should "work for the toy case" in {
     println(s"data:${smallData(0)}, ${smallData(1)}")
@@ -77,11 +77,10 @@ class ArithmeticGraphsTest extends AnyFlatSpec {
     TransformTest.test(graphFullSmall.toTransform, smallData, name = "Small")
   }
 
-  "montgomeryGraph" should "work for modular multiplication on hardware" in (0 until genCount).foreach(_ =>
-    TransformTest.test(graphMontMult.toTransform, montTestData, montMetric))
-  it should "work for modular square multiplication on hardware" in (0 until genCount).foreach(_ =>
-    TransformTest.test(graphMontSquare.toTransform,
-      montTestData.grouped(4).toSeq.flatMap(group => Seq(group(0), group(2), group(3))), montMetric))
+  "montgomeryGraph" should "work for modular multiplication on hardware" in TransformTest.test(graphMontMult.toTransform, montTestData, montMetric)
+
+  it should "work for modular square multiplication on hardware" in TransformTest.test(graphMontSquare.toTransform,
+    montTestData.grouped(4).toSeq.flatMap(group => Seq(group(0), group(2), group(3))), montMetric)
 
 
 }

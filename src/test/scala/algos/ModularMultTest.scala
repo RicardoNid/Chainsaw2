@@ -8,7 +8,7 @@ class ModularMultTest extends AnyFlatSpec {
 
   Random.setSeed(41)
 
-  val lN = 8
+  val lN = 377
   val testCount = 1000
   val moduli = Random.nextBigInt(lN - 1) + (BigInt(1) << (lN - 1))
 
@@ -20,8 +20,12 @@ class ModularMultTest extends AnyFlatSpec {
   }
 
   "barrett algo" should "work" in {
-    as.zip(bs).foreach { case (a, b) => ModularMult.barrett(a, b, moduli, lN)}
+    val bound0 = as.zip(bs).map { case (a, b) => ModularMult.barrett(a, b, moduli, lN) }.max
+    logger.info(s"no-error passed with bound $bound0")
+    val bound1 = as.zip(bs).map { case (a, b) => ModularMult.barrett(a, b, moduli, lN, msbOnly = true)}.max
+    logger.info(s"error passed with bound: $bound1")
   }
+
 
   "hrmmm algo" should "work" in {
     as.zip(bs).foreach { case (a, b) => ModularMult.hrmmm(a, b, moduli, lN, 16) }

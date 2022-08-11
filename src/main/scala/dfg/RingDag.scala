@@ -31,7 +31,7 @@ class RingDag(name: String = "ring", val golden: Seq[BigInt] => Seq[BigInt])
 
   def breakBundles() = BreakBundles(this)
 
-  def mergePostAddition() = PostAdditionExtraction(this)
+  def mergePostAddition() = PostAdditionTreeOpt(this)
 
   /** get the graph prepared for hardware implementation
    *

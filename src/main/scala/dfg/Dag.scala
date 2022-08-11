@@ -163,17 +163,17 @@ class Dag[TSoft, THard <: Data](val name: String)
 
   def simplify() = Simplify(this)
 
-  def addGraphsAfter(source: Dag[TSoft, THard], starts: Seq[Port]): Seq[DagPort[TSoft, THard]] = {
-    require(source.inputs.length == starts.length)
+  def addGraphsAfter(sourceGraph: Dag[TSoft, THard], starts: Seq[Port]): Seq[DagPort[TSoft, THard]] = {
+    require(sourceGraph.inputs.length == starts.length)
     require(starts.forall(_.direction == Out))
     //    require(starts.forall(_.vertex.outDegree == 0))
     // add
-    Graphs.addGraph(this, source) // add all vertices and edges of that to this, but the edge weights won't be copied
-    source.edgeSet().foreach(e => setEdgeWeight(e, source.getEdgeWeight(e))) // copy the edge weights
+    Graphs.addGraph(this, sourceGraph) // add all vertices and edges of that to this, but the edge weights won't be copied
+    sourceGraph.edgeSet().foreach(e => setEdgeWeight(e, sourceGraph.getEdgeWeight(e))) // copy the edge weights
     // link
-    starts.zip(source.inputs).foreach { case (port, in) => addEdge(port, in.in(0)) }
+    starts.zip(sourceGraph.inputs).foreach { case (port, in) => addEdge(port, in.in(0)) }
     // return output ports of source graph, which are part of this graph now
-    source.outputs.map(_.out(0))
+    sourceGraph.outputs.map(_.out(0))
   }
 
   def addGraphBetween(source: Dag[TSoft, THard], starts: Seq[Port], ends: Seq[Port]): Unit = {

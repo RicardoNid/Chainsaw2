@@ -4,6 +4,7 @@ package algos
 import spinal.core._
 
 import scala.language.postfixOps
+import scala.util.Random
 
 object ModularMult { // all kinds of algorithm for modular multiplication
 
@@ -33,23 +34,38 @@ object ModularMult { // all kinds of algorithm for modular multiplication
     ret
   }
 
-  def barrett(x: BigInt, y: BigInt, M: BigInt, k: Int) = {
+  def barrett(x: BigInt, y: BigInt, M: BigInt, k: Int, msbOnly: Boolean = false) = {
     require(M.bitLength <= k)
     assert(M > (BigInt(1) << (k - 1)) && M < (BigInt(1) << k))
     val golden = (x * y) % M
-    // precomputation
+    // pre-computation
     val MPrime = (BigInt(1) << (2 * k)) / M
     // mults
     val N = x * y // mult0 k & k
-    val E = (MPrime * (N >> (k - 1))) >> (k + 1) // mult1 k+1 & k+1
-    val EM = (M * E).getLow(k + 2) // mult2 k+1 & k
+    // E is error-tolerant as we use EM in the following calculation
+    val error = {
+      // we take the upper bound of error, which equals the bits in a triangle
+      // TODO: with a known M and MPRIME, an accurate upper bound of error can be calculated
+      if (msbOnly) (1 to k + 1).map(w => BigInt(Seq.fill(w)('1').mkString(""), 2)).sum
+      else BigInt(0)
+    }
+    val E = (MPrime * (N >> (k - 1)) - error) >> (k + 1) // mult1 k+1 & k+1, take MSBs
+    val protect = 2
+    // mult2 k+1 & k, take LSBs
     // subs and fine reduction
-    val TFake = N.getLow(k + 2) - EM // sub0
-    val T = if (TFake < BigInt(0)) TFake + (BigInt(1) << (k + 2)) else TFake // unsigned subtraction
-    val sub1 = T - M
-    val sub2 = T - sub1
-    val ret = Seq(T, sub1, sub2).find(ret => ret >= BigInt(0) && ret < M).get
-    assert(ret == golden, s"$T, $golden")
+    // on hardware, T is the result of unsigned subtraction of these two operands, here, I do compensation for it
+    val T = N - E * M
+
+    assert(T >= golden)
+    assert(T % M == golden, s"${T % M}, $golden")
+
+    (T - golden) / M
+
+    //    // T and golden are congruent numbers, T >= golden, T - golden \in [0, YM), where Y depends on your datapath
+    //    val sub1 = T - M
+    //    val sub2 = T - sub1
+    //    val ret = Seq(T, sub1, sub2).find(ret => ret >= BigInt(0) && ret < M).get
+    //    assert(ret == golden, s"$T, $golden")
   }
 
   /** high-radix montgomery modular multiplication
