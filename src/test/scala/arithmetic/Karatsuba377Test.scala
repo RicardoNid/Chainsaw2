@@ -24,5 +24,4 @@ class Karatsuba377Test extends AnyFlatSpec {
     VivadoSynth(Karatsuba377().toTransform, "kara377synth").require(requirement377, 800 MHz)
     VivadoImpl(Karatsuba377().toTransform, "kara377impl").require(requirement377, 800 MHz)
   }
-
 }

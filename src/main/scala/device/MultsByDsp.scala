@@ -20,6 +20,12 @@ case class MultiplicationByDspConfig(mode: MultiplierMode)
   }
 
   val opWidth = baseWidth / 2
+  val widthOut= mode match {
+    case FULL => baseWidth * 2
+    case HALFLOW => baseWidth
+    case HALFHIGH => baseWidth
+    case SQUARE => baseWidth * 2
+  }
 
   override def impl(dataIn: Seq[Any]) = {
     val bigInts = dataIn.asInstanceOf[Seq[BigInt]]
@@ -50,7 +56,7 @@ case class MultiplicationByDsp(config: MultiplicationByDspConfig) extends Transf
 
   val dataIn = slave Flow Fragment(Vec(UInt(baseWidth bits), 2))
 
-  val dataOut = master Flow Fragment(Vec(UInt(baseWidth * 2 bits)))
+  val dataOut = master Flow Fragment(Vec(UInt(widthOut bits)))
 
   val Seq(x, y) = dataIn.fragment
   val Seq(a, b) = x.subdivideIn(2 slices).reverse // xHigh, xLow
@@ -123,7 +129,7 @@ case class MultiplicationByDsp(config: MultiplicationByDspConfig) extends Transf
 
   setDefinitionName(defName)
 
-  dataOut.fragment := Vec(ret.resize(baseWidth * 2))
+  dataOut.fragment := Vec(ret.resize(widthOut))
   autoValid()
   autoLast()
 

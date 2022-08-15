@@ -15,9 +15,9 @@ object BreakBundles {
     implicit val refDag: RingDag = ringDag
 
     def getCandidates: Seq[(RingVertex, RingVertex)] = ringDag.vertexSet().toSeq
-      .filter(_.opType == Merge)
+      .filter(_.opType == MERGE)
       .filter(_.targets.length == 1)
-      .filter(_.targets.head.opType == Split)
+      .filter(_.targets.head.opType == SPLIT)
       .map(merge => (merge, merge.targets.head)) // merge-split
       .asInstanceOf[Seq[(RingVertex, RingVertex)]]
 

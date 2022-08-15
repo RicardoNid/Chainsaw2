@@ -78,6 +78,7 @@ object Dsp48 {
   }
 }
 
+// TODO: Merge this in MultiplicationByDspConfig
 case class KaraBaseConfig() extends TransformBase {
   override def impl(dataIn: Seq[Any]) = {
     val Seq(aHigh, aLow, bHigh, bLow) = dataIn.asInstanceOf[Seq[BigInt]]
@@ -89,11 +90,6 @@ case class KaraBaseConfig() extends TransformBase {
   override def latency = 5
 
   override def implH = KaraBase(this)
-
-  def op: Seq[UInt] => Seq[UInt] = (dataIn: Seq[UInt]) => {
-    val Seq(aHigh, aLow, bHigh, bLow) = dataIn
-    Dsp48.karaBase(aHigh, aLow, bHigh, bLow)
-  }
 }
 
 case class KaraBase(config: KaraBaseConfig) extends TransformModule[UInt, UInt] {

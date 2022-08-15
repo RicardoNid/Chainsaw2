@@ -43,7 +43,7 @@ case class RingPort(override val vertex: RingVertex, override val order: Int, ov
   def addSubBase(that: RingPort, carry: RingPort = null, opType: OpType)(implicit dag: RingDag): (RingPort, RingPort) = {
     val infosIn = if (carry != null) Seq(width, that.width, carry.width) else Seq(width, that.width)
     val name = if (opType == BASEADD) "+<" else "-<"
-    val vertex = BaseAddSubVertex(name, opType, infosIn)
+    val vertex = BaseBinaryAddSubVertex(name, opType, infosIn)
     dag.addVertexWithDrivers(vertex, this, that)
     if (carry != null) dag.addEdge(carry, vertex.in(2))
     (vertex.out(0), vertex.out(1))
@@ -97,7 +97,7 @@ case class RingPort(override val vertex: RingVertex, override val order: Int, ov
 
   def mult(a: RingPort, b: RingPort, opType: OpType)(implicit dag: RingDag) = {
     require(a.direction == Out & b.direction == Out)
-    val multVertex = MultVertex(s"*", opType, Seq(a.width, b.width))
+    val multVertex = BaseMultVertex(s"*", opType, Seq(a.width, b.width))
     dag.addVertex(multVertex)
     dag.addEdge(a, multVertex.in(0))
     dag.addEdge(b, multVertex.in(1))
@@ -105,7 +105,7 @@ case class RingPort(override val vertex: RingVertex, override val order: Int, ov
   }
 
   def karaWith(b: RingPort, c: RingPort, d: RingPort)(implicit dag: RingDag) = {
-    val karaVertex = KaraVertex(s"kara", Seq(this, b, c, d).map(_.width))
+    val karaVertex = BaseKaraVertex(s"kara", Seq(this, b, c, d).map(_.width))
     dag.addVertexWithDrivers(karaVertex, this, b, c, d)
     (karaVertex.out(0), karaVertex.out(1), karaVertex.out(2))
   }

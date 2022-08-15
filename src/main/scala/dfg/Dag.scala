@@ -13,7 +13,7 @@ import scala.collection.mutable.ArrayBuffer
 
 object OpType extends Enumeration {
   val Var = Value // variable (opposite to operation)
-  val FullMult, LowMult, SquareMult, BASEADD, BASESUB, ADD, SUB, ADDC, SUBC, Merge, Split, RESIZE, MUX, AND, SHIFT, COMPRESS, KARA = Value // Ring operations
+  val FullMult, LowMult, SquareMult, BASEADD, BASESUB, ADD, SUB, ADDC, SUBC, MERGE, SPLIT, RESIZE, MUX, AND, SHIFT, COMPRESS, KARA = Value // Ring operations
   type OpType = Value
 }
 
