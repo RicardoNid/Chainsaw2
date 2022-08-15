@@ -19,9 +19,9 @@ class Karatsuba377Test extends AnyFlatSpec {
     TransformTest.test(Karatsuba377().toTransform, data378)
   }
 
-  ignore should "synth" in {
-    val requirement377 = VivadoUtilRequirement(dsp = 162, lut = 20000)
-    VivadoSynth(Karatsuba377().toTransform, "kara377synth").require(requirement377, 800 MHz)
+  it should "synth" in {
+    val requirement377 = VivadoUtilRequirement(dsp = 162, lut = 30000)
+    //    VivadoSynth(Karatsuba377().toTransform, "kara377synth").require(requirement377, 800 MHz)
     VivadoImpl(Karatsuba377().toTransform, "kara377impl").require(requirement377, 800 MHz)
   }
 }

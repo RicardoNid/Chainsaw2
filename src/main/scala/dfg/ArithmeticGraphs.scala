@@ -9,29 +9,34 @@ import scala.collection.JavaConversions._
 
 object ArithmeticGraphs {
 
-  def addGraph(addWidth: Int, baseWidth: Int = 127) = {
+  /** used to replace too long add/sub with pipelined add/sub
+   *
+   * the subtraction has no carry out, so make sure that when you use it for a - b, a is always greater than b
+   */
+  def addSubGraph(width: Int, isAdd: Boolean): RingDag = {
+    val golden = (data: Seq[BigInt]) => if (isAdd) Seq(data.sum) else Seq(data.head - data.last)
+    implicit val graph: RingDag = new RingDag("pipelinedSubg", golden)
+    val widthOut = width + 1
 
-    val addGolden = (data: Seq[BigInt]) => Seq(data.sum)
+    // I/Os
+    val x = graph.addInput("X", width)
+    val y = graph.addInput("Y", width)
+    val z = graph.addOutput("Z", widthOut)
 
-    implicit val graph: RingDag = new RingDag("pipelinedAdder", addGolden)
-    val x = graph.addInput("bigAddX", addWidth)
-    val y = graph.addInput("bigAddY", addWidth)
-    val z = graph.addOutput("bigAddZ", addWidth + 1)
-
-    val splitPoints = (0 until (addWidth - 1) / baseWidth).reverse.map(i => (i + 1) * baseWidth)
+    val splitPoints = (0 until (width - 1) / binaryAddLimit).reverse.map(i => (i + 1) * binaryAddLimit)
     val xs = if (splitPoints.isEmpty) Seq(x) else x.split(splitPoints).reverse // low -> high
     val ys = if (splitPoints.isEmpty) Seq(y) else y.split(splitPoints).reverse
 
-    require(xs.forall(_.width <= baseWidth))
-    require(ys.forall(_.width <= baseWidth))
+    require(xs.forall(_.width <= binaryAddLimit))
+    require(ys.forall(_.width <= binaryAddLimit))
 
+    // start building graph
     val carries = ArrayBuffer[RingPort]()
     val sums = ArrayBuffer[RingPort]()
-
     xs.zip(ys).foreach { case (x, y) =>
       val (carry, sum) =
-        if (carries.nonEmpty) x.+<(y, carries.last)
-        else x +< y
+        if (isAdd) if (carries.nonEmpty) x.+<(y, carries.last) else x +< y
+        else if (carries.nonEmpty) x.-<(y, carries.last) else x -< y
       carries += carry
       sums += sum
     }
@@ -42,46 +47,20 @@ object ArithmeticGraphs {
     graph
   }
 
-  // this subtraction has no carry out, so make sure that when you use it for a - b, a is always greater than b
-  def subGraph(addWidth: Int, baseWidth: Int = 127) = {
+  def addGraph(addWidth: Int) = addSubGraph(addWidth, isAdd = true)
 
-    val subGolden = (data: Seq[BigInt]) => Seq(data(0) - data(1))
+  def subGraph(addWidth: Int): RingDag = addSubGraph(addWidth, isAdd = false)
 
-    implicit val graph: RingDag = new RingDag("pipelinedSubtractor", subGolden)
-    val x = graph.addInput("bigSubX", addWidth)
-    val y = graph.addInput("bigSubY", addWidth)
-    val z = graph.addOutput("bigSubZ", addWidth + 1)
-
-    val splitPoints = (0 until (addWidth - 1) / baseWidth).reverse.map(i => (i + 1) * baseWidth)
-    val xs = if (splitPoints.isEmpty) Seq(x) else x.split(splitPoints).reverse // low -> high
-    val ys = if (splitPoints.isEmpty) Seq(y) else y.split(splitPoints).reverse
-
-    val carries = ArrayBuffer[RingPort]()
-    val sums = ArrayBuffer[RingPort]()
-
-    xs.zip(ys).foreach { case (x, y) =>
-      val (carry, sum) =
-        if (carries.nonEmpty) x.-<(y, carries.last)
-        else x -< y
-      carries += carry
-      sums += sum
-    }
-
-    val ret = carries.last.merge(sums.reverse)
-    graph.addEdge(ret, z)
-    graph
-  }
-
-  def karatsubaGraph(width: Int,  mode: MultiplierMode, noWidthGrowth: Boolean = true) = {
+  def karatsubaGraph(width: Int, mode: MultiplierMode, noWidthGrowth: Boolean = true) = {
 
     val useCompressorTree = true
 
-    val baseWidth = 32
+    val binaryAddLimit = 32
     val stageRule = (x: Int) => if (noWidthGrowth) 2 * x else 2 * (x - 1)
-    logger.info(s"stages: ${Seq.iterate(baseWidth, 10)(stageRule).mkString(" ")} ")
+    logger.info(s"stages: ${Seq.iterate(binaryAddLimit, 10)(stageRule).mkString(" ")} ")
 
     def getSplit(width: Int) = {
-      val bound = Seq.iterate(baseWidth, 10)(stageRule).filter(_ < width).last
+      val bound = Seq.iterate(binaryAddLimit, 10)(stageRule).filter(_ < width).last
       if (noWidthGrowth) bound else bound - 1
     }
 
@@ -101,7 +80,7 @@ object ArithmeticGraphs {
 
     def recursiveTask(width: Int, x: RingPort, y: RingPort, mode: MultiplierMode): RingPort = {
 
-      val ret = if (width <= baseWidth) x.mult(y, mode)
+      val ret = if (width <= binaryAddLimit) x.mult(y, mode)
       else {
         val lowWidth = getSplit(width)
         val crossWidth = lowWidth
@@ -193,7 +172,7 @@ object ArithmeticGraphs {
   }
 
   // TODO: implement constant in graphs, remove input port for NPrime
-  def montgomeryGraph(width: Int,  modulus: BigInt, square: Boolean = false, byLUT: Boolean = false) = {
+  def montgomeryGraph(width: Int, modulus: BigInt, square: Boolean = false, byLUT: Boolean = false) = {
 
     require(modulus.bitLength <= width)
 

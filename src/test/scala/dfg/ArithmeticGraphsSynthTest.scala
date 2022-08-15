@@ -11,9 +11,9 @@ class ArithmeticGraphsSynthTest extends AnyFlatSpec {
   val testWidth = 377
   val zprizeModulus = algos.ZPrizeMSM.baseModulus
 
-  def graphAdd = ArithmeticGraphs.addGraph(testWidth, 0)
+  def graphAdd = ArithmeticGraphs.addGraph(testWidth)
 
-  def graphSub = ArithmeticGraphs.subGraph(testWidth, 0)
+  def graphSub = ArithmeticGraphs.subGraph(testWidth)
 
   def graphFull0 = ArithmeticGraphs.karatsubaGraph(testWidth, FULL, noWidthGrowth = false)
 
