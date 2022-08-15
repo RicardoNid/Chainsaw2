@@ -1,6 +1,7 @@
 package org.datenlord
 package dfg
 
+import org.datenlord.arithmetic.MultplierMode._
 import org.jgrapht._
 import org.jgrapht.alg.shortestpath.FloydWarshallShortestPaths
 import org.jgrapht.graph._
@@ -13,8 +14,17 @@ import scala.collection.mutable.ArrayBuffer
 
 object OpType extends Enumeration {
   val Var = Value // variable (opposite to operation)
-  val FullMult, LowMult, SquareMult, BASEADD, BASESUB, ADD, SUB, ADDC, SUBC, MERGE, SPLIT, RESIZE, MUX, AND, SHIFT, COMPRESS, KARA = Value // Ring operations
+  val FullMult, LowMult, HighMult, SquareMult, BASEADD, BASESUB, ADD, SUB, ADDC, SUBC, MERGE, SPLIT, RESIZE, MUX, AND, SHIFT, COMPRESS, KARA = Value // Ring operations
   type OpType = Value
+
+  def fromMultMode(mode:MultiplierMode) = {
+    mode match {
+      case FULL => FullMult
+      case HALFLOW => LowMult
+      case HALFHIGH => HighMult
+      case SQUARE => SquareMult
+    }
+  }
 }
 
 object Direction extends Enumeration {

@@ -5,7 +5,7 @@ package dfg
  * implement all kinds of different vertices
  * -------- */
 
-import arithmetic.MultplierMode.{FULL, HALFLOW, SQUARE}
+import arithmetic.MultplierMode._
 import device.MultiplicationByDspConfig
 import dfg.Direction.{In, Out}
 import dfg.OpType._
@@ -45,42 +45,6 @@ class RingVertex
  * base operators which have optimized implementation for Xilinx Ultrascale
  * -------- */
 
-/** mult nodes which consume one or several dsp slices
- *
- */
-object BaseMultVertex {
-  // TODO: implement mult for HALFHIGH
-  def apply(name: String, opType: OpType, widthsIn: Seq[Int]): RingVertex = {
-    val config = opType match {
-      case FullMult => MultiplicationByDspConfig(FULL)
-      case LowMult => MultiplicationByDspConfig(HALFLOW)
-      case SquareMult => MultiplicationByDspConfig(SQUARE)
-    }
-    require(widthsIn.forall(_ <= config.baseWidth))
-    val widthOut = config.widthOut
-    val latency = config.latency
-    val implH = (data: Seq[UInt]) => {
-      val seq = config.implH.asNode.apply(data.map(_.resized))
-      Seq(seq.head.resize(widthOut)) // as the multiplier by dsp has a fixed width, resize is required
-    }
-    new RingVertex(name, latency, implH, opType, widthsIn, Seq(widthOut))
-  }
-}
-
-/** implementation of karatsuba pattern on DSP slice, with optimization for DSP48E2, this is not exposed to the user
- *
- */
-object BaseKaraVertex {
-  def apply(name: String, widthsIn: Seq[Int]) = {
-    val config = device.KaraBaseConfig()
-    val implH = (data: Seq[UInt]) => config.implH.asNode.apply(data.map(_.resized))
-    val Seq(w0, w1, w2, w3) = widthsIn
-    val widthsOut = Seq(w0 + w2, w0 + w2 + 1, w1 + w3)
-    logger.info(s"vertex with ${w0 + w2}, ${w0 + w2 + 1}, ${w1 + w3}")
-    new RingVertex(s"$name", 5, implH, KARA, widthsIn, widthsOut)
-  }
-}
-
 /** binary add/sub with carryIn and carryOut and limited width, which can be used to build pipelined long add/sub, this is not exposed to the user
  */
 object BaseBinaryAddSubVertex {
@@ -99,6 +63,40 @@ object BaseBinaryAddSubVertex {
       Seq(ret.d(latency).msb.asUInt, ret.d(latency).takeLow(ret.getBitsWidth - 1).asUInt)
     }
     new RingVertex(name, latency, implH, opType, widthsIn, widthsOut)
+  }
+}
+
+/** mult nodes which consume one or several dsp slices
+ *
+ */
+object BaseMultVertex {
+  // TODO: implement mult for HALFHIGH
+  def apply(name: String, mode: MultiplierMode, widthsIn: Seq[Int]): RingVertex = {
+    val config = MultiplicationByDspConfig(mode)
+    require(widthsIn.forall(_ <= config.baseWidth))
+    val widthOut = config.widthOut
+    val latency = config.latency
+    val implH = (data: Seq[UInt]) => {
+      val seq = config.implH.asNode.apply(data.map(_.resized))
+      Seq(seq.head.resize(widthOut)) // as the multiplier by dsp has a fixed width, resize is required
+    }
+    new RingVertex(name, latency, implH, OpType.fromMultMode(mode), widthsIn, Seq(widthOut))
+  }
+}
+
+// TODO: Merge this with mults
+
+/** implementation of karatsuba pattern on DSP slice, with optimization for DSP48E2, this is not exposed to the user
+ *
+ */
+object BaseKaraVertex {
+  def apply(name: String, widthsIn: Seq[Int]) = {
+    val config = device.KaraBaseConfig()
+    val implH = (data: Seq[UInt]) => config.implH.asNode.apply(data.map(_.resized))
+    val Seq(w0, w1, w2, w3) = widthsIn
+    val widthsOut = Seq(w0 + w2, w0 + w2 + 1, w1 + w3)
+    logger.info(s"vertex with ${w0 + w2}, ${w0 + w2 + 1}, ${w1 + w3}")
+    new RingVertex(s"$name", 5, implH, KARA, widthsIn, widthsOut)
   }
 }
 
@@ -134,25 +132,25 @@ object AddSubVertex {
  */
 object MultVertex {
   // TODO: implement mult for HALFHIGH
-  def apply(name: String, opType: OpType, widthsIn: Seq[Int]): RingVertex = {
+  def apply(name: String, mode: MultiplierMode, widthsIn: Seq[Int]): RingVertex = {
     val widthOut = widthsIn.sum
     val latency = 1
     val implH = (data: Seq[UInt]) => {
       val prod = data.reduce(_ * _)
-      val ret = opType match {
-        case FullMult => prod
-        case LowMult => prod.takeLow((widthOut+1) / 2).asUInt
-        case SquareMult => prod
+      val ret = mode match {
+        case FULL => prod
+        case HALFLOW => prod.takeLow((widthOut + 1) / 2).asUInt
+        case SQUARE => prod
       }
       Seq(ret.d(1))
     }
-    new RingVertex(name, latency, implH, opType, widthsIn, Seq(widthOut))
+    new RingVertex(name, latency, implH, OpType.fromMultMode(mode), widthsIn, Seq(widthOut))
   }
 }
 
 /** --------
  * simple operators
- -------- */
+ * -------- */
 
 // TODO: change the implementation to low to high pattern(input and output)
 object SplitVertex {

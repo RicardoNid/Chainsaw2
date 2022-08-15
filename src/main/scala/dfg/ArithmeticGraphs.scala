@@ -101,7 +101,7 @@ object ArithmeticGraphs {
 
     def recursiveTask(width: Int, x: RingPort, y: RingPort, mode: MultiplierMode): RingPort = {
 
-      val ret = if (width <= baseWidth) x.multByMode(y, mode)
+      val ret = if (width <= baseWidth) x.mult(y, mode)
       else {
         val lowWidth = getSplit(width)
         val crossWidth = lowWidth
