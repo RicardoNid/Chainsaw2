@@ -17,8 +17,8 @@ case class DcFifoTest() extends Component {
   pll.setDefinitionName("Pll4to1")
   pll.refclk := adc_clk
   pll.rst := ~rstn
-  val clkSlow = pll.outclk.head
-  val clkFast = pll.outclk.last
+  val clkSlow = pll.outclks.head
+  val clkFast = pll.outclks.last
 
   val domainFast = ClockDomain(clock = clkFast, reset = rstn, config = dasClockConfig)
   val domainSlow = ClockDomain(clock = clkSlow, reset = rstn, config = dasClockConfig)

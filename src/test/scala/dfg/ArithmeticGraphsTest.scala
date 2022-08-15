@@ -18,7 +18,6 @@ class ArithmeticGraphsTest extends AnyFlatSpec {
   Random.setSeed(42)
   val data = (0 until testCaseCount * 2).map(_ => Random.nextBigInt(testWidth))
 
-
   // get a brand new graph every time we need it
   def graphAdd = ArithmeticGraphs.addGraph(testWidth, 0)
 

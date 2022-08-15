@@ -71,6 +71,7 @@ object ModularMult { // all kinds of algorithm for modular multiplication
   /** high-radix montgomery modular multiplication
    */
   def hrmmm(x: BigInt, y: BigInt, N: BigInt, lN: Int, wordWidth: Int): BigInt = {
+    // TODO: add the paper citation in comment
     require(N.bitLength <= lN)
     val wordCount = lN / wordWidth
     val radix = BigInt(1) << wordWidth
@@ -84,7 +85,8 @@ object ModularMult { // all kinds of algorithm for modular multiplication
     // get words
     val NBarWords = {
       val temp = NBar.toWords(wordWidth)
-      require(temp.length <= wordCount + 1)
+      // TODO: find out why I wrote this requirement
+      //      require(temp.length <= wordCount + 1)
       temp.padToLeft(wordCount + 1, BigInt(0))
     }
     val xWords = {

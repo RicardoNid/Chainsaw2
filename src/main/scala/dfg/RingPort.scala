@@ -15,7 +15,7 @@ import scala.collection.immutable
  * @param order output order of the vertex, the specific output variable is specified by this parameter
  */
 case class RingPort(override val vertex: RingVertex, override val order: Int, override val direction: Direction)
-  extends DagPort[BigInt, UInt](vertex, order, direction) {
+  extends DagPort[UInt](vertex, order, direction) {
 
   def info = vertex.infosOut(order)
 
@@ -199,5 +199,5 @@ case class RingPort(override val vertex: RingVertex, override val order: Int, ov
 }
 
 object RingPort {
-  def fromDagPort(dagPort: DagPort[BigInt, UInt]) = RingPort(dagPort.vertex.asInstanceOf[RingVertex], dagPort.order, dagPort.direction)
+  def fromDagPort(dagPort: DagPort[UInt]) = RingPort(dagPort.vertex.asInstanceOf[RingVertex], dagPort.order, dagPort.direction)
 }

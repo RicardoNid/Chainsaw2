@@ -4,15 +4,17 @@ package ip.das
 import spinal.core._
 import spinal.lib._
 
+import scala.language.postfixOps
+
 case class SignalPro() extends Component {
 
-  val clkPro, rstn = in Bool()
+  val clkRef, rstn = in Bool()
   val dataIn = in Bits (14 bits)
   val userInterface = slave(HostInterface(14))
   val gain = out UInt(6 bits)
 
   val domainPro = ClockDomain(
-    clock = clkPro, reset = rstn, config = dasClockConfig,
+    clock = clkRef, reset = rstn, config = dasClockConfig,
     frequency = FixedFrequency(250 MHz)
   )
 

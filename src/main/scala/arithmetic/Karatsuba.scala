@@ -6,7 +6,7 @@ import dfg.{ArithInfo, RingDag, RingPort}
 
 object Karatsuba {
 
-  def karatsubaGraph(width: Int, shift: Int, mode: MultiplierMode, noWidthGrowth: Boolean = true) = {
+  def apply(width: Int, shift: Int, mode: MultiplierMode, noWidthGrowth: Boolean = true) = {
 
     val useCompressorTree = true
 

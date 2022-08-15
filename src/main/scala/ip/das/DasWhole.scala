@@ -5,6 +5,7 @@ import spinal.core._
 
 case class DasWhole() extends Component {
 
+  // pins on board
   // ADC相关
   val adc_clk = in Bool() // 250MHz
   val rstn = in Bool()
@@ -34,10 +35,10 @@ case class DasWhole() extends Component {
   p2sA.clkRef := signalAcq.clkOut
   p2sA.dataIns.zip(signalAcq.dout_a).foreach{ case (port, data) => port := data.asBits}
   // P2S -> signalPro
-  signalPro.clkPro := p2sA.clkOut
+  signalPro.clkRef := p2sA.clkOut
   signalPro.dataIn := p2sA.dataOut
   // signalPro -> Host
-  host.clkPro := p2sA.clkOut
+  host.clkRef := p2sA.clkOut
   signalPro.userInterface <> host.hostInterface
 
   setDefinitionName("xillydemo")

@@ -1,7 +1,6 @@
 package org.datenlord
 
-import org.datenlord.xilinx.VivadoUtilRequirement
-import spinal.core.UInt
+import xilinx.{VivadoUtil, VivadoUtilRequirement}
 
 abstract class TransformBase extends TransformConfig {
 
@@ -25,5 +24,6 @@ abstract class TransformBase extends TransformConfig {
 
   def flowFormat = MeshFormat(this, Repetition.unit, Reuse(1, 1, spaceFold, timeFold))
 
-  def utilRequirement = VivadoUtilRequirement()
+  // util estimation of the transform, it is not set by default
+  def utilRequirement: VivadoUtil = VivadoUtilRequirement()
 }

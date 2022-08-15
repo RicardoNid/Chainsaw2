@@ -38,6 +38,7 @@ package object xilinx {
   val u250 = XilinxDevice(UltraScale, "XCU250-LFIGD2104-2-E".toLowerCase, 800 MHz)
 
   val defaultDevice = vu9p
+  val defaultDeviceFamily = defaultDevice.family
   val defaultVivadoPath = "/tools/Xilinx/Vivado/2021.1/bin"
 
 }

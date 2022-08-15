@@ -43,7 +43,7 @@ case class LvdsWithPcie() extends Component {
   clkSlow, // 62.5MHz
   clkParallel, // 62.5MHz
   clkFast1 // 500MHz
-  ) = pll.outclk
+  ) = pll.outclks
 
   val xillybus = Xillybus(Seq(device0, device1))
 

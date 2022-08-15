@@ -23,22 +23,37 @@ case class HostInterface(width: Int) extends Bundle with IMasterSlave {
   }
 }
 
+/** connection with host (via xillybus IP)
+ *
+ */
 case class Host() extends Component {
 
-  val clkPro, rstn = in Bool()
+  // TODO: write a cross-clockdomain template in IDEA
+  val clkRef, rstn = in Bool()
   val hostInterface = master(HostInterface(14))
   val pcieInterface = PcieBundle()
 
   val device0 = XillybusDevice("read_32", "fifo", "read", 32)
   val device1 = XillybusDevice("ctrl", "mem", "write", 8, 5)
   val xillybus = Xillybus(Seq(device0, device1))
+
+//  val info0 = XillybusDevice("info_0_8", "fifo", "read", 8) // 1MB/s
+//  val info1 = XillybusDevice("info_1_8", "fifo", "read", 8) // 1MB/s
+//  val adc0 = XillybusDevice("adc_0_16", "fifo", "read", 16) // 100MB/s
+//  val adc1 = XillybusDevice("adc_1_16", "fifo", "read", 16) // 100MB/s
+//  val ctrl = XillybusDevice("ctrl_8", "mem", "write", 8, 5) // 0.1MB/s
+//  val write = XillybusDevice("write_16", "fifo", "write", 16) // 10MB/s
+//  val devices  = Seq(adc0, adc1, info0, info1, ctrl,  write)
+
   xillybus.pcie <> pcieInterface
 
+  // fifos
   val fifo = AlteraFIFO(32)
   fifo.setDefinitionName("PCIeFIFO")
 
+  // data processing domain
   val proDomain = ClockDomain(
-    clock = clkPro, reset = rstn, config = dasClockConfig,
+    clock = clkRef, reset = rstn, config = dasClockConfig,
     frequency = FixedFrequency(125 * processFactor MHz)
   )
 
@@ -55,7 +70,7 @@ case class Host() extends Component {
 
     val dataWithParity = RegNext(hostInterface.data) ## hostInterface.data ## parity.asBits
 
-    fifo.wrclk := clkPro
+    fifo.wrclk := clkRef
     fifo.wrreq := validCounter.willOverflow
     fifo.data := RegNext(dataWithParity)
   }

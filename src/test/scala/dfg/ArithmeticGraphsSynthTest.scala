@@ -34,14 +34,14 @@ class ArithmeticGraphsSynthTest extends AnyFlatSpec {
   behavior of "arithmetic graphs"
 
   //  it should "synth for full with width growth" in VivadoSynth(graphFull0.toTransform, "graphFull0")
-  it should "synth for full without width growth" in VivadoSynth(graphFull1.toTransform, "graphFull1")
-  it should "impl for full without width growth" in VivadoImpl(graphFull1.toTransform, "graphFull1")
+  ignore should "synth for full without width growth" in VivadoSynth(graphFull1.toTransform, "graphFull1")
+  ignore should "impl for full without width growth" in VivadoImpl(graphFull1.toTransform, "graphFull1")
   //  it should "synth for low with width growth" in VivadoSynth(graphLow0.toTransform, "graphLow0")
-  it should "synth for low without width growth" in VivadoSynth(graphLow1.toTransform, "graphLow1")
-  it should "impl for low without width growth" in VivadoImpl(graphLow1.toTransform, "graphLow1")
+  ignore should "synth for low without width growth" in VivadoSynth(graphLow1.toTransform, "graphLow1")
+  ignore should "impl for low without width growth" in VivadoImpl(graphLow1.toTransform, "graphLow1")
   //  it should "synth for square with width growth" in VivadoSynth(graphSquare0.toTransform, "graphSquare0")
-  it should "synth for square without width growth" in VivadoSynth(graphSquare1.toTransform, "graphSquare1")
-  it should "impl for square without width growth" in VivadoImpl(graphSquare1.toTransform, "graphSquare1")
+  ignore should "synth for square without width growth" in VivadoSynth(graphSquare1.toTransform, "graphSquare1")
+  ignore should "impl for square without width growth" in VivadoImpl(graphSquare1.toTransform, "graphSquare1")
   ignore should "synth for mont mult" in VivadoSynth(graphMontMult.toTransform, "graphModularMult")
   ignore should "synth for mont square" in VivadoSynth(graphMontSquare.toTransform, "graphModularSquare")
 

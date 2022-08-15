@@ -8,17 +8,17 @@ import spinal.lib.fsm._
 
 class DagEdge(val inOrder: Int, val outOrder: Int) {
 
-  def source[TSoft, THard <: Data](implicit ref: Dag[TSoft, THard]) = ref.getEdgeSource(this)
+  def source[ THard <: Data](implicit ref: Dag[ THard]) = ref.getEdgeSource(this)
 
-  def sourcePort[TSoft, THard <: Data](implicit ref: Dag[TSoft, THard]) = ref.getEdgeSource(this).out(outOrder)
+  def sourcePort[ THard <: Data](implicit ref: Dag[ THard]) = ref.getEdgeSource(this).out(outOrder)
 
-  def target[TSoft, THard <: Data](implicit ref: Dag[TSoft, THard]) = ref.getEdgeTarget(this)
+  def target[ THard <: Data](implicit ref: Dag[ THard]) = ref.getEdgeTarget(this)
 
-  def targetPort[TSoft, THard <: Data](implicit ref: Dag[TSoft, THard]) = ref.getEdgeTarget(this).in(inOrder)
+  def targetPort[ THard <: Data](implicit ref: Dag[ THard]) = ref.getEdgeTarget(this).in(inOrder)
 
-  def weight[TSoft, THard <: Data](implicit ref: Dag[TSoft, THard]) = ref.getEdgeWeight(this)
+  def weight[ THard <: Data](implicit ref: Dag[ THard]) = ref.getEdgeWeight(this)
 
-  def toStringInGraph[TSoft, THard <: Data](implicit ref: Dag[TSoft, THard]): String =
+  def toStringInGraph[ THard <: Data](implicit ref: Dag[ THard]): String =
     s"$source -> $weight -> $target"
 
   override def toString = ""

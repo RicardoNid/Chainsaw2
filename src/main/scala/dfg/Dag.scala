@@ -29,20 +29,20 @@ import dfg.OpType._
  *
  */
 object VarVertex {
-  def apply[TSoft, THard <: Data](name: String) =
-    new DagVertex(name, 0, Var, (data: Seq[TSoft]) => data, (data: Seq[THard]) => data)
+  def apply[THard <: Data](name: String) =
+    new DagVertex(name, 0, Var,  (data: Seq[THard]) => data)
 }
 
-class DagPort[TSoft, THard <: Data](val vertex: DagVertex[TSoft, THard], val order: Int, val direction: Direction)
+class DagPort[THard <: Data](val vertex: DagVertex[THard], val order: Int, val direction: Direction)
 
 object DagPort {
-  def apply[TSoft, THard <: Data](vertex: DagVertex[TSoft, THard], order: Int, direction: Direction): DagPort[TSoft, THard] = new DagPort(vertex, order, direction)
+  def apply[THard <: Data](vertex: DagVertex[THard], order: Int, direction: Direction): DagPort[THard] = new DagPort(vertex, order, direction)
 }
 
-class Dag[TSoft, THard <: Data](val name: String)
-  extends DirectedWeightedMultigraph[DagVertex[TSoft, THard], DagEdge](classOf[DagEdge]) {
+class Dag[THard <: Data](val name: String)
+  extends DirectedWeightedMultigraph[DagVertex[THard], DagEdge](classOf[DagEdge]) {
 
-  implicit val ref: Dag[TSoft, THard] = this
+  implicit val ref: Dag[THard] = this
 
   setEdgeSupplier(new Supplier[E] {
     override def get() = {
@@ -52,9 +52,9 @@ class Dag[TSoft, THard <: Data](val name: String)
     }
   })
 
-  type V = DagVertex[TSoft, THard]
+  type V = DagVertex[THard]
   type E = DagEdge
-  type Port = DagPort[TSoft, THard]
+  type Port = DagPort[THard]
 
   val inputs = ArrayBuffer[V]()
   val outputs = ArrayBuffer[V]()
@@ -100,70 +100,13 @@ class Dag[TSoft, THard <: Data](val name: String)
     this
   }
 
-  def implH: Seq[THard] => Seq[THard] = (dataIns: Seq[THard]) => {
-
-    doDrc()
-
-    var watch = 0
-
-    val signalMap = mutable.Map[V, Seq[THard]]()
-
-    // vertices already implemented
-    def implemented: Seq[V] = signalMap.keys.toSeq
-
-    // vertices not implemented yet
-    def remained: Seq[V] = vertexSet().toSeq.diff(implemented)
-
-    // vertices ready to be implemented
-    def nextStage: Seq[V] = remained.filter(v => v.sources.forall(implemented.contains(_)))
-
-    def implVertex(target: V): Unit = {
-      val incomingEdges = incomingEdgesOf(target).toSeq.sortBy(_.inOrder)
-      val dataIns = incomingEdges.map { e =>
-        val signal = signalMap(getEdgeSource(e))(e.outOrder)
-        signal.d(getEdgeWeight(e).toInt - getEdgeSource(e).latency)
-      }
-      val rets = target.implH(dataIns)
-      //      if (target.opType == SHIFT) {
-      //        rets.foreach(ret => ret.setName(s"watch_$watch"))
-      //        watch += 1
-      //      }
-      //
-      //      if (target.opType == KARA) {
-      //        rets.foreach { ret =>
-      //          ret.setName(s"watch_kara_$watch")
-      //          watch += 1
-      //        }
-      //      }
-
-      if (target.opType == Split) {
-        rets.foreach { ret =>
-          ret.setName(s"after_split_$watch")
-          watch += 1
-        }
-      }
-
-      signalMap += target -> rets
-    }
-
-    // initialize signalMap
-    inputs.zip(dataIns).foreach { case (input, bits) => signalMap += input -> Seq(bits) }
-    inputs.foreach(input => logger.info(input.toString))
-    logger.info(s"init ${signalMap.mkString(" ")}")
-
-    // implement vertices until no available vertices exist
-    while (nextStage.nonEmpty) nextStage.foreach(implVertex)
-
-    if (remained.nonEmpty) logger.warn(s"isolated nodes exist:\n${remained.mkString(" ")}")
-
-    outputs.flatMap(signalMap(_))
-  }
+  def implH = ImplH(this)
 
   def evaluateH(dataIns: Seq[THard]) = implH.apply(dataIns)
 
   def simplify() = Simplify(this)
 
-  def addGraphsAfter(sourceGraph: Dag[TSoft, THard], starts: Seq[Port]): Seq[DagPort[TSoft, THard]] = {
+  def addGraphsAfter(sourceGraph: Dag[THard], starts: Seq[Port]): Seq[DagPort[THard]] = {
     require(sourceGraph.inputs.length == starts.length)
     require(starts.forall(_.direction == Out))
     //    require(starts.forall(_.vertex.outDegree == 0))
@@ -176,7 +119,7 @@ class Dag[TSoft, THard <: Data](val name: String)
     sourceGraph.outputs.map(_.out(0))
   }
 
-  def addGraphBetween(source: Dag[TSoft, THard], starts: Seq[Port], ends: Seq[Port]): Unit = {
+  def addGraphBetween(source: Dag[THard], starts: Seq[Port], ends: Seq[Port]): Unit = {
     require(source.outputs.length == ends.length)
     require(ends.forall(_.direction == In))
     require(ends.forall(_.vertex.inDegree == 0))

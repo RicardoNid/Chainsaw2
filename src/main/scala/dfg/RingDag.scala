@@ -11,7 +11,7 @@ import scala.collection.mutable.ArrayBuffer
 import scala.collection.JavaConversions._
 
 class RingDag(name: String = "ring", val golden: Seq[BigInt] => Seq[BigInt])
-  extends Dag[BigInt, UInt](name) {
+  extends Dag[UInt](name) {
 
   override implicit val ref: RingDag = this
 
@@ -61,7 +61,7 @@ class RingDag(name: String = "ring", val golden: Seq[BigInt] => Seq[BigInt])
 
     val graphLatency = this.latency
     logger.info(s"graph before impl $this")
-    logger.info(s"latency before impl ${graphLatency}")
+    logger.info(s"latency before impl $graphLatency")
 
     def config = new TransformBase {
       override def impl(dataIn: Seq[Any]) = golden.apply(dataIn.asInstanceOf[Seq[BigInt]])

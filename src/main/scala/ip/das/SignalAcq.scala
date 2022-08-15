@@ -29,7 +29,7 @@ case class SignalAcq() extends Component {
   val Seq(clkSerial, // 500MHz,输入采样时钟
   clkEnable, // 62.5MHz,lvds enable时钟
   clkParallel // 62.5MHz,输出采样时钟
-  ) = lvdsPll.outclk
+  ) = lvdsPll.outclks
   clkOut := clkParallel
 
   val lvdsClockDomain = ClockDomain(

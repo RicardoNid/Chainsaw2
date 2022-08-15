@@ -14,7 +14,7 @@ case class CdcTest() extends Component {
   pll.setDefinitionName("pll")
   pll.refclk := adc_clk
   pll.rst := ~rstn
-  val clkSlow = pll.outclk.head
+  val clkSlow = pll.outclks.head
 
   val domainFast = ClockDomain(clock = adc_clk, reset = rstn, config = dasClockConfig)
   val domainSlow = ClockDomain(clock = clkSlow, reset = rstn, config = dasClockConfig)

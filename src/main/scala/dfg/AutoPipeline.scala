@@ -13,9 +13,9 @@ object AutoPipeline {
    *
    * @see ''Parhi, Keshab K.. “Vlsi Digital Signal Processing Systems: Design And Implementation.” (2007).'' Chapter 4
    */
-  def apply[TSoft, THard <: Data](dag: Dag[TSoft, THard]): Dag[TSoft, THard] = {
+  def apply[ THard <: Data](dag: Dag[ THard]): Dag[ THard] = {
 
-    implicit val refDag: Dag[TSoft, THard] = dag
+    implicit val refDag: Dag[ THard] = dag
     // TODO: find out why the cost function for minimum register number built by fan out theorem(from VLSI DSP) always failed in cplex(and sometimes failed in optimus)
     // TODO: will it be better if we use rational number?
     // declare model
@@ -109,7 +109,7 @@ object AutoPipeline {
 //        val latencies = outgoingEdges.map(getEdgeWeight)
 //        val latencyMax = latencies.max
 //        val targets = outgoingEdges.map(getEdgeTarget)
-//        val dummy = VarVertex[TSoft, THard](s"${v.name}_dummy")
+//        val dummy = VarVertex[ THard](s"${v.name}_dummy")
 //        addVertex(dummy)
 //        val dummyEdges = targets.zip(latencies).map { case (target, latency) => addEdge(target.out(0), dummy.in(0), latencyMax - latency) }
 //        (outgoingEdges ++ dummyEdges)

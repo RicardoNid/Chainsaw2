@@ -36,6 +36,12 @@ object Dsp48 {
     val postOps = if (!postInverse) (prod, c.d(2)) else (c.d(2), prod)
     if (!postMinus) (postOps._1 +^ postOps._2).d(1)
     else (postOps._1 -^ postOps._2).d(1)
+    //
+    //    (((a.d(1) +^ d.d(1)).d(1) * b.d(1)).d(1) +^ c.d(1)).d(1)
+
+    //    val preAdd = if (preMinus) a -^ d else a +^ d
+    //    if (!postMinus) ((preAdd.d(1) * b.d(1)).d(1) +^ c.d(2)).d(1)
+    //    else ((preAdd.d(1) * b.d(1)).d(1) -^ c.d(2)).d(1)
   }
 
   /** a * b ± c, latency = 2, using mreg + preg */

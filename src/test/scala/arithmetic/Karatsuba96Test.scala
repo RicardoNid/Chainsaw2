@@ -2,9 +2,9 @@ package org.datenlord
 package arithmetic
 
 import xilinx.VivadoUtilRequirement
-
 import org.scalatest.flatspec.AnyFlatSpec
 import spinal.core._
+import scala.language.postfixOps
 
 class Karatsuba96Test extends AnyFlatSpec {
 
@@ -16,7 +16,7 @@ class Karatsuba96Test extends AnyFlatSpec {
     TransformTest.test(Karatsuba96().toTransform, data96)
   }
 
-  it should "synth" in {
+  ignore should "synth" in {
     val requirement96 = VivadoUtilRequirement(dsp = 18, lut = 2000)
     VivadoSynth(Karatsuba96().toTransform, "kara96").require(requirement96, 800 MHz)
   }

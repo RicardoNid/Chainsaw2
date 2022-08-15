@@ -10,7 +10,7 @@ class ModularMultTest extends AnyFlatSpec {
 
   val lN = 377
   val testCount = 1000
-  val moduli = Random.nextBigInt(lN - 1) + (BigInt(1) << (lN - 1))
+  val moduli = ZPrizeMSM.baseModulus
 
   val as = (0 until testCount).map(_ => Random.nextBigInt(lN) % moduli)
   val bs = (0 until testCount).map(_ => Random.nextBigInt(lN) % moduli)

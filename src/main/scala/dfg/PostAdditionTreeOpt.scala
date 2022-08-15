@@ -1,7 +1,6 @@
 package org.datenlord
 package dfg
 
-import org.datenlord.arithmetic.BmcConfig
 import spinal.core._
 
 import scala.collection.mutable.ArrayBuffer
@@ -19,9 +18,9 @@ object PostAdditionTreeOpt {
     /** --------
      * preparing for tree extraction
      * -------- */
-    type V = DagVertex[BigInt, UInt]
+    type V = DagVertex[UInt]
     type E = DagEdge
-    type Port = DagPort[BigInt, UInt]
+    type Port = DagPort[UInt]
 
     import OpType._
     val postTypes = Seq(ADDC, ADD, SUBC, SUB, SHIFT, RESIZE) // types which are part of post-addition tree
@@ -95,7 +94,7 @@ object PostAdditionTreeOpt {
     logger.info(s"number of operands: ${allInfos.length}")
     logger.info(s"number of different shifts: ${allInfos.map(_.shift).distinct.length}")
     allInfos.groupBy(_.shift).toSeq.sortBy(_._1).foreach { case (shift, infos) =>
-      logger.info(s"operand at shift $shift: ${infos.map(_.width).mkString(" ")}")
+      //      logger.info(s"operand at shift $shift: ${infos.map(_.width).mkString(" ")}")
     }
     logger.info(s"total bits for reduction ${allInfos.map(_.width).sum}")
     logger.info(s"positive bits for reduction ${allInfos.map(_.width).sum}")
@@ -122,8 +121,8 @@ object PostAdditionTreeOpt {
       cpa0 -:- cpa1
     }
 
-    VivadoImpl(BmcConfig(posInfos).implH, "testPostPart")
-    VivadoImpl(BmcConfig(negInfos).implH, "testNegPart")
+    //    VivadoImpl(BmcConfig(posInfos).implH, "testPostPart")
+    //    VivadoImpl(BmcConfig(negInfos).implH, "testNegPart")
 
     val resized = ret.resize(root.widthsIn.head)
     logger.info(s"output width ${root.widthsIn.head}")

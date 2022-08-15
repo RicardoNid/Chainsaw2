@@ -1,10 +1,12 @@
 package org.datenlord
 package arithmetic
 
-import org.datenlord.xilinx.VivadoUtilRequirement
+import xilinx.VivadoUtilRequirement
+
 import org.scalatest.flatspec.AnyFlatSpec
 import spinal.core._
 
+import scala.language.postfixOps
 import scala.util.Random
 
 class Karatsuba377Test extends AnyFlatSpec {
@@ -17,10 +19,10 @@ class Karatsuba377Test extends AnyFlatSpec {
     TransformTest.test(Karatsuba377().toTransform, data378)
   }
 
-  it should "synth" in {
-    val requirement377 = VivadoUtilRequirement(dsp = 162, lut = 10000)
-    //    VivadoSynth(Karatsuba377().toTransform, "kara377").require(requirement377, 800 MHz)
-    VivadoImpl(Karatsuba377().toTransform, "kara377").require(requirement377, 800 MHz)
+  ignore should "synth" in {
+    val requirement377 = VivadoUtilRequirement(dsp = 162, lut = 20000)
+    VivadoSynth(Karatsuba377().toTransform, "kara377synth").require(requirement377, 800 MHz)
+    VivadoImpl(Karatsuba377().toTransform, "kara377impl").require(requirement377, 800 MHz)
   }
 
 }

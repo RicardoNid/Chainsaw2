@@ -35,6 +35,7 @@ case class MultiplicationByDspConfig(mode: MultiplierMode)
   //  override def latency = 8
   override def latency = mode match {
     case FULL => 7
+    // FIXME: remove the option "FULL34"
     case FULL34 => 7
     case HALFLOW => 6
     case SQUARE => 5

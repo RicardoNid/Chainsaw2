@@ -5,8 +5,10 @@ import org.scalatest.flatspec.AnyFlatSpec
 
 class OFDMTest extends AnyFlatSpec {
 
-  "OFDM" should "work" in {
+  // FIXME: finish this
+  //  "OFDM" should "work" in {
 
+  ignore should "work" in {
     val config = OFDMConfig(1)
     VivadoSynth(OFDM(config))
   }
