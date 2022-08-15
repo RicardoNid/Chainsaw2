@@ -109,5 +109,5 @@ object KaraBase extends App {
   val config = KaraBaseConfig()
   TransformTest.test(config.implH, data, name = "karabase")
   val requirement = VivadoUtilRequirement(dsp = 3)
-  VivadoSynth(config.implH, "karabase").require(requirement, 800 MHz)
+  VivadoImpl(config.implH, "karabase").require(requirement, 800 MHz)
 }

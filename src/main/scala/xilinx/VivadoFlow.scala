@@ -32,6 +32,8 @@ class VivadoFlow[T <: Component](
    * @return VivadoReport as an object
    */
   def doFlow(): VivadoReport = {
+    usePrimitives = true
+    useFlopoco = true
     // create workspace directory
     Process(s"mkdir -p $workspacePath") !
     // generate sources from dut

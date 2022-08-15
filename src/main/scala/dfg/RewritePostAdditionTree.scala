@@ -1,11 +1,12 @@
 package org.datenlord
 package dfg
 
+import org.datenlord.arithmetic.BmcConfig
 import spinal.core._
 
 import scala.collection.mutable.ArrayBuffer
 
-object PostAdditionTreeOpt {
+object RewritePostAdditionTree {
 
   /** in-place rewrite method that extract the post-addition tree and convert it into a compressor(CSA) tree
    *
@@ -121,8 +122,8 @@ object PostAdditionTreeOpt {
       cpa0 -:- cpa1
     }
 
-    //    VivadoImpl(BmcConfig(posInfos).implH, "testPostPart")
-    //    VivadoImpl(BmcConfig(negInfos).implH, "testNegPart")
+    VivadoImpl(BmcConfig(posInfos).implH, "testPostPart")
+    VivadoImpl(BmcConfig(negInfos).implH, "testNegPart")
 
     val resized = ret.resize(root.widthsIn.head)
     logger.info(s"output width ${root.widthsIn.head}")

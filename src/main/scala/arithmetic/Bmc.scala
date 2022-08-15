@@ -18,7 +18,7 @@ case class BmcConfig(infos: Seq[ArithInfo]) extends TransformBase {
   override val size = (infos.length, 2)
 
   // TODO: adjustable baseWidth
-  val baseWidth = 16
+  val baseWidth = 30
   val (widthOut, fixedLatency, cost) = BitMatrix.getInfoOfCompressor(infos, baseWidth)
 
   override def latency = fixedLatency

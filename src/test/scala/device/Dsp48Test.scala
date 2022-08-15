@@ -1,7 +1,8 @@
 package org.datenlord
 package device
 
-import org.datenlord.xilinx.VivadoUtilRequirement
+import xilinx.VivadoUtilRequirement
+
 import org.scalatest.flatspec.AnyFlatSpec
 import spinal.core._
 

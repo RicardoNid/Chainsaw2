@@ -34,7 +34,6 @@ package object datenlord {
   }
 
   def VivadoImpl[T <: Component](gen: => T, name: String = "temp", xdcPath: String = null) = {
-    useFlopoco = true
     val report = VivadoFlow(design = gen, taskType = IMPL, topModuleName = name, workspacePath = s"synthWorkspace/$name").doFlow()
     report.printArea()
     report.printFMax()
@@ -42,7 +41,6 @@ package object datenlord {
   }
 
   def VivadoSynth[T <: Component](gen: => T, name: String = "temp"): VivadoReport = {
-    useFlopoco = true
     val report = VivadoFlow(design = gen, taskType = SYNTH, topModuleName = name, workspacePath = s"synthWorkspace/$name").doFlow()
     report.printArea()
     report.printFMax()
@@ -290,7 +288,7 @@ package object datenlord {
 
   var usePrimitives = false
   var useFlopoco = false
-  val unisimPath = "/tools/Xilinx/Vivado/2021.1/data/verilog/src/unisims"
+  val unisimPath = "/home/ltr/IdeaProjects/Chainsaw2/src/main/resources/unisims"
 
   import org.scalatest.Tag
 

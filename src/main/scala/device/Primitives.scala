@@ -5,12 +5,13 @@ import spinal.core._
 
 import scala.language.postfixOps
 
-/** Primitives in unisim library, usePrimitives should be set as true for synth, false for sim
+/** Primitives in unisim library, usePrimitives in Chainsaw package should be set as true for synth, false for sim
+ *
  *@see [[https://docs.xilinx.com/r/en-US/ug974-vivado-ultrascale-libraries/Introduction]] for primitive definitions
  */
 class Unisim extends BlackBox {
 
-  if (!usePrimitives) addRTLPath(s"$unisimPath/$definitionName.v")
+  if (!usePrimitives) addRTLPath(s"$unisimPath/CARRY8.v")
 
 }
 

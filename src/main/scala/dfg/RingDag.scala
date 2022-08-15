@@ -31,7 +31,7 @@ class RingDag(name: String = "ring", val golden: Seq[BigInt] => Seq[BigInt])
 
   def breakBundles() = BreakBundles(this)
 
-  def mergePostAddition() = PostAdditionTreeOpt(this)
+  def rewritePostAdditionTree() = RewritePostAdditionTree(this)
 
   /** get the graph prepared for hardware implementation
    *
@@ -41,7 +41,7 @@ class RingDag(name: String = "ring", val golden: Seq[BigInt] => Seq[BigInt])
     makeComb()
     simplify()
     breakBundles()
-    mergePostAddition()
+    rewritePostAdditionTree()
     simplify()
     autoPipeline()
     this
