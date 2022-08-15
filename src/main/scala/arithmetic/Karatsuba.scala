@@ -26,8 +26,8 @@ object Karatsuba {
     }
 
     implicit val graph: RingDag = new RingDag(s"karatsubaGraph_$mode", golden)
-    val x = graph.addInput("bigMultX", ArithInfo(width, shift))
-    val y = if (mode != SQUARE) graph.addInput("bigMultY", ArithInfo(width, shift)) else null
+    val x = graph.addInput("bigMultX", width)
+    val y = if (mode != SQUARE) graph.addInput("bigMultY", width) else null
     val widthOut = mode match {
       case HALFLOW => width
       case _ => width * 2
@@ -120,7 +120,7 @@ object Karatsuba {
     }
 
     val ret: RingPort = recursiveTask(width, x, y, mode)
-    val z = graph.addOutput(s"bigMultZ_$mode", ArithInfo(widthOut, shift))
+    val z = graph.addOutput(s"bigMultZ_$mode", widthOut)
     graph.addEdge(ret, z)
     logger.info(s"$mode mult graph built")
     graph

@@ -15,21 +15,21 @@ class ArithmeticGraphsSynthTest extends AnyFlatSpec {
 
   def graphSub = ArithmeticGraphs.subGraph(testWidth, 0)
 
-  def graphFull0 = ArithmeticGraphs.karatsubaGraph(testWidth, 0, FULL, noWidthGrowth = false)
+  def graphFull0 = ArithmeticGraphs.karatsubaGraph(testWidth, FULL, noWidthGrowth = false)
 
-  def graphFull1 = ArithmeticGraphs.karatsubaGraph(testWidth, 0, FULL, noWidthGrowth = true)
+  def graphFull1 = ArithmeticGraphs.karatsubaGraph(testWidth, FULL, noWidthGrowth = true)
 
-  def graphLow0 = ArithmeticGraphs.karatsubaGraph(testWidth, 0, HALFLOW, false)
+  def graphLow0 = ArithmeticGraphs.karatsubaGraph(testWidth, HALFLOW, false)
 
-  def graphLow1 = ArithmeticGraphs.karatsubaGraph(testWidth, 0, HALFLOW, true)
+  def graphLow1 = ArithmeticGraphs.karatsubaGraph(testWidth, HALFLOW, true)
 
-  def graphSquare0 = ArithmeticGraphs.karatsubaGraph(testWidth, 0, SQUARE, false)
+  def graphSquare0 = ArithmeticGraphs.karatsubaGraph(testWidth, SQUARE, false)
 
-  def graphSquare1 = ArithmeticGraphs.karatsubaGraph(testWidth, 0, SQUARE, true)
+  def graphSquare1 = ArithmeticGraphs.karatsubaGraph(testWidth, SQUARE, true)
 
-  def graphMontMult = ArithmeticGraphs.montgomeryGraph(testWidth, 0, zprizeModulus, false, false)
+  def graphMontMult = ArithmeticGraphs.montgomeryGraph(testWidth, zprizeModulus, false, false)
 
-  def graphMontSquare = ArithmeticGraphs.montgomeryGraph(testWidth, 0, zprizeModulus, true, false)
+  def graphMontSquare = ArithmeticGraphs.montgomeryGraph(testWidth, zprizeModulus, true, false)
 
   behavior of "arithmetic graphs"
 

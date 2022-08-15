@@ -10,8 +10,8 @@ object Karatsuba96 {
     //    val golden = (data: Seq[BigInt]) => Seq.fill(18)(BigInt(0))
     implicit val graph: RingDag = new RingDag(s"karatsubaGraph96", golden)
 
-    val a = graph.addInput("Mult96A", ArithInfo(96, 0))
-    val b = graph.addInput("Mult96B", ArithInfo(96, 0))
+    val a = graph.addInput("Mult96A", 96)
+    val b = graph.addInput("Mult96B", 96)
 
     val splitsA = (1 until 6).map(_ * 16).reverse
     val splitsB = (1 until 4).map(_ * 24).reverse
@@ -44,7 +44,7 @@ object Karatsuba96 {
     val ret = partials.sortBy(_._2).map { case (port, shift) => port << shift }.reduce(_ +^ _)
     val resized = ret.resize(192)
 
-    val z = graph.addOutput(s"Mult96Z", ArithInfo(192, 0))
+    val z = graph.addOutput(s"Mult96Z", 192)
     graph.addEdge(resized, z)
 
     logger.info(graph.toString)

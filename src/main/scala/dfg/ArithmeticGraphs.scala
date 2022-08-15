@@ -9,14 +9,14 @@ import scala.collection.JavaConversions._
 
 object ArithmeticGraphs {
 
-  def addGraph(addWidth: Int, shift: Int, baseWidth: Int = 127) = {
+  def addGraph(addWidth: Int, baseWidth: Int = 127) = {
 
     val addGolden = (data: Seq[BigInt]) => Seq(data.sum)
 
     implicit val graph: RingDag = new RingDag("pipelinedAdder", addGolden)
-    val x = graph.addInput("bigAddX", ArithInfo(addWidth, shift))
-    val y = graph.addInput("bigAddY", ArithInfo(addWidth, shift))
-    val z = graph.addOutput("bigAddZ", ArithInfo(addWidth + 1, shift))
+    val x = graph.addInput("bigAddX", addWidth)
+    val y = graph.addInput("bigAddY", addWidth)
+    val z = graph.addOutput("bigAddZ", addWidth + 1)
 
     val splitPoints = (0 until (addWidth - 1) / baseWidth).reverse.map(i => (i + 1) * baseWidth)
     val xs = if (splitPoints.isEmpty) Seq(x) else x.split(splitPoints).reverse // low -> high
@@ -43,14 +43,14 @@ object ArithmeticGraphs {
   }
 
   // this subtraction has no carry out, so make sure that when you use it for a - b, a is always greater than b
-  def subGraph(addWidth: Int, shift: Int, baseWidth: Int = 127) = {
+  def subGraph(addWidth: Int, baseWidth: Int = 127) = {
 
     val subGolden = (data: Seq[BigInt]) => Seq(data(0) - data(1))
 
     implicit val graph: RingDag = new RingDag("pipelinedSubtractor", subGolden)
-    val x = graph.addInput("bigSubX", ArithInfo(addWidth, shift))
-    val y = graph.addInput("bigSubY", ArithInfo(addWidth, shift))
-    val z = graph.addOutput("bigSubZ", ArithInfo(addWidth + 1, shift))
+    val x = graph.addInput("bigSubX", addWidth)
+    val y = graph.addInput("bigSubY", addWidth)
+    val z = graph.addOutput("bigSubZ", addWidth + 1)
 
     val splitPoints = (0 until (addWidth - 1) / baseWidth).reverse.map(i => (i + 1) * baseWidth)
     val xs = if (splitPoints.isEmpty) Seq(x) else x.split(splitPoints).reverse // low -> high
@@ -72,7 +72,7 @@ object ArithmeticGraphs {
     graph
   }
 
-  def karatsubaGraph(width: Int, shift: Int, mode: MultiplierMode, noWidthGrowth: Boolean = true) = {
+  def karatsubaGraph(width: Int,  mode: MultiplierMode, noWidthGrowth: Boolean = true) = {
 
     val useCompressorTree = true
 
@@ -92,8 +92,8 @@ object ArithmeticGraphs {
     }
 
     implicit val graph: RingDag = new RingDag(s"karatsubaGraph_$mode", golden)
-    val x = graph.addInput("bigMultX", ArithInfo(width, shift))
-    val y = if (mode != SQUARE) graph.addInput("bigMultY", ArithInfo(width, shift)) else null
+    val x = graph.addInput("bigMultX", width)
+    val y = if (mode != SQUARE) graph.addInput("bigMultY", width) else null
     val widthOut = mode match {
       case HALFLOW => width
       case _ => width * 2
@@ -186,14 +186,14 @@ object ArithmeticGraphs {
     }
 
     val ret: RingPort = recursiveTask(width, x, y, mode)
-    val z = graph.addOutput(s"bigMultZ_$mode", ArithInfo(widthOut, shift))
+    val z = graph.addOutput(s"bigMultZ_$mode", widthOut)
     graph.addEdge(ret, z)
     logger.info(s"$mode mult graph built")
     graph
   }
 
   // TODO: implement constant in graphs, remove input port for NPrime
-  def montgomeryGraph(width: Int, shift: Int, modulus: BigInt, square: Boolean = false, byLUT: Boolean = false) = {
+  def montgomeryGraph(width: Int,  modulus: BigInt, square: Boolean = false, byLUT: Boolean = false) = {
 
     require(modulus.bitLength <= width)
 
@@ -215,11 +215,11 @@ object ArithmeticGraphs {
     val golden = if (square) montSquareGolden else montMultGolden
 
     implicit val graph: RingDag = new RingDag("MontgomeryGraph", golden)
-    val x = graph.addInput("montX", ArithInfo(width, shift))
-    val y = if (!square) graph.addInput("montY", ArithInfo(width, shift)) else null
-    val modulusInput = graph.addInput("modulus", ArithInfo(width, shift))
-    val nprimeInput = graph.addInput("np", ArithInfo(width, shift))
-    val z = graph.addOutput("montRet", ArithInfo(width + 1, shift))
+    val x = graph.addInput("montX", width)
+    val y = if (!square) graph.addInput("montY", width) else null
+    val modulusInput = graph.addInput("modulus", width)
+    val nprimeInput = graph.addInput("np", width)
+    val z = graph.addOutput("montRet", width)
 
     val T = if (!square) x *:* y else x bigSquare x
     val TLow = T.resize(width)

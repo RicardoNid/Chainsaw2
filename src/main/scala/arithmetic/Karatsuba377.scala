@@ -10,8 +10,8 @@ object Karatsuba377 {
     //    val golden = (data: Seq[BigInt]) => Seq.fill(18)(BigInt(0))
     implicit val graph: RingDag = new RingDag(s"karatsubaGraph96", golden)
 
-    val a = graph.addInput("Mult377A", ArithInfo(378, 0))
-    val b = graph.addInput("Mult377B", ArithInfo(378, 0))
+    val a = graph.addInput("Mult377A", 378)
+    val b = graph.addInput("Mult377B", 378)
 
     def rec(x: RingPort, y: RingPort, width: Int): RingPort = {
       if (width == 96) buildKara96(x, y)(graph)
@@ -35,7 +35,7 @@ object Karatsuba377 {
 
     val ret = rec(a, b, 378)
     val resized = ret.resize(756)
-    val z = graph.addOutput(s"Mult377Z", ArithInfo(756, 0))
+    val z = graph.addOutput(s"Mult377Z", 756)
     graph.addEdge(resized, z)
     graph.toPng("karatsuba377")
     graph

@@ -28,7 +28,7 @@ object PostAdditionTreeOpt {
     def isInTree(v: V) = postTypes.contains(v.opType)
 
     // get shift value of a shift vertex by in/out width
-    def extractShift(v: RingVertex) = v.infosOut.head.width - v.infosIn.head.width
+    def extractShift(v: RingVertex) = v.widthsOut.head - v.widthsIn.head
 
     /** --------
      * start tree extraction by backward search

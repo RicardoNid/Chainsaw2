@@ -19,27 +19,27 @@ class ArithmeticGraphsTest extends AnyFlatSpec {
   val data = (0 until testCaseCount * 2).map(_ => Random.nextBigInt(testWidth))
 
   // get a brand new graph every time we need it
-  def graphAdd = ArithmeticGraphs.addGraph(testWidth, 0)
+  def graphAdd = ArithmeticGraphs.addGraph(testWidth, 127)
 
-  def graphSub = ArithmeticGraphs.subGraph(testWidth, 0)
+  def graphSub = ArithmeticGraphs.subGraph(testWidth, 127)
 
-  def graphFull = ArithmeticGraphs.karatsubaGraph(testWidth, 0, FULL)
+  def graphFull = ArithmeticGraphs.karatsubaGraph(testWidth, FULL)
 
-  def graphLow = ArithmeticGraphs.karatsubaGraph(testWidth, 0, HALFLOW)
+  def graphLow = ArithmeticGraphs.karatsubaGraph(testWidth, HALFLOW)
 
-  def graphSquare = ArithmeticGraphs.karatsubaGraph(testWidth, 0, SQUARE)
+  def graphSquare = ArithmeticGraphs.karatsubaGraph(testWidth, SQUARE)
 
-  def graphMontMult = ArithmeticGraphs.montgomeryGraph(testWidth, 0, zprizeModulus, square = false, byLUT = false)
+  def graphMontMult = ArithmeticGraphs.montgomeryGraph(testWidth, zprizeModulus, square = false, byLUT = false)
 
-  def graphMontSquare = ArithmeticGraphs.montgomeryGraph(testWidth, 0, zprizeModulus, square = true, false)
+  def graphMontSquare = ArithmeticGraphs.montgomeryGraph(testWidth, zprizeModulus, square = true, false)
 
   val smallData = (0 until testCaseCount * 2).map(_ => Random.nextBigInt(61))
 
-  def graphFullSmall = ArithmeticGraphs.karatsubaGraph(61, 0, FULL)
+  def graphFullSmall = ArithmeticGraphs.karatsubaGraph(61, FULL)
 
-  def graphLowSmall = ArithmeticGraphs.karatsubaGraph(61, 0, HALFLOW)
+  def graphLowSmall = ArithmeticGraphs.karatsubaGraph(61, HALFLOW)
 
-  def graphSquareSmall = ArithmeticGraphs.karatsubaGraph(61, 0, SQUARE)
+  def graphSquareSmall = ArithmeticGraphs.karatsubaGraph(61, SQUARE)
 
   val zprizeModulus = algos.ZPrizeMSM.baseModulus
   val R = BigInt(1) << zprizeModulus.bitLength

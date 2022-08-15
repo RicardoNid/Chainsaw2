@@ -15,15 +15,15 @@ class RingDag(name: String = "ring", val golden: Seq[BigInt] => Seq[BigInt])
 
   override implicit val ref: RingDag = this
 
-  def addInput(name: String, info: ArithInfo) = {
-    val in = RingVarVertex(name, info)
+  def addInput(name: String, width: Int) = {
+    val in = RingVarVertex(name, width)
     addVertex(in)
     inputs += in
     in.out(0)
   }
 
-  def addOutput(name: String, info: ArithInfo) = {
-    val out = RingVarVertex(name, info)
+  def addOutput(name: String, width: Int) = {
+    val out = RingVarVertex(name, width)
     addVertex(out)
     outputs += out
     out.in(0)
