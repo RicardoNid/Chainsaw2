@@ -32,8 +32,8 @@ class BitHeapTest extends AnyFlatSpec {
     ret.map(_.asBits().asUInt).foreach(out(_))
   }
 
-  it should "work correctly" in {
-    VivadoSynth(BitHeapCompressor(), "bitHeap")
-  }
+  it should "work correctly on software(fake mode)" in BitHeap.fromHeights(Seq.fill(20)(20)).compressAll(Seq(Compressor1to1, Compressor3to1, Compressor4to2))
+
+  it should "work correctly on hardware" in VivadoSynth(BitHeapCompressor(), "bitHeap")
 
 }

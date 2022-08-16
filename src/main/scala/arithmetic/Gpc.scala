@@ -9,7 +9,7 @@ import spinal.lib._
 import scala.collection.mutable.ArrayBuffer
 import scala.language.postfixOps
 
-object Compressors {
+object GPC {
   def apply() = Seq(Compressor4to2, Compressor3to1, Compressor1to1)
 }
 
@@ -65,6 +65,7 @@ case class Compressor4to2Hard(width: Int) extends Component {
 
 object Compressor4to2 extends Compressor[Bool] {
 
+
   override val isFixed = false
 
   override val widthLimit = 64
@@ -89,6 +90,7 @@ object Compressor4to2 extends Compressor[Bool] {
     core.carrysOut.asBools.zip(bitHeap.tail).foreach { case (bit, column) => column += bit }
     BitHeap(bitHeap, bitsInt.weightLow)
   }
+
 }
 
 object Compressor1to1 extends Compressor[Bool] {

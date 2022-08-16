@@ -11,7 +11,7 @@ abstract class Compressor[T] {
 
   /** --------
    * key definitions
-   -------- */
+   * -------- */
 
   /** number of bits in input columns, low to high
    */
@@ -31,7 +31,7 @@ abstract class Compressor[T] {
 
   /** --------
    * utils
-   -------- */
+   * -------- */
 
   def inputBitsCount(width: Int) = outputFormat(width).sum
 
@@ -51,5 +51,4 @@ abstract class Compressor[T] {
     val shiftedDotsIn = dotsIn.split("\n").map(_.padToLeft(length * 2 - 1, ' ')).mkString("\n")
     s"$shiftedDotsIn\n$arrowLine\n$dotsOut"
   }
-
 }

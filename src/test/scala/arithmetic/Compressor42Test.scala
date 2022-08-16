@@ -10,7 +10,7 @@ import spinal.core.sim.{SimConfig, _}
 import scala.language.postfixOps
 import scala.util.Random
 
-class Compressor42HardTest extends AnyFlatSpec {
+class Compressor4to2HardTest extends AnyFlatSpec {
 
   behavior of "counter42"
 
