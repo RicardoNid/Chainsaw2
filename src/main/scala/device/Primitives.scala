@@ -16,15 +16,15 @@ class Unisim extends BlackBox {
 }
 
 /**
- * @see [[https://docs.xilinx.com/v/u/en-US/ug574-ultrascale-clb]] Carry Chain Primitive for port definition
- * @see [[Parhami, Behrooz. “Computer arithmetic - algorithms and hardware designs.” (2010).]] 5.6 MANCHESTER CARRY CHAINS AND ADDERS for the definition of "propagate"
+ * @see [[https://docs.xilinx.com/v/u/en-US/ug574-ultrascale-clb]] Carry Chain Primitive
+ * @see ''Parhami, Behrooz. “Computer arithmetic - algorithms and hardware designs.” (2010).'' 5.6 MANCHESTER CARRY CHAINS AND ADDERS
  */
 case class CARRY8() extends Unisim {
   val generic: Generic = new Generic {
     val CARRY_TYPE = "SINGLE_CY8"
   }
   val CO, O = out UInt (8 bits)
-  val CI, CI_TOP = in UInt (1 bits)
+  val CI, CI_TOP = in Bool (1 bits)
   val DI, S = in UInt (8 bits) // S is the "propagate" input
   addPrimitive("CARRY8")
 }
@@ -35,6 +35,6 @@ case class LUT6_2(init: BigInt) extends Unisim {
   }
   val I0, I1, I2, I3, I4, I5 = in Bool()
   val O5, O6 = out Bool()
-    addPrimitive("LUT6_2")
+  addPrimitive("LUT6_2")
 }
 

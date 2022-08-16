@@ -11,8 +11,6 @@ import scala.language.postfixOps
 
 class UnisimTest extends AnyFlatSpec {
 
-  "CARR8" should "synth" in VivadoSynth(CARRY8(), "carry8").require(VivadoUtilRequirement(lut = 0, carry8 = 1), fmaxRequirement = 100 MHz)
-
   "LUT6" should "synth" in VivadoSynth(LUT6_2(BigInt(0)), "lut6").require(VivadoUtilRequirement(lut = 1, carry8 = 0), fmaxRequirement = 100 MHz)
 
   // TODO: primitives need more encapsulation like this
@@ -40,6 +38,16 @@ class UnisimTest extends AnyFlatSpec {
     }
   }
 
-  // FIXME: behavior model of carry8 need modification
+  behavior of "CARRY8"
+
+  ignore should "synth" in VivadoSynth(CARRY8(), "carry8").require(VivadoUtilRequirement(lut = 0, carry8 = 1), fmaxRequirement = 100 MHz)
+
+  it should "work" in SimConfig.withFstWave.compile(CARRY8()).doSim { dut =>
+    dut.S #= 255
+    dut.DI #= 255
+    dut.CI_TOP #= false
+    dut.CI #= true
+    sleep(1)
+  }
 
 }
