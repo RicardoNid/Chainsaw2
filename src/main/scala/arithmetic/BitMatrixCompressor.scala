@@ -47,7 +47,7 @@ case class BitMatrixCompressor[T](baseCompressor: (Seq[Seq[T]], Int) => Seq[T], 
       cost += slice.length
     }
     val pipelinedMatrix = BitHeap(matrix.bitHeap.map(_.map(pipeline)), matrix.weightLow)
-    val ret = BitHeap.fromOperands(operands, infos) + pipelinedMatrix
+    val ret = BitHeap.getHeapFromInfos(infos, operands) + pipelinedMatrix
     val bitsCountAfter = ret.bitsCount
     val bitsReduction = bitsCountBefore - bitsCountAfter
     logger.info(s"height = $height, cost = $cost, bits reduction = $bitsReduction, ratio = ${cost.toDouble / bitsReduction}")

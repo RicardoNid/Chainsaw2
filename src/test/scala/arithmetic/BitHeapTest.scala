@@ -22,17 +22,17 @@ class BitHeapTest extends AnyFlatSpec {
 
   case class BitHeapCompressor() extends Component {
     val dataIn = in Vec(UInt(40 bits), 20)
-    val heap = BitHeap.fromOperands(dataIn.map(_.asBools), Seq.fill(50)(ArithInfo(40, 0, true)))
+    val heap = BitHeap.getHeapFromInfos(Seq.fill(50)(ArithInfo(40, 0, true)), dataIn.map(_.asBools))
 
     def zero() = False
 
     def pipeline(bool: Bool) = bool.d(1)
 
-    val ret = heap.compressAll(Seq(Compressor1to1, Compressor3to1, Compressor4to2), pipeline).output(zero)
-    ret.map(_.asBits().asUInt).foreach(out(_))
+    val (ret, latency, widthOut) = heap.compressAll(Seq(Compressor1to1, Compressor3to1, Compressor4to2), pipeline)
+    ret.output(zero).map(_.asBits().asUInt).foreach(out(_))
   }
 
-  it should "work correctly on software(fake mode)" in BitHeap.fromHeights(Seq.fill(20)(20)).compressAll(Seq(Compressor1to1, Compressor3to1, Compressor4to2))
+  it should "work correctly on software(fake mode)" in BitHeap.getFakeHeapFromHeights(Seq.fill(20)(20)).compressAll(Seq(Compressor1to1, Compressor3to1, Compressor4to2))
 
   it should "work correctly on hardware" in VivadoSynth(BitHeapCompressor(), "bitHeap")
 

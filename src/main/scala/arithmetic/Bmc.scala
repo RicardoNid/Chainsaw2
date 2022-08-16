@@ -51,7 +51,7 @@ case class BmcConfig(infos: Seq[ArithInfo]) extends TransformBase {
 
   def op: Seq[UInt] => Seq[UInt] = (dataIn: Seq[UInt]) => {
     val inOperands = dataIn.map(_.asBools)
-    val bitMatrix: BitHeap[Bool] = BitHeap.fromOperands(inOperands, infos)
+    val bitMatrix: BitHeap[Bool] = BitHeap.getHeapFromInfos(infos, inOperands)
     val retBitMatrix = BitMatrixCompressor(compressor, pipeline, baseWidth).compressAll(bitMatrix)._1.bitHeap.map(_.padTo(2, False))
     val ret = retBitMatrix.transpose.map(_.asBits.asUInt).map(_ << infos.map(_.shift).min)
     logger.info(s"bmc out: ${ret.map(_.getBitsWidth).mkString(" ")}")

@@ -44,8 +44,8 @@ abstract class Compressor[T] {
   /** this is very beautiful, try it!
    */
   def toString(width: Int) = {
-    val dotsIn = BitHeap.fromHeights(inputFormat(width)).toString
-    val dotsOut = BitHeap.fromHeights(outputFormat(width)).toString
+    val dotsIn = BitHeap.getFakeHeapFromHeights(inputFormat(width)).toString
+    val dotsOut = BitHeap.getFakeHeapFromHeights(outputFormat(width)).toString
     val length = outputFormat(width).length
     val arrowLine = s"${" " * (length / 2) * 2}\u2193"
     val shiftedDotsIn = dotsIn.split("\n").map(_.padToLeft(length * 2 - 1, ' ')).mkString("\n")
