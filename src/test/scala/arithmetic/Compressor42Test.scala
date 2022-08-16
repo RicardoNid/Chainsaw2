@@ -10,14 +10,14 @@ import spinal.core.sim.{SimConfig, _}
 import scala.language.postfixOps
 import scala.util.Random
 
-class Compressor42Test extends AnyFlatSpec {
+class Compressor42HardTest extends AnyFlatSpec {
 
   behavior of "counter42"
 
   it should "synth" in {
     def synthCheck(width: Int): Unit = {
       val requirement = VivadoUtilRequirement(lut = width, carry8 = width / 8)
-      VivadoImpl(Compressor42(width), name = s"compressor42_${width}bits").require(requirement, 800 MHz)
+      VivadoImpl(Compressor4to2Hard(width), name = s"compressor42_${width}bits").require(requirement, 800 MHz)
     }
 
     (3 to 6).foreach(i => synthCheck(1 << i))
@@ -25,7 +25,7 @@ class Compressor42Test extends AnyFlatSpec {
 
   it should "work" in {
     def simCheck(width: Int): Unit = {
-      SimConfig.withFstWave.compile(Compressor42(width)).doSim { dut =>
+      SimConfig.withFstWave.compile(Compressor4to2Hard(width)).doSim { dut =>
         (0 until 1000).foreach { _ =>
           val Seq(w, x, y, z) = (0 until 4).map(_ => Random.nextBigInt(width))
           val cin = Random.nextBoolean()
@@ -43,6 +43,8 @@ class Compressor42Test extends AnyFlatSpec {
     }
 
     simCheck(16)
+    simCheck(17)
+    simCheck(23)
   }
 
 }

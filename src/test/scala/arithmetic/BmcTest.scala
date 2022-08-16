@@ -38,7 +38,7 @@ class BmcTest extends AnyFlatSpec {
 
   "Bit Matrix Compressor" should "work for all situations" in Seq(infosRegular, infosFromMult, infosFromMultWithNoise).map(testForInfos)
 
-  it should "impl for rectangular bits" in VivadoImpl(BmcConfig(infosRegular).implH, "RegularSum")
-  it should "impl for output from a multiplier" in VivadoImpl(BmcConfig(infosFromMult).implH, "PostSum")
-  it should "impl for irregular output from a multiplier" in VivadoImpl(BmcConfig(infosFromMultWithNoise).implH, "PostSumIrregular")
+  ignore should "impl for rectangular bits" in VivadoImpl(BmcConfig(infosRegular).implH, "RegularSum")
+  ignore should "impl for output from a multiplier" in VivadoImpl(BmcConfig(infosFromMult).implH, "PostSum")
+  ignore should "impl for irregular output from a multiplier" in VivadoImpl(BmcConfig(infosFromMultWithNoise).implH, "PostSumIrregular")
 }

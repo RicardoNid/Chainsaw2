@@ -1,3 +1,8 @@
+import scala.collection.mutable.ArrayBuffer
 import scala.util.Random
 
-(0 until 100).map(_ => Random.nextInt(17) - 8).sum
+val a = ArrayBuffer(1,2,3)
+val segment = a.take(2)
+a --= segment
+a
+segment
