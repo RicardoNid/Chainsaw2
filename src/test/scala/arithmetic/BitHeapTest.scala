@@ -1,14 +1,13 @@
 package org.datenlord
 package arithmetic
 
-import org.datenlord.dfg.ArithInfo
+import dfg.ArithInfo
+
 import org.scalatest.flatspec.AnyFlatSpec
+import spinal.core._
+import spinal.lib._
 
 import scala.collection.mutable.ArrayBuffer
-import spinal.core._
-import spinal.core.sim._
-import spinal.lib._
-import spinal.lib.fsm._
 
 class BitHeapTest extends AnyFlatSpec {
 
@@ -27,7 +26,9 @@ class BitHeapTest extends AnyFlatSpec {
 
     def zero() = False
 
-    val ret = heap.compressAll(Seq(Compressor1to1, Compressor4to2, Compressor3to1)).output(zero)
+    def pipeline(bool: Bool) = bool.d(1)
+
+    val ret = heap.compressAll(Seq(Compressor1to1, Compressor3to1, Compressor4to2), pipeline).output(zero)
     ret.map(_.asBits().asUInt).foreach(out(_))
   }
 

@@ -9,13 +9,16 @@ import spinal.lib._
 import scala.collection.mutable.ArrayBuffer
 import scala.language.postfixOps
 
+object Compressors {
+  def apply() = Seq(Compressor4to2, Compressor3to1, Compressor1to1)
+}
+
 /** general parallel counter (4; 2) for Xilinx FPGA
  *
  * @see ''Kumm, Martin & Zipf, P.. (2014). Efficient High Speed Compression Trees on Xilinx FPGAs. ''
  * @see ''Parhami, Behrooz. “Computer arithmetic - algorithms and hardware designs.” (2010).'' 8.4 PARALLEL COUNTERS AND COMPRESSORS
  */
 case class Compressor4to2Hard(width: Int) extends Component {
-  logger.info(s"compressor efficiency = ${(width * 4 - width * 2 - 1).toDouble / width}")
   val cIn = in Bool()
   val w, x, y, z = in UInt (width bits)
   val sumsOut, carrysOut = out UInt (width bits)
@@ -98,7 +101,7 @@ object Compressor1to1 extends Compressor[Bool] {
 
   override def outputFormat(width: Int) = Seq(1)
 
-  override def cost(width: Int): Int = 1
+  override def cost(width: Int): Int = 0
 
   override def impl(bitsInt: BitHeap[Bool], width: Int): BitHeap[Bool] = bitsInt
 }
