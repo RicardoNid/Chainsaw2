@@ -10,7 +10,7 @@ import spinal.core.sim.{SimConfig, _}
 import scala.language.postfixOps
 import scala.util.Random
 
-class Compressor4to2HardTest extends AnyFlatSpec {
+class GPCTest extends AnyFlatSpec {
 
   behavior of "counter42"
 
@@ -42,9 +42,29 @@ class Compressor4to2HardTest extends AnyFlatSpec {
       }
     }
 
+    simCheck(1)
     simCheck(16)
     simCheck(17)
     simCheck(23)
   }
 
+  behavior of "counter63"
+
+  it should "work" in {
+    def simCheck(): Unit = {
+      SimConfig.withFstWave.compile(Compressor6to3Hard()).doSim { dut =>
+        (0 until 1000).foreach { _ =>
+          val data = Random.nextBigInt(6)
+          dut.dataIn #= data
+          sleep(1)
+          val yours = dut.dataOut.toInt
+          val golden = data.toString(2).map(_.asDigit).sum
+          assert(yours == golden, s"\nyours :$yours\ngolden:$golden")
+        }
+      }
+    }
+    simCheck()
+  }
+
+  it should "synth" in VivadoSynth(Compressor6to3Hard(), "GPC63")
 }

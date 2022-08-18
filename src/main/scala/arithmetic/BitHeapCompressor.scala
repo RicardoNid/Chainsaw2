@@ -8,7 +8,10 @@ import spinal.lib._
 
 import scala.language.postfixOps
 
-case class BmcConfig(infos: Seq[ArithInfo]) extends TransformBase {
+/** the hardware module using [[BitHeap]] model to implement multi operand addition
+ * @param infos width and position(shift) of input operands
+ */
+case class BitHeapCompressorConfig(infos: Seq[ArithInfo]) extends TransformBase {
   override def impl(dataIn: Seq[Any]) = {
     val bigInts = dataIn.asInstanceOf[Seq[BigInt]]
     val ret = bigInts.zip(infos).map { case (int, info) => int << info.shift }.sum
@@ -17,15 +20,13 @@ case class BmcConfig(infos: Seq[ArithInfo]) extends TransformBase {
 
   override val size = (infos.length, 2)
 
-  // TODO: adjustable baseWidth
-  val baseWidth = 30
-  val (widthOut, fixedLatency, cost) = BitHeap.getInfoOfCompressor(infos, baseWidth)
+  val (_, fixedLatency, widthOut) = BitHeap.getFakeHeapFromInfos(infos).compressAll(GPC())
 
   override def latency = fixedLatency
 
-  override def implH = Bmc(this)
+  override def implH = BitHeapCompressor(this)
 
-  def compressor: (Seq[Seq[Bool]], Int) => Vec[Bool] = (dataIn: Seq[Seq[Bool]], width:Int) => {
+  def compressor: (Seq[Seq[Bool]], Int) => Vec[Bool] = (dataIn: Seq[Seq[Bool]], width: Int) => {
     val core = device.TernaryAdderConfig(width).implH
     val operands = dataIn
       .map(_.padTo(3, False))
@@ -39,6 +40,8 @@ case class BmcConfig(infos: Seq[ArithInfo]) extends TransformBase {
 
   def pipeline(data: Bool) = data.d(1)
 
+  def zero() = False
+
   def metric(yours: Seq[BigInt], golden: Seq[BigInt]) = yours.sum == golden.head
 
   def naiveImplH: Module = new Module {
@@ -48,19 +51,9 @@ case class BmcConfig(infos: Seq[ArithInfo]) extends TransformBase {
     val pipeline = (a: UInt, level: Int) => a.d(1)
     dataOut := dataIn.reduceBalancedTree(add, pipeline)
   }
-
-  def op: Seq[UInt] => Seq[UInt] = (dataIn: Seq[UInt]) => {
-    val inOperands = dataIn.map(_.asBools)
-    val bitMatrix: BitHeap[Bool] = BitHeap.getHeapFromInfos(infos, inOperands)
-    val retBitMatrix = BitMatrixCompressor(compressor, pipeline, baseWidth).compressAll(bitMatrix)._1.bitHeap.map(_.padTo(2, False))
-    val ret = retBitMatrix.transpose.map(_.asBits.asUInt).map(_ << infos.map(_.shift).min)
-    logger.info(s"bmc out: ${ret.map(_.getBitsWidth).mkString(" ")}")
-    ret
-  }
-
 }
 
-case class Bmc(config: BmcConfig)
+case class BitHeapCompressor(config: BitHeapCompressorConfig)
   extends TransformModule[UInt, UInt] {
 
   import config._
@@ -69,7 +62,13 @@ case class Bmc(config: BmcConfig)
 
   override val dataIn = slave Flow Fragment(Vec(infos.map(info => UInt(info.width bits))))
   override val dataOut = master Flow Fragment(Vec(UInt(), 2))
-  dataOut.fragment := Vec(op(dataIn.fragment))
+
+  val operands = dataIn.fragment.map(_.asBools)
+  val bitHeap = BitHeap.getHeapFromInfos(infos, operands)
+  val (ret, _, _) = bitHeap.compressAll(GPC(), pipeline)
+  dataOut.fragment := ret.output(zero).map(_.asBits().asUInt)
+
+  //  dataOut.fragment := Vec(op(dataIn.fragment))
 
   autoValid()
   autoLast()

@@ -57,6 +57,7 @@ case class BitHeap[T](bitHeap: ArrayBuffer[ArrayBuffer[T]], weightLow: Int) {
 
 
   /** get the exact(rather than maximum) efficiency of a compressor applied on current bit heap
+   *
    * @param columnIndex column with lowest weight covered by the compressor
    */
   def getExactEfficiency(compressor: Compressor[_], width: Int, columnIndex: Int): Double = {
@@ -90,19 +91,22 @@ case class BitHeap[T](bitHeap: ArrayBuffer[ArrayBuffer[T]], weightLow: Int) {
     // when no qualified compressor can be found, the 1 to 1 compressor(no compression) will be chosen
     var bestCompressor = compressors.head
     var bestEff = 0.0
-    var bestWidth = -1
     val columnIndex = heights.indexWhere(_ == heights.max) // find the first(lowest weight) column with maximum height
+    // number of continuous nonempty columns that 1 to 1 compressor can be applied on
+    var bestWidth = bitHeap.drop(columnIndex).takeWhile(_.nonEmpty).length
 
     // sort by efficiency, high to low, besides the 1 to 1 compressor which appear as head
     val candidates = compressors.tail.sortBy(_.efficiency(width)).reverse
 
     candidates.foreach { compressor => // traverse all available compressors
-      if (compressor.efficiency(width) >= bestEff) // skip when ideal efficiency is lower than current best efficiency
+      val widthMax = compressor.widthLimit min (this.width - columnIndex)
+      val maximumEff = compressor.efficiency(widthMax)
+      if (maximumEff >= bestEff) // skip when ideal efficiency is lower than current best efficiency
       {
         val (exactEff, width) = {
           if (compressor.isFixed) (getExactEfficiency(compressor, -1, columnIndex), -1) // for GPC, get eff
           else { // for row compressor, try different widths, get the best one with its width
-            val widthMax = compressor.widthLimit min (this.width - columnIndex) // TODO: avoid trying all widths
+            // TODO: avoid trying all widths
             if (widthMax >= 1) (1 to widthMax).map(w => (getExactEfficiency(compressor, w, columnIndex), w)).maxBy(_._1)
             else (-1.0, 0) // skip
           }
@@ -115,8 +119,8 @@ case class BitHeap[T](bitHeap: ArrayBuffer[ArrayBuffer[T]], weightLow: Int) {
       }
     }
 
-    if (bestCompressor != compressors.head)
-      logger.info(s"get ${bestCompressor.getClass} width $bestWidth efficiency $bestEff")
+//    if (bestCompressor != compressors.head)
+//      logger.info(s"get ${bestCompressor.getClass.getSimpleName} column=$columnIndex width=$bestWidth efficiency=$bestEff")
 
     val newTable = bestCompressor.inputFormat(bestWidth) // remove and get bits in each columns that you need
       .zip(bitHeap.drop(columnIndex)) // align and zip
@@ -130,7 +134,7 @@ case class BitHeap[T](bitHeap: ArrayBuffer[ArrayBuffer[T]], weightLow: Int) {
     val newHeap = mark match {
       case t: Int => fakeImpl(bestCompressor, bestWidth, columnIndex) // when T is Int, T0 != T
       case _ => // when T is Bool, T0 = T, generate the bit heap after compression
-        bestCompressor.impl(BitHeap.getHeapFromTable(newTable.asInstanceOf[Seq[ArrayBuffer[T0]]], columnIndex), bestWidth).asInstanceOf[BitHeap[T]]
+        bestCompressor.impl(BitHeap.getHeapFromTable(newTable.asInstanceOf[Seq[ArrayBuffer[T0]]], columnIndex + weightLow), bestWidth).asInstanceOf[BitHeap[T]]
     }
 
     val cost = bestCompressor.cost(bestWidth)
@@ -138,6 +142,7 @@ case class BitHeap[T](bitHeap: ArrayBuffer[ArrayBuffer[T]], weightLow: Int) {
   }
 
   /** do compression until all bits are covered and go to next stage
+   *
    * @return new heap for the next stage, and the LUT cost
    */
   def compressOneStage[T0](compressors: Seq[Compressor[T0]], pipeline: T0 => T0, finalStage: Boolean): (BitHeap[T], Int) = {
@@ -163,28 +168,32 @@ case class BitHeap[T](bitHeap: ArrayBuffer[ArrayBuffer[T]], weightLow: Int) {
   }
 
   /** do compression until there's no more than two lines in the bit heap
+   *
    * @return final bit heap and the key information of the compressor tree (latency, widthOut, etc.)
    */
   def compressAll[T0](candidates: Seq[Compressor[T0]], pipeline: T0 => T0 = null) = {
+    logger.info(s"initial state:\n${this.toString}")
     val bitsInTotal = this.bitsCount
     var current = this
     var latency = 0
+    var badLatency = 0
     var allCost = 0
     while (current.height > 2 && latency < 100) {
-      val (heap, cost) = current.compressOneStage(candidates, pipeline, finalStage = current.height <= 3)
+      if (current.height <= 4) badLatency += 1
+      val (heap, cost) = current.compressOneStage(candidates, pipeline, finalStage = current.height <= 4)
       current = heap
       allCost += cost
       latency += 1
     }
     val allCompressed = bitsInTotal - current.bitsCount
     logger.info(s"compressor tree - cost in total: $allCost, efficiency in total = ${allCompressed.toDouble / allCost}")
-    logger.info(s"latency: $latency, widthOut: ${current.width}")
+    logger.info(s"latency: $latency, bad latency: $badLatency, widthOut: ${current.width}")
     (current, latency, current.width)
   }
 
   def output(zero: () => T): Seq[Seq[T]] = {
     require(height <= 2)
-    bitHeap.map(_.padTo(2, zero())).transpose
+    (Seq.fill(weightLow)(ArrayBuffer[T]()) ++ bitHeap).map(_.padTo(2, zero())).transpose
   }
 
   override def toString = {
@@ -230,25 +239,8 @@ object BitHeap {
     BitHeap(table, positionLow)
   }
 
-  def getInfoOfCompressor(infos: Seq[ArithInfo], baseWidth: Int) = {
-    def compressor: (Seq[Seq[Char]], Int) => Seq[Char] = (dataIn: Seq[Seq[Char]], width: Int) => {
-      val width = dataIn.length
-      val padded = dataIn.map(_.padTo(3, '0'))
-      val sum = padded.transpose.map(operand2BigInt).sum
-      bigInt2Operand(sum).padTo(width + 2, '0')
-    }
-
-    def pipeline(c: Char) = c
-
-    def bigInt2Operand(value: BigInt) = value.toString(2).toCharArray.toSeq.reverse
-
-    def operand2BigInt(operand: Seq[Char]) = BigInt(operand.mkString("").reverse, 2)
-
-    val operands = infos.map(_.width).map(width => (BigInt(1) << width) - 1)
-    //    val operands = infos.map(_.width).map(width => Random.nextBigInt(width - 1) + (BigInt(1) << (width - 1)))
-    val original = BitHeap.getHeapFromInfos(infos, operands.map(bigInt2Operand))
-    val (matrix, cost, latency) = BitMatrixCompressor(compressor, pipeline, baseWidth).compressAll(original)
-    val widthOut = matrix.bitHeap.length + matrix.weightLow
-    (widthOut, latency, cost)
+  def getFakeHeapFromInfos(infos: Seq[ArithInfo]) = {
+    val operands = infos.map(info => Seq.fill(info.width)(0))
+    getHeapFromInfos(infos, operands)
   }
 }
