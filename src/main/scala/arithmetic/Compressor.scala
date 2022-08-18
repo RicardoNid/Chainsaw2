@@ -27,13 +27,13 @@ abstract class Compressor[T] {
 
   /** hardware implementation
    */
-  def impl(bitsInt: BitHeap[T], width: Int): BitHeap[T]
+  def impl(bitsIn: BitHeap[T], width: Int): BitHeap[T]
 
   /** --------
    * utils
    * -------- */
 
-  def inputBitsCount(width: Int) = outputFormat(width).sum
+  def inputBitsCount(width: Int) = inputFormat(width).sum
 
   def outputBitsCount(width: Int) = outputFormat(width).sum
 
