@@ -34,6 +34,10 @@ object ModularMult { // all kinds of algorithm for modular multiplication
     ret
   }
 
+  /** barrett modular multiplication
+   *
+   * @see ''Langhammer, Martin and Bogdan Mihai Pasca. “Efficient FPGA Modular Multiplication Implementation.” The 2021 ACM/SIGDA International Symposium on Field-Programmable Gate Arrays (2021): n. pag.''
+   */
   def barrett(x: BigInt, y: BigInt, M: BigInt, k: Int, msbOnly: Boolean = false) = {
     require(M.bitLength <= k)
     assert(M > (BigInt(1) << (k - 1)) && M < (BigInt(1) << k))
@@ -54,6 +58,7 @@ object ModularMult { // all kinds of algorithm for modular multiplication
     // mult2 k+1 & k, take LSBs
     // subs and fine reduction
     // on hardware, T is the result of unsigned subtraction of these two operands, here, I do compensation for it
+    // TODO: implement the LSB-multiplication
     val T = N - E * M
 
     assert(T >= golden)

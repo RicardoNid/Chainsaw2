@@ -14,9 +14,13 @@ object ZPrizeMSM {
   val scalarModulus = BigInt("12ab655e9a2ca55660b44d1e5c37b00159aa76fed00000010a11800000000001", 16)
   val scalarRoot = BigInt("0d1ba211c5cc349cd7aacc7c597248269a14cda3ec99772b3c3d3ca739381fb2", 16)
 
+  // for Montgomery algo
   val R = BigInt(1) << baseModulus.bitLength
   val RInverse = R.modInverse(baseModulus)
   val NPrime = ((R * RInverse - 1) / baseModulus).mod(baseModulus)
+
+  // for Barrett algo
+  val MPrime = (BigInt(1) << (2 * baseModulus.bitLength)) / baseModulus
 
   val a = asBigInteger(0)
   val b = asBigInteger(1)
