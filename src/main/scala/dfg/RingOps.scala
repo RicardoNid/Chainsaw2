@@ -216,7 +216,7 @@ object AndVertex {
 object CompressorVertex {
   def apply(name: String, infosIn: Seq[ArithInfo]): RingVertex = {
     logger.info(s"compress $name:\n${infosIn.mkString(" ")}")
-    val config = arithmetic.BmcConfig(infosIn)
+    val config = arithmetic.BitHeapCompressorConfig(infosIn)
     val implH = (data: Seq[UInt]) => config.implH.asNode.apply(data)
     val widthOut = config.widthOut
     logger.info(s"bmc vertex out $name ${config.widthOut}")

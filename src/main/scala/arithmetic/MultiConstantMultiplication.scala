@@ -18,7 +18,7 @@ import arithmetic.McmType._
  * @see [[https://gitlab.com/kumm/pagsuite]] for PAGSuite implementation
  * @see [[https://spiral.ece.cmu.edu/mcm/gen.html]] for spiral implementation
  */
-case class McmConfig(constants: Seq[BigInt], widthIn: Int, mcmType: McmType)
+case class MultiConstantMultiplicationConfig(constants: Seq[BigInt], widthIn: Int, mcmType: McmType)
   extends TransformBase {
 
   override def impl(dataIn: Seq[Any]) = constants.map(_ * dataIn.head.asInstanceOf[BigInt])
@@ -39,10 +39,10 @@ case class McmConfig(constants: Seq[BigInt], widthIn: Int, mcmType: McmType)
 
   override def latency = graphLatency
 
-  override def implH = Mcm(this)
+  override def implH = MultiConstantMultiplication(this)
 }
 
-case class Mcm(config: McmConfig)
+case class MultiConstantMultiplication(config: MultiConstantMultiplicationConfig)
   extends TransformModule[UInt, UInt] {
 
   import config._

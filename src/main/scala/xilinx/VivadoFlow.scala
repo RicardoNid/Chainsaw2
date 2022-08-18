@@ -89,10 +89,10 @@ class VivadoFlow[T <: Component](
     // do flow
     taskType match {
       case SYNTH =>
-        script += s"synth_design -part ${xilinxDevice.part} -top ${topModuleName} -mode out_of_context\n"
+        script += s"synth_design -part ${xilinxDevice.part} -top ${topModuleName} -mode out_of_context -no_srlextract \n"
         script += s"write_checkpoint -force ${topModuleName}_after_synth.dcp\n"
       case IMPL =>
-        script += s"synth_design -part ${xilinxDevice.part} -top ${topModuleName} -mode out_of_context\n"
+        script += s"synth_design -part ${xilinxDevice.part} -top ${topModuleName} -mode out_of_context -no_srlextract \n"
         script += s"write_checkpoint -force ${topModuleName}_after_synth.dcp\n"
         script += "opt_design\n"
         script += "place_design\n"

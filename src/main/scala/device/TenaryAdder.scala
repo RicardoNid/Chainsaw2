@@ -11,7 +11,7 @@ import scala.language.postfixOps
  * @param width width of input operands, output width = width + 2
  * @param sub   sub = 0 => a+b+c 1 => a+b-c 2 => a-b-c
  */
-case class TernaryAdderConfig(width: Int, sub: Int = 0)
+case class TernaryAdderConfig(width: Int, sub: Int = 0, pipelined: Int = 1)
   extends TransformBase {
   override def impl(dataIn: Seq[Any]): Seq[BigInt] = {
     val bigInts = dataIn.asInstanceOf[Seq[BigInt]]
@@ -26,7 +26,7 @@ case class TernaryAdderConfig(width: Int, sub: Int = 0)
 
   override val size = (3, 1)
 
-  override def latency = 1
+  override def latency = pipelined
 
   override def implH = TernaryAdder(this)
 }
@@ -56,13 +56,14 @@ case class TernaryAdder(config: TernaryAdderConfig)
 
   import config._
 
+  // TODO: fix the problem introduced by no latency
   val dataIn = slave Flow Fragment(Vec(UInt(width bits), 3))
   val inc = 2 - sub
   val dataOut = master Flow Fragment(Vec(UInt(width + inc bits), 1))
 
   val impl = TernaryAdderXilinx(width, sub)
   impl.dataIn := dataIn.fragment
-  dataOut.fragment.head := impl.dataOut.resize(width + inc).d(1)
+  dataOut.fragment.head := impl.dataOut.resize(width + inc).d(pipelined)
 
   autoValid()
   autoLast()

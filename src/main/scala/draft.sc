@@ -1,8 +1,3 @@
-import scala.collection.mutable.ArrayBuffer
-import scala.util.Random
-
-val a = ArrayBuffer(1,2,3)
-val segment = a.take(2)
-a --= segment
-a
-segment
+BigInt("49039857307708443467467104908423899575068094792323825664").bitLength
+BigInt("49039857307708443467467104908423899575068094792323825664").toString(2)
+BigInt("49039857307708443467467104908423899575068094792323825665").toString(2)

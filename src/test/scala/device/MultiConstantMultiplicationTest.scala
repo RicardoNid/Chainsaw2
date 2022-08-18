@@ -2,20 +2,20 @@ package org.datenlord
 package device
 
 import algos.ZPrizeMSM.{NPrime, baseModulus}
-import arithmetic.McmConfig
+import arithmetic.MultiConstantMultiplicationConfig
 import arithmetic.McmType._
 
 import org.scalatest.flatspec.AnyFlatSpec
 
 import scala.util.Random
 
-class McmTest extends AnyFlatSpec {
+class MultiConstantMultiplicationTest extends AnyFlatSpec {
 
   val dataWidth = 126 - 31
-  val config0 = McmConfig(baseModulus.toWords(31), dataWidth, SPIRAL)
-  val config1 = McmConfig(baseModulus.toWords(31), dataWidth, PAG)
-  val config2 = McmConfig(NPrime.toWords(31), dataWidth, SPIRAL)
-  val config3 = McmConfig(NPrime.toWords(31), dataWidth, PAG)
+  val config0 = MultiConstantMultiplicationConfig(baseModulus.toWords(31), dataWidth, SPIRAL)
+  val config1 = MultiConstantMultiplicationConfig(baseModulus.toWords(31), dataWidth, PAG)
+  val config2 = MultiConstantMultiplicationConfig(NPrime.toWords(31), dataWidth, SPIRAL)
+  val config3 = MultiConstantMultiplicationConfig(NPrime.toWords(31), dataWidth, PAG)
 
   val data = (0 until 10000).map(_ => Random.nextBigInt(dataWidth))
 
@@ -35,7 +35,7 @@ class McmTest extends AnyFlatSpec {
 
   it should "generate a kernel of 16 neighbors" in {
     val coeffs = (0 until 16).map(_ => Random.nextBigInt(8))
-    val config = McmConfig(coeffs, 8, PAG)
+    val config = MultiConstantMultiplicationConfig(coeffs, 8, PAG)
     val data8 = (0 until 1000).map(_ => Random.nextBigInt(8))
     TransformTest.test(config.implH, data8, name = "example")
     VivadoSynth(config.implH)
