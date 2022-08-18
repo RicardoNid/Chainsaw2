@@ -10,7 +10,8 @@ import scala.collection.mutable.ArrayBuffer
 import scala.language.postfixOps
 
 object GPC {
-  def apply() = Seq(Compressor4to2, Compressor3to1, Compressor1to1)
+  // list of a
+  def apply() = Seq(Compressor1to1, Compressor4to2, Compressor3to1, Compressor6to3)
 }
 
 /** general parallel counter (4; 2) for Xilinx FPGA
@@ -64,20 +65,18 @@ case class Compressor4to2Hard(width: Int) extends Component {
 }
 
 object Compressor4to2 extends Compressor[Bool] {
-
-
   override val isFixed = false
 
-  override val widthLimit = 64
+  override val widthLimit = 32
 
   override def inputFormat(width: Int) = Seq.fill(width)(4)
 
-  override def outputFormat(width: Int) = Seq.fill(width)(2) :+ 1
+  override def outputFormat(width: Int) = 1 +: Seq.fill(width)(2)
 
   override def cost(width: Int): Int = width
 
-  override def impl(bitsInt: BitHeap[Bool], width: Int) = {
-    val Seq(w, x, y, z) = bitsInt.bitHeap.map(_.padTo(4, False)).transpose.map(_.asBits().asUInt)
+  override def impl(bitsIn: BitHeap[Bool], width: Int) = {
+    val Seq(w, x, y, z) = bitsIn.bitHeap.map(_.padTo(4, False)).transpose.map(_.asBits().asUInt)
     val core = Compressor4to2Hard(width)
     core.cIn := False
     core.w := w
@@ -88,31 +87,18 @@ object Compressor4to2 extends Compressor[Bool] {
     bitHeap.last += core.cOut
     core.sumsOut.asBools.zip(bitHeap).foreach { case (bit, column) => column += bit }
     core.carrysOut.asBools.zip(bitHeap.tail).foreach { case (bit, column) => column += bit }
-    BitHeap(bitHeap, bitsInt.weightLow)
+    BitHeap(bitHeap, bitsIn.weightLow)
   }
-
 }
 
-object Compressor1to1 extends Compressor[Bool] {
-
-  override val isFixed = true
-
-  override val widthLimit = 1
-
-  override def inputFormat(width: Int) = Seq(1)
-
-  override def outputFormat(width: Int) = Seq(1)
-
-  override def cost(width: Int): Int = 0
-
-  override def impl(bitsInt: BitHeap[Bool], width: Int): BitHeap[Bool] = bitsInt
-}
-
+/** compression by ternary adder
+ *
+ */
 object Compressor3to1 extends Compressor[Bool] {
 
   override val isFixed = false
 
-  override val widthLimit = 32
+  override val widthLimit = 16
 
   override def inputFormat(width: Int) = Seq.fill(width)(3)
 
@@ -120,12 +106,62 @@ object Compressor3to1 extends Compressor[Bool] {
 
   override def cost(width: Int): Int = width
 
-  override def impl(bitsInt: BitHeap[Bool], width: Int) = {
-    val dataIns = bitsInt.bitHeap.map(_.padTo(4, False)).transpose.map(_.asBits().asUInt)
-    val op = TernaryAdderConfig(width).implH.asNode
+  override def impl(bitsIn: BitHeap[Bool], width: Int) = {
+    val dataIns = bitsIn.bitHeap.map(_.padTo(4, False)).transpose.map(_.asBits().asUInt)
+    val op = TernaryAdderConfig(width, pipelined = 0).implH.asNode
     val ret = op(dataIns)
     val bitHeap = ArrayBuffer.fill(width + 2)(ArrayBuffer[Bool]())
     ret.asBits().asBools.zip(bitHeap).foreach { case (bit, column) => column += bit }
-    BitHeap(bitHeap, bitsInt.weightLow)
+    BitHeap(bitHeap, bitsIn.weightLow)
+  }
+}
+
+object Compressor1to1 extends Compressor[Bool] {
+
+  override val isFixed = false
+
+  override val widthLimit = Int.MaxValue
+
+  override def inputFormat(width: Int) = Seq.fill(width)(1)
+
+  override def outputFormat(width: Int) = Seq.fill(width)(1)
+
+  override def cost(width: Int): Int = 0
+
+  override def impl(bitsIn: BitHeap[Bool], width: Int): BitHeap[Bool] = bitsIn
+}
+
+case class Compressor6to3Hard() extends Component {
+
+  val dataIn = in Bits (6 bits)
+  val dataOut = out Bits (3 bits)
+
+  switch(dataIn) {
+    (0 until 64).foreach { i =>
+      is(B(i, 6 bits))(dataOut := B(i.toBinaryString.map(_.asDigit).sum, 3 bits))
+    }
+  }
+}
+
+object Compressor6to3 extends Compressor[Bool] {
+
+  override val isFixed = true
+
+  override val widthLimit = 1
+
+  override def inputFormat(width: Int) = Seq(6)
+
+  override def outputFormat(width: Int) = Seq.fill(3)(1)
+
+  override def cost(width: Int): Int = 3
+
+  override def impl(bitsIn: BitHeap[Bool], width: Int): BitHeap[Bool] = {
+    val dataIns = bitsIn.bitHeap.head.padTo(6, False).asBits()
+    val core = Compressor6to3Hard()
+    core.dataIn := dataIns
+    val ret = core.dataOut
+    val bitHeap = ArrayBuffer.fill(3)(ArrayBuffer[Bool]())
+    ret.asBools.zip(bitHeap).foreach { case (bit, column) => column += bit }
+    BitHeap(bitHeap, bitsIn.weightLow)
   }
 }
