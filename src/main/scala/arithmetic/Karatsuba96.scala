@@ -13,12 +13,13 @@ object Karatsuba96 {
     val a = graph.addInput("Mult96A", 96)
     val b = graph.addInput("Mult96B", 96)
 
+    // get splits
     val splitsA = (1 until 6).map(_ * 16).reverse
     val splitsB = (1 until 4).map(_ * 24).reverse
-
     val aWords = a.split(splitsA).reverse // low to high
     val bWords = b.split(splitsB).reverse // low to high
 
+    // construct tiles and group them by weight
     val tiles = Seq.tabulate(6, 4) { (i, j) =>
       val (aWord, bWord) = (aWords(i), bWords(j))
       val (aPos, bPos) = (i * 16, j * 24)
@@ -26,8 +27,8 @@ object Karatsuba96 {
     }.flatten
 
     val partials = tiles
-      .groupBy(tuple => tuple._3 + tuple._4).toSeq
-      .filter(_._2.size == 2)
+      .groupBy(tuple => tuple._3 + tuple._4).toSeq // group tiles by weight
+      .filter(_._2.size == 2) // find Karatsuba pairs
       .flatMap { case (pos, group) =>
         val Seq(up, down) = group.sortBy(_._4)
         val (aWord0, bWord0, aPos0, bPos0) = up
@@ -36,7 +37,6 @@ object Karatsuba96 {
         val (high, mid, low) = aHigh.karaWith(aLow, bHigh, bLow) // high to low
         val posHigh = aPos0 + bPos1
         val posLow = aPos1 + bPos0
-        logger.info(s"pos $posHigh, $pos, $posLow")
         assert(posHigh - pos == 48 && pos - posLow == 48)
         Seq((high, posHigh), (mid, pos), (low, posLow))
       }
