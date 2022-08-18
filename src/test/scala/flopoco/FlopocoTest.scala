@@ -26,9 +26,25 @@ class FlopocoTest extends AnyFlatSpec {
 
   val dspConfig = DSPBlockConfig(Seq(16, 26, 42), xSigned = false, ySigned = false, 1, 1)
 
+  // TODO: verification for DSPBlock
+  // FIXME: pre-addition inference failed
+
   behavior of "DSPBlock"
 
-  // FIXME: pre-addition inference failed
   ignore should "synth" in VivadoSynth(dspConfig.implH, "dspAbcd")
+
+  behavior of "IntConstMultShiftAddOptTernary"
+
+  val config24_18 = IntConstMultShiftAddOptTernaryConfig(24, Random.nextBigInt(18))
+
+  it should "sim" in TransformTest.test(
+    config24_18.implH,
+    data = (0 until 100).map(_ => Random.nextBigInt(24)),
+    name = "testTernaryPAG"
+  )
+
+  it should "synth" in VivadoImpl(config24_18.implH, name = "TernaryPAG")
+
+
 
 }
