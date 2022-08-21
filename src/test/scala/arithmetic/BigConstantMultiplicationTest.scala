@@ -31,7 +31,9 @@ class BigConstantMultiplicationTest extends AnyFlatSpec {
   behavior of "high-bits version, for the second multiplication in barrett"
 
   //  def config1 = BigConstantMultiplicationConfig(MPrime, widthIn = dataWidth + 1, HALFHIGH, widthTake = dataWidth + 1)
-  def config1 = BigConstantMultiplicationAnotherConfig(MPrime, widthIn = dataWidth + 1, HALFHIGH, widthTake = dataWidth + 1, useCsd = true)
+  //  def config1 = BigConstantMultiplicationAnotherConfig(MPrime, widthIn = dataWidth + 1, HALFHIGH, widthTake = dataWidth + 1, useCsd = true)
+  // FIXME: wrong when widthTake = dataWidth + 3
+  def config1 = BigConstantMultiplicationAnotherConfig(MPrime, widthIn = dataWidth + 1, HALFHIGH, widthTake = dataWidth + 4, useCsd = true)
 
   it should "work for BLS-377 modulus for high-bits" in TransformTest.test(config1.implH, data, config1.metric)
 

@@ -9,6 +9,8 @@ import scala.util.Random
 
 class BigConstantMultiplicationAnotherTest extends AnyFlatSpec {
 
+  Random.setSeed(42)
+
   val dataWidth = 377
   val data = (0 until 1000).map(_ => Random.nextBigInt(dataWidth))
 

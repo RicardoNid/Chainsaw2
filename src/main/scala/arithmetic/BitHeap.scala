@@ -15,6 +15,10 @@ import scala.collection.mutable.ArrayBuffer
  */
 case class BitHeap[T](bitHeap: ArrayBuffer[ArrayBuffer[T]], weightLow: Int) {
 
+  /** --------
+   * utils
+   * -------- */
+
   // merge two bit heaps
   def +(that: BitHeap[T]): BitHeap[T] = {
     // get size of the new table
@@ -30,6 +34,13 @@ case class BitHeap[T](bitHeap: ArrayBuffer[ArrayBuffer[T]], weightLow: Int) {
       .zip(that.bitHeap).foreach { case (a, b) => a ++= b } // move bits
     BitHeap(newTable, newLow)
   }
+
+  // TODO: implement truncation by these methods
+  // x % (BigInt(1) << widthTake)
+  def takeLow(widthTake:Int): BitHeap[T] = BitHeap.getHeapFromTable(bitHeap.take(widthTake - weightLow))
+
+  // approximately = x / (BigInt(1) << widthDrop)
+  def dropLow(widthDrop:Int): BitHeap[T] = BitHeap.getHeapFromTable(bitHeap.drop(widthDrop - weightLow), widthDrop)
 
   def d(pipeline: T => T): BitHeap[T] = BitHeap(bitHeap.map(_.map(pipeline)), weightLow) // pipeline the whole bit heap
 

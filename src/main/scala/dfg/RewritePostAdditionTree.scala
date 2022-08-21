@@ -115,7 +115,7 @@ object RewritePostAdditionTree {
       val wo0 = compress0.widthsOut.head
       val cpa0 = compress0.out(0).resize(wo0) +:+^ compress0.out(1).resize(wo0)
 
-      val compress1 = CompressorVertex("COMPRESS-", negInfos)
+      val compress1 = CompressorVertex("COMPRESS-", negInfos.map(info => ArithInfo(info.width, info.shift, true)))
       ringDag.addVertexWithDrivers(compress1, negOps.map(_._1.sourcePort): _*)
       val wo1 = compress1.widthsOut.head
       val cpa1 = compress1.out(0).resize(wo1) +:+^ compress1.out(1).resize(wo1) // pass

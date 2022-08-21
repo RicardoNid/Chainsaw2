@@ -13,27 +13,31 @@ case class BigConstantMultiplicationAnotherConfig(constant: BigInt, widthIn: Int
   extends TransformBase {
 
   // digits of the constant, low to high
-
-  val temp = if (useCsd) Csd.fromBigInt(constant).csd else constant.toString(2)
-  val constantString = if (temp.startsWith("0")) temp.tail else temp
+  val temp = if (useCsd) Csd.fromBigInt(constant).csd else constant.toString(2) // get binary/CSD coded digits
+  val constantString = if (temp.startsWith("0")) temp.tail else temp // remove the leading 0 of CSD
   logger.info(s"constant original: ${constant.toString(2)}")
   logger.info(s"constant used    : $constantString")
 
-  val widthAll = constant.bitLength + widthIn
-  val widthDrop = widthAll - widthTake
+  val widthAll = constant.bitLength + widthIn // width of the full product
+  val widthDrop = widthAll - widthTake // width of dropped bits
+  logger.info(s"widthAll: $widthAll")
+  logger.info(s"widthDrop: $widthDrop")
 
-  val infos = constantString.reverse.zipWithIndex
+  val infos = constantString.reverse.zipWithIndex // for each digit in the constant
     .filter(_._1 != '0') // skip 0s
     .map { case (digit, position) =>
-      val sign = digit == '1'
-      val info = mode match {
-        case FULL => ArithInfo(widthIn, position, sign)
-        case HALFLOW => ArithInfo(widthIn min (widthTake - position), position, sign)
-        case HALFHIGH => ArithInfo((widthIn + position - widthDrop) max 0, widthDrop, sign)
+      val sign = digit == '1' // for CSD, '1' stands for 1 and '9' stands for -1
+      val shift =
+        if (mode == HALFHIGH) widthDrop max position
+        else position // weight of truncated operands
+      val width = mode match {
+        case FULL => widthIn
+        case HALFLOW => (widthTake - position) min widthIn // see the diagram
+        case HALFHIGH => (widthIn + position - widthDrop) min widthIn
       }
-      info
+      ArithInfo(width, shift, sign)
     }
-    .filterNot(_.width == 0)
+    .filterNot(_.width <= 0)
 
   infos.foreach(info => println(s"info: $info"))
 
@@ -41,27 +45,41 @@ case class BigConstantMultiplicationAnotherConfig(constant: BigInt, widthIn: Int
 
   // TODO: accurate errorbound
   def errorBound = {
-    // sum up all the bits in lower part
-    val error = (1 to widthDrop) // lower(dropped) part
-      .map(i => (BigInt(1) << (i - 1)) * i) // weighted bits
-      .sum // sum up
-    error / (BigInt(1) << widthDrop) + 1
+    val upper = constantString.zipWithIndex.map { case (char, i) =>
+      if (char == '1') {
+        // TODO: take the value of modulus into consideration, this can be even more accurate
+        val bitsDropped = (widthDrop - i) max 0
+        (BigInt(1) << (bitsDropped + i)) - 1
+      }
+      else BigInt(0)
+    }.sum
+
+    val lower = constantString.zipWithIndex.map { case (char, i) =>
+      if (char == '9') {
+        val bitsDropped = (widthDrop - i) max 0
+        (BigInt(1) << (bitsDropped + i)) - 1
+      }
+      else BigInt(0)
+    }.sum
+
+    val up = upper / (BigInt(1) << widthDrop) + 1
+    val low = -(lower / (BigInt(1) << widthDrop) + 1)
+    (up, low)
   }
 
-  if(mode == HALFHIGH) logger.info(s"error bound of the MSB multiplication is $errorBound")
+  if (mode == HALFHIGH) logger.info(s"error bound of the MSB multiplication is [${errorBound._2}, ${errorBound._1}]")
 
   def metric(yours: Seq[BigInt], golden: Seq[BigInt]): Boolean =
     yours.zip(golden).forall { case (y, g) =>
       val error = g - y
       logger.info(s"error of MSB mode is $error")
-      error <= errorBound
+      error >= errorBound._2 && error <= errorBound._1
     }
 
   override def impl(dataIn: Seq[Any]): Seq[BigInt] = {
     val product = dataIn.asInstanceOf[Seq[BigInt]].map(_ * constant)
     mode match {
       case FULL => product
-      // TODO: draw pictures for explanation
       case HALFLOW => product.map(_ % (BigInt(1) << widthTake))
       case HALFHIGH => product.map(_ >> widthDrop)
     }
