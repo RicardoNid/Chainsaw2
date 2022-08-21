@@ -220,7 +220,7 @@ object CompressorVertex {
     val implH = (data: Seq[UInt]) => config.implH.asNode.apply(data)
     val widthOut = config.widthOut
     logger.info(s"bmc vertex out $name ${config.widthOut}")
-    new RingVertex(s"$name${config.widthOut}", config.fixedLatency, implH, COMPRESS, infosIn.map(_.width), Seq(widthOut, widthOut))
+    new RingVertex(s"$name${config.widthOut}", config.latency, implH, COMPRESS, infosIn.map(_.width), Seq(widthOut, widthOut))
   }
 }
 
