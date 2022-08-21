@@ -1,0 +1,45 @@
+<mxfile host="65bd71144e">
+    <diagram id="pxfniU7AGdPFyJThAhq6" name="Crypto Hierarchy">
+        <mxGraphModel dx="1177" dy="1775" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+            <root>
+                <mxCell id="0"/>
+                <mxCell id="1" parent="0"/>
+                <mxCell id="12" value="Finite Field Operations&lt;br&gt;/Crypto Operations&lt;br&gt;&lt;br&gt;Modular multiplication/addition/substraction/inverse&lt;br&gt;Hash/Permutation/Lookup" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;" parent="1" vertex="1">
+                    <mxGeometry x="40" y="-960" width="240" height="120" as="geometry"/>
+                </mxCell>
+                <mxCell id="13" value="Abstract Algebra Level(Elliptic Curve Group, Lattice, etc.)&lt;br&gt;&lt;br&gt;Point Addition/Doubling" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;" parent="1" vertex="1">
+                    <mxGeometry x="40" y="-1040" width="240" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="14" value="Protocol Level" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;" parent="1" vertex="1">
+                    <mxGeometry x="40" y="-1120" width="240" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="16" value="Basic operations&lt;br&gt;&lt;br&gt;Adders/Multipliers/Logical Operators on FPGA/ASIC" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;" parent="1" vertex="1">
+                    <mxGeometry x="40" y="-840" width="240" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="18" value="Multipliers/&lt;br&gt;Adders" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;" parent="1" vertex="1">
+                    <mxGeometry x="320" y="-840" width="80" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="20" value="SRL" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;" parent="1" vertex="1">
+                    <mxGeometry x="400" y="-840" width="80" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="21" value="Logical Operator" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;" parent="1" vertex="1">
+                    <mxGeometry x="480" y="-840" width="80" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="23" value="Lattice/&lt;br&gt;NTT" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;" vertex="1" parent="1">
+                    <mxGeometry x="320" y="-1040" width="80" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="24" value="EC Group/&lt;br&gt;EC Adder" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;" vertex="1" parent="1">
+                    <mxGeometry x="400" y="-1040" width="80" height="80" as="geometry"/>
+                </mxCell>
+            </root>
+        </mxGraphModel>
+    </diagram>
+    <diagram id="nEoh5H9ULZV1zU3MtLRd" name="第 2 页">
+        <mxGraphModel dx="812" dy="419" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+            <root>
+                <mxCell id="-zOjMzXFnUxe-M0QK_WB-0"/>
+                <mxCell id="-zOjMzXFnUxe-M0QK_WB-1" parent="-zOjMzXFnUxe-M0QK_WB-0"/>
+            </root>
+        </mxGraphModel>
+    </diagram>
+</mxfile>
