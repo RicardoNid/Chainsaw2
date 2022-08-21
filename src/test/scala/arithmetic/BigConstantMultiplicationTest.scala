@@ -30,17 +30,19 @@ class BigConstantMultiplicationTest extends AnyFlatSpec {
 
   behavior of "high-bits version, for the second multiplication in barrett"
 
-  def config1 = BigConstantMultiplicationConfig(MPrime, widthIn = dataWidth + 1, HALFHIGH, widthTake = dataWidth + 1)
+  //  def config1 = BigConstantMultiplicationConfig(MPrime, widthIn = dataWidth + 1, HALFHIGH, widthTake = dataWidth + 1)
+  def config1 = BigConstantMultiplicationAnotherConfig(MPrime, widthIn = dataWidth + 1, HALFHIGH, widthTake = dataWidth + 1, useCsd = true)
 
   it should "work for BLS-377 modulus for high-bits" in TransformTest.test(config1.implH, data, config1.metric)
 
-  ignore should "impl for BLS-377 modulus for high-bits" in VivadoImpl(config1.implH, "ZPRIZE_modulus_BCM_high")
+  it should "impl for BLS-377 modulus for high-bits" in VivadoImpl(config1.implH, "ZPRIZE_modulus_BCM_high")
 
   behavior of "low-bits version, for the third multiplication in barrett"
 
-  def config2 = BigConstantMultiplicationConfig(baseModulus, widthIn = dataWidth + 1, HALFLOW, widthTake = dataWidth + 2)
+  //  def config2 = BigConstantMultiplicationConfig(baseModulus, widthIn = dataWidth + 1, HALFLOW, widthTake = dataWidth + 2)
+  def config2 = BigConstantMultiplicationAnotherConfig(baseModulus, widthIn = dataWidth + 1, HALFLOW, widthTake = dataWidth + 2, useCsd = true)
 
   it should "work for BLS-377 modulus for low-bits" in TransformTest.test(config2.implH, data)
 
-  ignore should "impl for BLS-377 modulus for low-bits" in VivadoImpl(config2.implH, "ZPRIZE_modulus_BCM_low")
+  it should "impl for BLS-377 modulus for low-bits" in VivadoImpl(config2.implH, "ZPRIZE_modulus_BCM_low")
 }

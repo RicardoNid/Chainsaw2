@@ -3,7 +3,7 @@ package arithmetic
 
 import arithmetic.McmType._
 import arithmetic.MultplierMode._
-import dfg.ArithInfo
+import dfg.{ArithInfo, ternaryAddLimit}
 
 import spinal.core._
 import spinal.lib._
@@ -57,12 +57,11 @@ case class BigConstantMultiplicationConfig(constant: BigInt, widthIn: Int, mode:
 
   val solver = PAG // the MCM solver we use
   // TODO: adder limit & solver limit should be parameterized
-  val solverLimit = 30 // maximum single coefficient width that the solver support
+  val solverLimit = 31 // maximum single coefficient width that the solver support
+  val coeffWords = constant.toWords(solverLimit)
   // FIXME: result is wrong when using adderLimit != 126
-  val adderLimit = 94
-  val coeffWords = constant.toWords(solverLimit) // segments of the constant, low to high
+  val adderLimit = ternaryAddLimit
   val dataInWordWidth = adderLimit - solverLimit // maximum width of adders involved
-
   // information of segments of dataIn
   val dataWidths = Seq.fill(widthIn)(1).grouped(dataInWordWidth).toSeq.map(_.sum)
   val dataPositions = dataWidths.scan(0)(_ + _).init
@@ -74,6 +73,23 @@ case class BigConstantMultiplicationConfig(constant: BigInt, widthIn: Int, mode:
   val coeffs = Seq.fill(dataWidths.length)(ArrayBuffer[BigInt]())
   // for all pairs of dataIn segment and coeffWord, its position and width can be assured before instantiation
   val arithInfos = ArrayBuffer[ArithInfo]()
+
+  // TODO: use different coeff sets for different dataIn word
+  // for high bits
+  //  dataWidths.indices.foreach { i =>
+  //    val dataWidth = dataWidths(i)
+  //    val dataPosition = dataPositions(i)
+  //    val coeffStart = widthDrop - dataWidth - dataPosition
+  //    val coeffWords = (constant >> coeffStart).toWords(solverLimit)
+  //    logger.info(s"word length: ${coeffWords.map(_.bitLength).mkString(" ")}")
+  //    coeffWords.zipWithIndex.foreach { case (coeffWord, j) =>
+  //      val retPosition = coeffStart + solverLimit * j + dataPosition
+  //      val retWidth = coeffWord.bitLength + dataWidth
+  //      assert(retPosition + retWidth >= widthDrop - 1)
+  //      arithInfos += ArithInfo(retWidth, retPosition)
+  //      coeffs(i) += coeffWord
+  //    }
+  //  }
 
   Seq.tabulate(dataPositions.length, coeffWords.length) { // build a mesh by tabulating
     (i, j) => // traversing grids in the mesh
@@ -87,8 +103,7 @@ case class BigConstantMultiplicationConfig(constant: BigInt, widthIn: Int, mode:
       val pass = mode match {
         case FULL => true // full multiplication takes all
         case HALFLOW => position < widthTake // LSB multiplication takes the ones on the lower half
-        //        case HALFHIGH => position + width >= widthDrop - 1 // MSB multiplication takes the ones that have influence on the higher half
-        case HALFHIGH => position + width >= 281 // MSB multiplication takes the ones that have influence on the higher half
+        case HALFHIGH => position + width >= widthDrop - 1 // MSB multiplication takes the ones that have influence on the higher half
       }
       logger.info(s"range: $position->${position + width}, drop $widthDrop, pass: $pass, coeff: $coeffWord")
       if (pass) {
@@ -113,9 +128,9 @@ case class BigConstantMultiplicationConfig(constant: BigInt, widthIn: Int, mode:
 
   override def implH = BigConstantMultiplication(this)
 
-  logger.info(s"data segment number: ${dataWidths.length}, coeff segment number: ${coeffWords.length}, " +
-    s"take ${arithInfos.length}/${dataWidths.length * coeffWords.length} pairs for mode $mode, " +
-    s"latency: $latency")
+  //  logger.info(s"data segment number: ${dataWidths.length}, coeff segment number: ${coeffWords.length}, " +
+  //    s"take ${arithInfos.length}/${dataWidths.length * coeffWords.length} pairs for mode $mode, " +
+  //    s"latency: $latency")
 }
 
 case class BigConstantMultiplication(config: BigConstantMultiplicationConfig)

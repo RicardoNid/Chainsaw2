@@ -39,6 +39,8 @@ class BitHeapCompressorTest extends AnyFlatSpec {
     Seq.fill(number)(ArithInfo(40 + genNoise, shift))
   }
 
+  val infosWithNegative = Seq.fill(10)(ArithInfo(10, 0, true)) ++ Seq.fill(5)(ArithInfo(5, 5, false))
+
   def testForInfos(infos: Seq[ArithInfo]) = {
     val data = (0 until 1000).flatMap(_ => infos.map(info => Random.nextBigInt(info.width)))
     val config = BitHeapCompressorConfig(infos)
@@ -60,4 +62,6 @@ class BitHeapCompressorTest extends AnyFlatSpec {
   ignore should "impl for rectangular bits" in VivadoImpl(BitHeapCompressorConfig(infosRegular).implH, "RegularSum")
   ignore should "impl for output from a multiplier" in VivadoImpl(BitHeapCompressorConfig(infosFromMult).implH, "PostSum")
   ignore should "impl for irregular output from a multiplier" in VivadoImpl(BitHeapCompressorConfig(infosFromMultWithNoise).implH, "PostSumIrregular")
+
+  it should "work for negative operands" in testForInfos(infosWithNegative)
 }
