@@ -56,12 +56,15 @@ case class BigConstantMultiplicationConfig(constant: BigInt, widthIn: Int, mode:
   override val size = (1, 1)
 
   val solver = PAG // the MCM solver we use
-  val solverLimit = 31 // maximum single coefficient width that the solver support
+  // TODO: adder limit & solver limit should be parameterized
+  val solverLimit = 30 // maximum single coefficient width that the solver support
+  // FIXME: result is wrong when using adderLimit != 126
+  val adderLimit = 94
   val coeffWords = constant.toWords(solverLimit) // segments of the constant, low to high
-  val adderLimit = 126 - 31 // maximum width of adders involved
+  val dataInWordWidth = adderLimit - solverLimit // maximum width of adders involved
 
   // information of segments of dataIn
-  val dataWidths = Seq.fill(widthIn)(1).grouped(adderLimit).toSeq.map(_.sum)
+  val dataWidths = Seq.fill(widthIn)(1).grouped(dataInWordWidth).toSeq.map(_.sum)
   val dataPositions = dataWidths.scan(0)(_ + _).init
 
   /** --------
@@ -84,14 +87,17 @@ case class BigConstantMultiplicationConfig(constant: BigInt, widthIn: Int, mode:
       val pass = mode match {
         case FULL => true // full multiplication takes all
         case HALFLOW => position < widthTake // LSB multiplication takes the ones on the lower half
-        case HALFHIGH => position + width >= widthDrop - 1 // MSB multiplication takes the ones on the higher half
+        //        case HALFHIGH => position + width >= widthDrop - 1 // MSB multiplication takes the ones that have influence on the higher half
+        case HALFHIGH => position + width >= 281 // MSB multiplication takes the ones that have influence on the higher half
       }
-      logger.info(s"range: $position->${position + width}, drop $widthDrop, pass: $pass")
+      logger.info(s"range: $position->${position + width}, drop $widthDrop, pass: $pass, coeff: $coeffWord")
       if (pass) {
         arithInfos += ArithInfo(width, position)
         coeffs(i) += coeffWord
       }
   }
+
+  coeffs.flatten.zip(arithInfos).foreach { case (coeff, info) => logger.info(s"position: ${info.shift}, width: ${info.width}, coeff: $coeff") }
 
   // for each segment of dataIn, implement a MCM by the coeffWords allocated
   val adderGraphConfigs = dataWidths.zip(coeffs)
@@ -121,7 +127,7 @@ case class BigConstantMultiplication(config: BigConstantMultiplicationConfig)
   override val dataOut = master Flow Fragment(Vec(UInt(widthOut bits), 1))
 
   val dataWords = dataIn.fragment.head.asBits.asBools // Bits -> Seq[Bool]
-    .grouped(adderLimit).toSeq // get segments
+    .grouped(dataInWordWidth).toSeq // get segments
     .map(_.asBits.asUInt) // Seq[Bool] -> UInt
 
   // stage1: MCM

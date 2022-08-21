@@ -6,12 +6,12 @@ import arithmetic.MultplierMode._
 
 object Karatsuba377 {
 
-  def apply(mode: MultiplierMode) = {
+  def apply(mode: MultiplierMode): RingDag = {
     val golden = (data: Seq[BigInt]) => mode match {
       case FULL => Seq(data.product)
       case HALFLOW => Seq(data.product % (BigInt(1) << 378))
     }
-    //    val golden = (data: Seq[BigInt]) => Seq.fill(18)(BigInt(0))
+
     implicit val graph: RingDag = new RingDag(s"karatsubaGraph96", golden)
 
     val a = graph.addInput("Mult377A", 378)
@@ -38,7 +38,6 @@ object Karatsuba377 {
             val cross1 = rec(yHigh.resize(widthNext), xLow.resize(widthNext), widthNext, HALFLOW)
             val low = rec(xLow.resize(widthNext), yLow.resize(widthNext), widthNext, FULL)
             ((cross0 +^ cross1) << (width / 2)) +^ low
-
         }
       }
     }
@@ -58,7 +57,7 @@ object Karatsuba377 {
     graph
   }
 
-  def buildKara96(x: RingPort, y: RingPort)(implicit dag: RingDag) = {
+  def buildKara96(x: RingPort, y: RingPort)(implicit dag: RingDag): RingPort = {
     val splitsA = (1 until 6).map(_ * 16).reverse
     val splitsB = (1 until 4).map(_ * 24).reverse
 

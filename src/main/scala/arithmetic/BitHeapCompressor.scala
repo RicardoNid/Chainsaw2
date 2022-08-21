@@ -26,18 +26,6 @@ case class BitHeapCompressorConfig(infos: Seq[ArithInfo]) extends TransformBase 
 
   override def implH = BitHeapCompressor(this)
 
-  def compressor: (Seq[Seq[Bool]], Int) => Vec[Bool] = (dataIn: Seq[Seq[Bool]], width: Int) => {
-    val core = device.TernaryAdderConfig(width).implH
-    val operands = dataIn
-      .map(_.padTo(3, False))
-      .transpose
-      .map(_.asBits.asUInt.resize(width))
-    require(operands.length == 3)
-    core.dataIn.fragment := Vec(operands)
-    core.skipControl()
-    core.dataOut.fragment.asBits.asBools
-  }
-
   def pipeline(data: Bool) = data.d(1)
 
   def zero() = False
@@ -65,6 +53,7 @@ case class BitHeapCompressor(config: BitHeapCompressorConfig)
 
   val operands = dataIn.fragment.map(_.asBools)
   val bitHeap = BitHeap.getHeapFromInfos(infos, operands)
+  infos.foreach( info => logger.info(s"info: ${info.shift}, ${info.width}"))
   val (ret, _, _) = bitHeap.compressAll(GPC(), pipeline)
   dataOut.fragment := ret.output(zero).map(_.asBits().asUInt)
 

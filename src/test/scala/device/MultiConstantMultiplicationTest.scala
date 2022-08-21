@@ -1,7 +1,7 @@
 package org.datenlord
 package device
 
-import algos.ZPrizeMSM.{NPrime, baseModulus}
+import algos.ZPrizeMSM.{MPrime, NPrime, baseModulus}
 import arithmetic.MultiConstantMultiplicationConfig
 import arithmetic.McmType._
 
@@ -11,11 +11,12 @@ import scala.util.Random
 
 class MultiConstantMultiplicationTest extends AnyFlatSpec {
 
-  val dataWidth = 126 - 31
-  val config0 = MultiConstantMultiplicationConfig(baseModulus.toWords(31), dataWidth, SPIRAL)
-  val config1 = MultiConstantMultiplicationConfig(baseModulus.toWords(31), dataWidth, PAG)
-  val config2 = MultiConstantMultiplicationConfig(NPrime.toWords(31), dataWidth, SPIRAL)
-  val config3 = MultiConstantMultiplicationConfig(NPrime.toWords(31), dataWidth, PAG)
+  val coeffWidth = 40
+  val dataWidth = 126 - 32
+  val config0 = MultiConstantMultiplicationConfig(baseModulus.toWords(coeffWidth), dataWidth, SPIRAL)
+  val config1 = MultiConstantMultiplicationConfig(baseModulus.toWords(coeffWidth), dataWidth, PAG)
+  val config2 = MultiConstantMultiplicationConfig(MPrime.toWords(coeffWidth), dataWidth, SPIRAL)
+  val config3 = MultiConstantMultiplicationConfig(MPrime.toWords(coeffWidth), dataWidth, PAG)
 
   val data = (0 until 10000).map(_ => Random.nextBigInt(dataWidth))
 

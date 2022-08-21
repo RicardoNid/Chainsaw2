@@ -18,19 +18,16 @@ class Karatsuba377Test extends AnyFlatSpec {
 
   behavior of "karatsuba377"
 
-  it should "work" in TransformTest.test(Karatsuba377(FULL).toTransform, data378)
+  it should "work" in TransformTest.test(Karatsuba377(FULL).toTransform, data378, name = "kara377Work")
 
   it should "work for low-bits" in TransformTest.test(Karatsuba377(HALFLOW).toTransform, data378)
 
   val requirement377 = VivadoUtilRequirement(dsp = 162, lut = 20000)
 
-  it should "synth" in {
-    //    VivadoSynth(Karatsuba377().toTransform, "kara377synth").require(requirement377, 800 MHz)
-    VivadoImpl(Karatsuba377(FULL).toTransform, "kara377impl")
+  it should "synth" in VivadoSynth(Karatsuba377(FULL).toTransform, "kara377impl")
       .require(requirement377, 600 MHz)
-  }
 
-  it should "synth for low-bits" in {
+  ignore should "synth for low-bits" in {
     VivadoImpl(Karatsuba377(HALFLOW).toTransform, "kara377impl")
       .require(requirement377, 600 MHz)
   }

@@ -79,6 +79,7 @@ class RingDag(name: String = "ring", val golden: Seq[BigInt] => Seq[BigInt])
         val widthsIn = inputs.asInstanceOf[Seq[RingVertex]].flatMap(_.widthsIn)
         val widthsOut = outputs.asInstanceOf[Seq[RingVertex]].flatMap(_.widthsOut)
         override val dataIn = slave Flow Fragment(Vec(widthsIn.map(w => UInt(w bits))))
+        dataIn.fragment.head
         override val dataOut = master Flow Fragment(Vec(widthsOut.map(w => UInt(w bits))))
         dataOut.fragment := evaluateH(dataIn.fragment)
         autoValid()

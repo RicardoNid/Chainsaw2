@@ -33,15 +33,15 @@ package object datenlord {
 
   }
 
-  def VivadoImpl[T <: Component](gen: => T, name: String = "temp", xdcPath: String = null) = {
-    val report = VivadoFlow(design = gen, taskType = IMPL, topModuleName = name, workspacePath = s"synthWorkspace/$name").doFlow()
+  def VivadoImpl[T <: Component](gen: => T, name: String = "temp", target: XilinxDevice = defaultDevice, xdcPath: String = null) = {
+    val report = VivadoFlow(design = gen, taskType = IMPL, topModuleName = name, workspacePath = s"synthWorkspace/$name", xilinxDevice = target, alterXdc = xdcPath).doFlow()
     report.printArea()
     report.printFMax()
     report
   }
 
-  def VivadoSynth[T <: Component](gen: => T, name: String = "temp"): VivadoReport = {
-    val report = VivadoFlow(design = gen, taskType = SYNTH, topModuleName = name, workspacePath = s"synthWorkspace/$name").doFlow()
+  def VivadoSynth[T <: Component](gen: => T, name: String = "temp", target: XilinxDevice = defaultDevice): VivadoReport = {
+    val report = VivadoFlow(design = gen, taskType = SYNTH, topModuleName = name, workspacePath = s"synthWorkspace/$name", xilinxDevice = target).doFlow()
     report.printArea()
     report.printFMax()
     report
@@ -88,7 +88,7 @@ package object datenlord {
      */
     def split(lowWidth: Int) = {
       val base = BigInt(1) << lowWidth
-      if (bi < BigInt(0)) (bi >> lowWidth,  if (bi % base < 0) bi % base + base else bi % base)
+      if (bi < BigInt(0)) (bi >> lowWidth, if (bi % base < 0) bi % base + base else bi % base)
       else (bi >> lowWidth, bi % base)
     }
 

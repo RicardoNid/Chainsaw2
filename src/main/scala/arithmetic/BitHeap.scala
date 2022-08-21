@@ -119,8 +119,8 @@ case class BitHeap[T](bitHeap: ArrayBuffer[ArrayBuffer[T]], weightLow: Int) {
       }
     }
 
-//    if (bestCompressor != compressors.head)
-//      logger.info(s"get ${bestCompressor.getClass.getSimpleName} column=$columnIndex width=$bestWidth efficiency=$bestEff")
+    //    if (bestCompressor != compressors.head)
+    //      logger.info(s"get ${bestCompressor.getClass.getSimpleName} column=$columnIndex width=$bestWidth efficiency=$bestEff")
 
     val newTable = bestCompressor.inputFormat(bestWidth) // remove and get bits in each columns that you need
       .zip(bitHeap.drop(columnIndex)) // align and zip
@@ -147,6 +147,7 @@ case class BitHeap[T](bitHeap: ArrayBuffer[ArrayBuffer[T]], weightLow: Int) {
    */
   def compressOneStage[T0](compressors: Seq[Compressor[T0]], pipeline: T0 => T0, finalStage: Boolean): (BitHeap[T], Int) = {
 
+    val bitsCountBefore = this.bitsCount
     val mark = bitHeap.filter(_.nonEmpty).head.head // for type match
 
     var stageCost = 0
@@ -163,7 +164,8 @@ case class BitHeap[T](bitHeap: ArrayBuffer[ArrayBuffer[T]], weightLow: Int) {
       case _ => results.asInstanceOf[Seq[BitHeap[T0]]].reduce(_ + _).d(pipeline).asInstanceOf[BitHeap[T]] // when T is Bool, T0 = T
     }
 
-    logger.info(s"after a stage:\n${nextStage.toString}")
+    val compressed = bitsCountBefore - nextStage.bitsCount
+    logger.info(s"stage efficiency = ${compressed.toDouble / stageCost}, cost = $stageCost \n${nextStage.toString}")
     (nextStage, stageCost)
   }
 
