@@ -1,0 +1,14 @@
+<component name="libraryTable">
+  <library name="glnxa64">
+    <CLASSES>
+      <root url="file://$USER_HOME$/matlab2020b/extern/engines/java/jar" />
+    </CLASSES>
+    <JAVADOC />
+    <NATIVE>
+      <root url="file://$USER_HOME$/matlab2020b/bin/glnxa64" />
+      <root url="file://$USER_HOME$/matlab2020b/sys/os/glnxa64" />
+    </NATIVE>
+    <SOURCES />
+    <jarDirectory url="file://$USER_HOME$/matlab2020b/extern/engines/java/jar" recursive="false" />
+  </library>
+</component>

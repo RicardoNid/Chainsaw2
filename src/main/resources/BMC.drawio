@@ -1,6 +1,6 @@
 <mxfile host="65bd71144e">
     <diagram id="oI1Jo83d1u9F27jP-wJ5" name="ternary adder as GPC">
-        <mxGraphModel dx="1706" dy="1131" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+        <mxGraphModel dx="1706" dy="944" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
             <root>
                 <mxCell id="0"/>
                 <mxCell id="1" parent="0"/>
@@ -413,7 +413,7 @@
         </mxGraphModel>
     </diagram>
     <diagram id="4gEH4Tq69cNBlwOg354-" name="GCT">
-        <mxGraphModel dx="1706" dy="1131" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+        <mxGraphModel dx="1706" dy="944" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
             <root>
                 <mxCell id="nXx5vNXwftprBMZfMI6f-0"/>
                 <mxCell id="nXx5vNXwftprBMZfMI6f-1" parent="nXx5vNXwftprBMZfMI6f-0"/>
@@ -1003,7 +1003,7 @@
         </mxGraphModel>
     </diagram>
     <diagram id="qoTjbUQEM24rncmDoOGN" name="(4; 2) compressor">
-        <mxGraphModel dx="1706" dy="1131" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="1" shadow="0">
+        <mxGraphModel dx="1706" dy="944" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="1" shadow="0">
             <root>
                 <mxCell id="EJgF3PLcX8MMyvVZy5RZ-0"/>
                 <mxCell id="EJgF3PLcX8MMyvVZy5RZ-1" parent="EJgF3PLcX8MMyvVZy5RZ-0"/>

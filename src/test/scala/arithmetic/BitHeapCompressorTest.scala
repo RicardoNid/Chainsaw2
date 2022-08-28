@@ -11,7 +11,7 @@ class BitHeapCompressorTest extends AnyFlatSpec {
 
   def genNoise = Random.nextInt(17) - 8 // -8~8
 
-  val infosSmall = Seq.fill(40)(ArithInfo(40, 0))
+  val infosSmall = Seq.fill(7)(ArithInfo(6, 0))
 
   val infosSmallWithNoise = (1 to 5).flatMap { i =>
     val mid = 3

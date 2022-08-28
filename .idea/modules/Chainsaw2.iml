@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <module external.linked.project.id="mylib [file:/home/ltr/IdeaProjects/Chainsaw2/]" external.linked.project.path="$MODULE_DIR$/../.." external.root.project.path="$MODULE_DIR$/../.." external.system.id="SBT" type="JAVA_MODULE" version="4">
-  <component name="NewModuleRootManager" LANGUAGE_LEVEL="JDK_11">
+  <component name="NewModuleRootManager">
     <output url="file://$MODULE_DIR$/../../target/scala-2.11/classes" />
     <output-test url="file://$MODULE_DIR$/../../target/scala-2.11/test-classes" />
     <exclude-output />
@@ -106,5 +106,6 @@
       </library>
     </orderEntry>
     <orderEntry type="library" name="x86-64_linux" level="project" />
+    <orderEntry type="library" name="glnxa64" level="project" />
   </component>
 </module>

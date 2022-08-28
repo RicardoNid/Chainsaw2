@@ -20,9 +20,9 @@ class BigConstantMultiplicationAnotherTest extends AnyFlatSpec {
 
   behavior of "BigConstantMultiplicationAnother"
 
-  val configSmallMSB = BigConstantMultiplicationAnotherConfig(constant, smallDataWidth, HALFHIGH, smallDataWidth, useCsd = true)
-  val configSmallLSB = BigConstantMultiplicationAnotherConfig(constant, smallDataWidth, HALFLOW, smallDataWidth, useCsd = true)
-  val configSmallFull = BigConstantMultiplicationAnotherConfig(constant, smallDataWidth, FULL, useCsd = true)
+  val configSmallMSB = BigConstantMultiplicationByCompressorTreeConfig(constant, smallDataWidth, HALFHIGH, smallDataWidth, useCsd = true)
+  val configSmallLSB = BigConstantMultiplicationByCompressorTreeConfig(constant, smallDataWidth, HALFLOW, smallDataWidth, useCsd = true)
+  val configSmallFull = BigConstantMultiplicationByCompressorTreeConfig(constant, smallDataWidth, FULL, useCsd = true)
 
   it should "work correctly toy system" in {
     TransformTest.test(configSmallFull.implH, smallData, name = "toy_full")
