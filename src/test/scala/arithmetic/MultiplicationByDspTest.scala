@@ -15,9 +15,8 @@ class MultiplicationByDspTest extends AnyFlatSpec {
 
   val testCount = 1000
   val config0 = MultiplicationByDspConfig(FULL)
-  val config1 = MultiplicationByDspConfig(HALFLOW)
+  val config1 = MultiplicationByDspConfig(LSB)
   val config2 = MultiplicationByDspConfig(SQUARE)
-  val config3 = MultiplicationByDspConfig(FULL34)
 
   val data16 = (0 until testCount * 2).map(_ => Random.nextBigInt(32))
   val data17 = (0 until testCount * 2).map(_ => Random.nextBigInt(34))

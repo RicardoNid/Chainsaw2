@@ -20,7 +20,7 @@ class KaratsubaTest extends AnyFlatSpec {
   val ys = data.takeRight(testCount)
 
   "Karatsuba Algo" should "work for all situation" in {
-    val modes = Seq(FULL, HALFLOW, SQUARE)
+    val modes = Seq(FULL, LSB, SQUARE)
     modes.foreach { mode =>
       val kara = Karatsuba(width, mode, baseWidth)
       xs.zip(ys).foreach { case (x, y) => if (mode == SQUARE) kara.mult(x, x) else kara.mult(x, y) }
@@ -28,7 +28,7 @@ class KaratsubaTest extends AnyFlatSpec {
   }
 
   "3-stage Karatsuba Algo" should "work for all situation" in {
-    val modes = Seq(FULL, HALFLOW, SQUARE)
+    val modes = Seq(FULL, LSB, SQUARE)
     modes.foreach { mode =>
       val kara = Karatsuba(width, mode, baseWidth)
       xs.zip(ys).foreach { case (x, y) => if (mode == SQUARE) kara.multImproved(x, x) else kara.multImproved(x, y) }
@@ -36,7 +36,7 @@ class KaratsubaTest extends AnyFlatSpec {
   }
 
   it should "show the cost estimated" in {
-    val modes = Seq(FULL, HALFLOW, SQUARE)
+    val modes = Seq(FULL, LSB, SQUARE)
     modes.foreach { mode =>
       val kara = Karatsuba(width, mode, baseWidth)
       val x = xs.head

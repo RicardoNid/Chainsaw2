@@ -25,7 +25,7 @@ class ArithmeticGraphsTest extends AnyFlatSpec {
 
   def graphFull = ArithmeticGraphs.karatsubaGraph(testWidth, FULL)
 
-  def graphLow = ArithmeticGraphs.karatsubaGraph(testWidth, HALFLOW)
+  def graphLow = ArithmeticGraphs.karatsubaGraph(testWidth, LSB)
 
   def graphSquare = ArithmeticGraphs.karatsubaGraph(testWidth, SQUARE)
 
@@ -37,7 +37,7 @@ class ArithmeticGraphsTest extends AnyFlatSpec {
 
   def graphFullSmall = ArithmeticGraphs.karatsubaGraph(61, FULL)
 
-  def graphLowSmall = ArithmeticGraphs.karatsubaGraph(61, HALFLOW)
+  def graphLowSmall = ArithmeticGraphs.karatsubaGraph(61, LSB)
 
   def graphSquareSmall = ArithmeticGraphs.karatsubaGraph(61, SQUARE)
 

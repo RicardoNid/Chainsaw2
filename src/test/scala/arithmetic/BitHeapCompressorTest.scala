@@ -55,9 +55,9 @@ class BitHeapCompressorTest extends AnyFlatSpec {
   it should "work on simple situation with noise" in testForInfos(infosSmallWithNoise)
   ignore should "impl for simple situation with noise" in testForInfos(infosSmallWithNoise)
 
-  it should "work for all situations 0" in testForInfos(infosRegular)
-  it should "work for all situations 1" in testForInfos(infosFromMult)
-  it should "work for all situations 2" in testForInfos(infosFromMultWithNoise)
+  it should "work for situation 0" in testForInfos(infosRegular)
+  it should "work for situation 1" in testForInfos(infosFromMult)
+  it should "work for situation 2" in testForInfos(infosFromMultWithNoise)
 
   ignore should "impl for rectangular bits" in VivadoImpl(BitHeapCompressorConfig(infosRegular).implH, "RegularSum")
   ignore should "impl for output from a multiplier" in VivadoImpl(BitHeapCompressorConfig(infosFromMult).implH, "PostSum")

@@ -1,7 +1,7 @@
 package org.datenlord
 package dfg
 
-import arithmetic.MultplierMode.{FULL, HALFLOW, SQUARE}
+import arithmetic.MultplierMode.{FULL, LSB, SQUARE}
 
 import org.scalatest.flatspec.AnyFlatSpec
 
@@ -19,9 +19,9 @@ class ArithmeticGraphsSynthTest extends AnyFlatSpec {
 
   def graphFull1 = ArithmeticGraphs.karatsubaGraph(testWidth, FULL, noWidthGrowth = true)
 
-  def graphLow0 = ArithmeticGraphs.karatsubaGraph(testWidth, HALFLOW, false)
+  def graphLow0 = ArithmeticGraphs.karatsubaGraph(testWidth, LSB, false)
 
-  def graphLow1 = ArithmeticGraphs.karatsubaGraph(testWidth, HALFLOW, true)
+  def graphLow1 = ArithmeticGraphs.karatsubaGraph(testWidth, LSB, true)
 
   def graphSquare0 = ArithmeticGraphs.karatsubaGraph(testWidth, SQUARE, false)
 

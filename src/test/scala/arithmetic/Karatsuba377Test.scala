@@ -21,7 +21,7 @@ class Karatsuba377Test extends AnyFlatSpec {
   it should "show" in (Karatsuba377(FULL).toPng("karashow"))
   it should "work" in TransformTest.test(Karatsuba377(FULL).toTransform, data378, name = "kara377Work")
 
-  it should "work for low-bits" in TransformTest.test(Karatsuba377(HALFLOW).toTransform, data378)
+  it should "work for low-bits" in TransformTest.test(Karatsuba377(LSB).toTransform, data378)
 
   val requirement377 = VivadoUtilRequirement(dsp = 162, lut = 20000)
 
