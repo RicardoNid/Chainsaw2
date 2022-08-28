@@ -123,10 +123,10 @@ case class PeaseFft(config: PeaseFftConfig) extends TransformModule[ComplexFix, 
       mults.dataIn.last.allowOverride
       mults.dataIn.last := dataIn.last
     }
-    val afterMult = mults.dataOut.fragment.map(_.truncated(innerType().sfixType))
+    val afterMult = mults.dataOut.fragment.map(_.truncate(innerType().sfixType))
 
     // dfts
-    val afterDft = Vec(afterMult.grouped(radix).toSeq.flatMap(seq => dft(Vec(seq)).map(_.truncated(innerType().sfixType))))
+    val afterDft = Vec(afterMult.grouped(radix).toSeq.flatMap(seq => dft(Vec(seq)).map(_.truncate(innerType().sfixType))))
 
     // permutation
     val permConfig = StridePermutationFor2Config(n, q, r, innerType.getBitsWidth)
@@ -139,7 +139,7 @@ case class PeaseFft(config: PeaseFftConfig) extends TransformModule[ComplexFix, 
     ChainsawFlow(afterPerm, permutation.dataOut.valid, permutation.dataOut.last)
   }
 
-  val dataInTruncated = dataIn.withFragment(dataIn.fragment.map(_.truncated(innerType().sfixType)))
+  val dataInTruncated = dataIn.withFragment(dataIn.fragment.map(_.truncate(innerType().sfixType)))
   val iterStart = cloneOf(dataInTruncated)
 
   val dataPath = ArrayBuffer[Flow[Fragment[Vec[ComplexFix]]]](iterStart)
@@ -155,7 +155,7 @@ case class PeaseFft(config: PeaseFftConfig) extends TransformModule[ComplexFix, 
   (0 until iterativeCount).reverse.map { i =>
     val coeffSet = (0 until timeReuse).map(j => j * iterativeCount + i).reverse
     val next = iterativeBox(dataPath.last, coeffSet)
-    val normalized = next.fragment.map(_ >> shifts(i)).map(_.truncated(innerType().sfixType))
+    val normalized = next.fragment.map(_ >> shifts(i)).map(_.truncate(innerType().sfixType))
     dataPath += next.withFragment(normalized)
   }
 
@@ -171,7 +171,7 @@ case class PeaseFft(config: PeaseFftConfig) extends TransformModule[ComplexFix, 
   }
   else iterStart << dataInTruncated
 
-  dataOut.fragment := (if (timeReuse == 1) iterEnd.fragment else Vec(iterEnd.fragment.map(_ << compensateShift).map(_.truncated(innerType().sfixType))))
+  dataOut.fragment := (if (timeReuse == 1) iterEnd.fragment else Vec(iterEnd.fragment.map(_ << compensateShift).map(_.truncate(innerType().sfixType))))
   autoValid()
   autoLast()
 }

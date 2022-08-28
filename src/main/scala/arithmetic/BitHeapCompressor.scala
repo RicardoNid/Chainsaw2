@@ -30,7 +30,7 @@ case class BitHeapCompressorConfig(infos: Seq[ArithInfo]) extends TransformBase 
   val bitHeapInfoPositive = BitHeap.getFakeHeapFromInfos(infosPositive).compressAll(GPC())
   val (_, latencyPositive, widthOutPositive) = bitHeapInfoPositive
 
-  val bitHeapInfoNegative = if(hasNegative) BitHeap.getFakeHeapFromInfos(infosNegative).compressAll(GPC()) else bitHeapInfoPositive
+  val bitHeapInfoNegative = if (hasNegative) BitHeap.getFakeHeapFromInfos(infosNegative).compressAll(GPC()) else bitHeapInfoPositive
   val (_, latencyNegative, widthOutNegative) = bitHeapInfoNegative
 
   override def latency = latencyPositive max latencyNegative
@@ -94,3 +94,4 @@ case class BitHeapCompressor(config: BitHeapCompressorConfig)
   autoValid()
   autoLast()
 }
+

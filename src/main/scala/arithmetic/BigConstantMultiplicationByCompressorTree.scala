@@ -9,7 +9,7 @@ import spinal.lib._
 
 import scala.language.postfixOps
 
-case class BigConstantMultiplicationAnotherConfig(constant: BigInt, widthIn: Int, mode: MultiplierMode, widthTake: Int = 0, useCsd: Boolean = false)
+case class BigConstantMultiplicationByCompressorTreeConfig(constant: BigInt, widthIn: Int, mode: MultiplierMode, widthTake: Int = 0, useCsd: Boolean = false)
   extends TransformBase {
 
   // digits of the constant, low to high
@@ -41,7 +41,7 @@ case class BigConstantMultiplicationAnotherConfig(constant: BigInt, widthIn: Int
 
   infos.foreach(info => println(s"info: $info"))
 
-  val compressorConfig = BitHeapCompressorConfig(infos)
+  val compressorConfig = BitHeapCompressorUseInversionConfig(infos)
 
   // TODO: accurate errorbound
   def errorBound = {
@@ -92,7 +92,8 @@ case class BigConstantMultiplicationAnotherConfig(constant: BigInt, widthIn: Int
   override def implH = BigConstantMultiplicationAnother(this)
 }
 
-case class BigConstantMultiplicationAnother(config: BigConstantMultiplicationAnotherConfig) extends TransformModule[UInt, UInt] {
+case class BigConstantMultiplicationAnother(config: BigConstantMultiplicationByCompressorTreeConfig)
+  extends TransformModule[UInt, UInt] {
 
   import config._
 
@@ -110,10 +111,10 @@ case class BigConstantMultiplicationAnother(config: BigConstantMultiplicationAno
     }
   }
 
-  val rows = compressorConfig.implH.asNode(operandsIn)
-  val ret =
-    if (useCsd) (rows(0) +^ rows(1)) - (rows(2) +^ rows(3))
-    else rows.reduce(_ +^ _)
+  val ret = compressorConfig.implH.asNode(operandsIn).head
+  //
+  //    if (useCsd) (rows(0) +^ rows(1)) - (rows(2) +^ rows(3))
+  //    else rows.reduce(_ +^ _)
 
   mode match {
     case FULL => dataOut.fragment.head := ret.resized

@@ -8,14 +8,14 @@ import org.datenlord.xilinx._
 import org.slf4j.LoggerFactory
 import spinal.core._
 import spinal.core.sim._
-import spinal.lib.{Delay, _}
+import spinal.lib.{Delay, com => _, _}
 
 import scala.collection.mutable.ArrayBuffer
 import scala.math.{BigDecimal, BigInt}
-import scala.reflect.ClassTag
+import scala.reflect.{ClassTag, classTag}
 import scala.sys.process.Process
 import scala.util.Random
-
+import com.mathworks.engine._
 
 package object datenlord {
 
@@ -218,7 +218,7 @@ package object datenlord {
 
     def isNegative = sf.raw.msb
 
-    def truncated(dataType: HardType[SFix]) = {
+    def truncate(dataType: HardType[SFix]) = {
       val ret = dataType()
       ret := sf.truncated
       ret
@@ -293,4 +293,34 @@ package object datenlord {
   import org.scalatest.Tag
 
   object SynthTest extends Tag("datenlord.tags.Synth")
+
+  var binaryAddLimit = 95
+  var ternaryAddLimit = 94
+
+  lazy val matlabEngine = MatlabEngine.startMatlab()
+
+  implicit class ArrayUtil[T](array: Array[T]) {
+    def toMatlabLiteral = s"[${array.mkString(",")}]"
+  }
+
+  object SFConstant {
+    def apply(value: BigDecimal, peak: ExpNumber, width: BitCount): SFix = {
+      val tmp = SFix(peak, width)
+      tmp := value
+      tmp
+    }
+
+    def apply(value: BigDecimal, peak: ExpNumber, resolution: ExpNumber): SFix = {
+      val tmp = SFix(peak, resolution)
+      tmp := value
+      tmp
+    }
+
+    def apply(value: BigDecimal, hardType: HardType[SFix]): SFix = {
+      val tmp = hardType()
+      tmp := value
+      tmp
+    }
+  }
+
 }

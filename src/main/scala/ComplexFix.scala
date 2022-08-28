@@ -48,7 +48,7 @@ case class ComplexFix(peak: ExpNumber, resolution: ExpNumber) extends Bundle {
     mult.product
   }
 
-  def truncated(dataType: HardType[SFix]) = {
+  def truncate(dataType: HardType[SFix]) = {
     val retReal, retImag = dataType()
     retReal := real.truncated
     retImag := imag.truncated

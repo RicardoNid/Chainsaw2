@@ -3,7 +3,7 @@ package arithmetic
 
 import arithmetic.McmType._
 import arithmetic.MultplierMode._
-import dfg.{ArithInfo, ternaryAddLimit}
+import dfg.{ArithInfo}
 
 import spinal.core._
 import spinal.lib._

@@ -83,9 +83,9 @@ object RewritePostAdditionTree {
     }
     val allInfos = operands.map { case (e, info) => ArithInfo(e.sourcePort.asInstanceOf[RingPort].width, info.shift, info.sign) }
 
-    /** --------
-     * print infos
-     * -------- */
+    //    /** --------
+    //     * print infos
+    //     * -------- */
     val posOps = operands.filter(_._2.sign == true)
     val negOps = operands.filter(_._2.sign == false)
 
@@ -122,12 +122,15 @@ object RewritePostAdditionTree {
       cpa0 -:- cpa1
     }
 
-    //    VivadoImpl(BmcConfig(posInfos).implH, "testPostPart")
-    //    VivadoImpl(BmcConfig(negInfos).implH, "testNegPart")
-
     val resized = ret.resize(root.widthsIn.head)
     logger.info(s"output width ${root.widthsIn.head}")
     ringDag.addEdge(resized, root.in(0))
+
+    //    val compress = CompressorVertex("COMPRESS", allInfos)
+    //    ringDag.addVertexWithDrivers(compress, operands.map(_._1.sourcePort): _*)
+    //    val ret = compress.out(0)
+    //    val resized = ret.resize(root.widthsIn.head)
+    //    ringDag.addEdge(resized, root.in(0))
 
     /** --------
      * remove the old tree

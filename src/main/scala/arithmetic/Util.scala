@@ -38,8 +38,8 @@ object Util {
    dataType:HardType[THard]) = {
     val ret = dataIn.zip(coeffs).map { case (data, coeff) =>
       data match {
-        case cf: ComplexFix => complexMult(cf.asInstanceOf[ComplexFix], coeff.asInstanceOf[ComplexFix]).truncated(dataType.asInstanceOf[HardType[ComplexFix]]().sfixType)
-        case sf: SFix => (sf.asInstanceOf[SFix] * coeff.asInstanceOf[SFix]).truncated(dataType.asInstanceOf[HardType[SFix]]).d(1)
+        case cf: ComplexFix => complexMult(cf.asInstanceOf[ComplexFix], coeff.asInstanceOf[ComplexFix]).truncate(dataType.asInstanceOf[HardType[ComplexFix]]().sfixType)
+        case sf: SFix => (sf.asInstanceOf[SFix] * coeff.asInstanceOf[SFix]).truncate(dataType.asInstanceOf[HardType[SFix]]).d(1)
         case si: SInt => (si.asInstanceOf[SInt] * coeff.asInstanceOf[SInt]).resize(dataType.getBitsWidth).d(1)
         case ui: UInt => (ui.asInstanceOf[UInt] * coeff.asInstanceOf[UInt]).resize(dataType.getBitsWidth).d(1)
       }

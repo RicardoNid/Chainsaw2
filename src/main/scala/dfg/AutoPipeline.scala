@@ -51,8 +51,10 @@ object AutoPipeline {
     // set linear programming problem and solve it
     cplex.solve()
     import scala.math.round
-    val solution = vertices.zip(cplex.getValues(variables).map(round).map(_.toInt)).toMap
-    logger.info(s"solution: ${solution.mkString(" ")}")
+    val values = cplex.getValues(variables).map(round).map(_.toInt)
+    val minValue = values.min
+    val solution = vertices.zip(values.map(_ - minValue)).toMap
+    logger.info(s"solution: ${solution.mkString("\n")}")
     logger.info(s"solution status: ${cplex.getStatus}")
     logger.info(s"solution latency = ${round(cplex.getObjValue())}")
     cplex.end()

@@ -8,6 +8,8 @@ abstract class TransformConfig {
   // fold-independent attributes
   def impl(dataIn: Seq[Any]): Seq[Any]
 
+  val implMode: ImplMode = Comb
+
   // user-defined
   val size: (Int, Int) // input/output size of impl
 
@@ -24,9 +26,9 @@ abstract class TransformConfig {
 
   def inputWidth = inputFlow.portWidth
 
-  def outputWidth = inputFlow.portWidth
+  def outputWidth = outputFlow.portWidth
 
-  def getRandomDataIn[T:ClassTag](randGen: () => T): Seq[T] =
+  def getRandomDataIn[T: ClassTag](randGen: () => T): Seq[T] =
     Random.RandomSequence(10 * inputFlow.rawDataCount, randGen)
 
 }

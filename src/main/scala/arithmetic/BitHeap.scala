@@ -2,7 +2,7 @@ package org.datenlord
 package arithmetic
 
 import dfg._
-
+import spinal.core.log2Up
 import scala.collection.mutable.ArrayBuffer
 
 /** Storing information of a bit matrix(heap), while providing util methods, making operations on bit matrix easier
@@ -11,7 +11,8 @@ import scala.collection.mutable.ArrayBuffer
  * @param bitHeap the bits, each array buffer in the table stands for a column, low to high
  * @example bitHeap(m)(n) is the (n+1)-th bit of (m+1)-th column
  * @param weightLow the base weight of the whole bit heap, this is necessary as a bit matrices can merge with each other
- * @see ''Brunie, Nicolas, Florent de Dinechin, Matei Iştoan, Guillaume Sergent, Kinga Illyes and Bogdan Popa. “Arithmetic core generation using bit heaps.” 2013 23rd International Conference on Field programmable Logic and Applications (2013): 1-8.''
+ * @see [[BitHeapCompressor]] for hardware implementation
+ * @see ''Arithmetic core generation using bit heaps.'' [[https://ieeexplore.ieee.org/stamp/stamp.jsp?tp=&arnumber=6645544]]
  */
 case class BitHeap[T](bitHeap: ArrayBuffer[ArrayBuffer[T]], weightLow: Int) {
 
@@ -35,12 +36,20 @@ case class BitHeap[T](bitHeap: ArrayBuffer[ArrayBuffer[T]], weightLow: Int) {
     BitHeap(newTable, newLow)
   }
 
+  // add a row on bit heap, in-place operation, the row must be aligned this bit heap
+  def addConstant(row: Seq[T], zero: T) = {
+    val overflow = row.length - width
+    if (overflow > 0) bitHeap ++= Seq.fill(overflow)(ArrayBuffer[T]())
+    bitHeap.zip(row).foreach { case (column, bit) => if (bit != zero) column += bit }
+    this
+  }
+
   // TODO: implement truncation by these methods
   // x % (BigInt(1) << widthTake)
-  def takeLow(widthTake:Int): BitHeap[T] = BitHeap.getHeapFromTable(bitHeap.take(widthTake - weightLow))
+  def takeLow(widthTake: Int): BitHeap[T] = BitHeap.getHeapFromTable(bitHeap.take(widthTake - weightLow))
 
   // approximately = x / (BigInt(1) << widthDrop)
-  def dropLow(widthDrop:Int): BitHeap[T] = BitHeap.getHeapFromTable(bitHeap.drop(widthDrop - weightLow), widthDrop)
+  def dropLow(widthDrop: Int): BitHeap[T] = BitHeap.getHeapFromTable(bitHeap.drop(widthDrop - weightLow), widthDrop)
 
   def d(pipeline: T => T): BitHeap[T] = BitHeap(bitHeap.map(_.map(pipeline)), weightLow) // pipeline the whole bit heap
 
@@ -53,6 +62,8 @@ case class BitHeap[T](bitHeap: ArrayBuffer[ArrayBuffer[T]], weightLow: Int) {
   def weightHigh: Int = weightLow + width - 1
 
   def bitsCount = bitHeap.map(_.length).sum
+
+  def maxValue = heights.zipWithIndex.map { case (count, weight) => (BigInt(1) << weight) * count }.sum
 
   def isEmpty = bitHeap.forall(_.isEmpty)
 
@@ -210,9 +221,11 @@ case class BitHeap[T](bitHeap: ArrayBuffer[ArrayBuffer[T]], weightLow: Int) {
   }
 
   override def toString = {
-    val dotDiagram = heights.map(columnHeight => Seq.fill(columnHeight)("\u2B24").padTo(this.height, " ")).reverse.transpose
+    val finalWidth = log2Up(maxValue)
+    val dotDiagram = heights.padTo(finalWidth, 0)
+      .map(columnHeight => Seq.fill(columnHeight)("\u25A0").padTo(this.height, " ")).reverse.transpose
       .map(_.mkString(" ")).mkString("\n")
-    dotDiagram
+    s"$dotDiagram"
   }
 }
 

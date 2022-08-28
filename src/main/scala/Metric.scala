@@ -19,7 +19,8 @@ object Metric {
       val yourV = new DenseVector(yours.toArray)
       val goldenV = new DenseVector(golden.toArray)
       val errorV = (yourV - goldenV).map(_.abs)
-      logger.info(s"errorMax = ${max(errorV)}, errormean${mean(errorV)}")
-      errorV.forall(_.abs < epsilon)
+      val pass = errorV.forall(_.abs < epsilon)
+      if(!pass) logger.info(s"errorMax = ${max(errorV)}, errorMean = ${mean(errorV)}")
+      pass
     }
 }
