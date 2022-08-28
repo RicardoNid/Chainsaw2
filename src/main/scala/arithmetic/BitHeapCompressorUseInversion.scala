@@ -16,34 +16,23 @@ case class BitHeapCompressorUseInversionConfig(infos: Seq[ArithInfo]) extends Tr
 
   override val size = (infos.length, 1)
 
-  // TODO: use positive compensation, instead of
-  // constant that must be subtracted
-  val weightLow = infos.map(_.shift).min
-  val compensation = infos.filter(_.sign == false)
+  // constant that must be subtracted in the end
+  val compensation = infos.filter(_.sign == false) // the true compensation
     .map(info => ((BigInt(1) << info.width) - 1) << info.shift)
     .map(_ * 1).sum
 
-  val negativeCompensation = BigInt(1) << compensation.bitLength
-  val positiveCompensation: Seq[Int] = (negativeCompensation - compensation).toString(2).map(_.asDigit).dropRight(weightLow)
-  logger.info(s"compensation: $compensation")
-  logger.info(s"negative compensation: $negativeCompensation")
-  logger.info(s"positive compensation: ${BigInt(positiveCompensation.mkString(""), 2)}")
-
-  infos.filter(_.sign == false).foreach(info => logger.info(s"${info.width}, ${info.shift}"))
-
   val (_, fixedLatency, widthOut) = BitHeap.getFakeHeapFromInfos(infos)
-    .addConstant(positiveCompensation.reverse, 0)
     .compressAll(GPC())
 
   override def latency = fixedLatency
 
-  logger.info(s"latency of UInt Compressor = $latency")
+  logger.info(s"latency of Bit Heap Compressor: $latency")
 
   override def implH = BitHeapCompressorUseInversion(this)
 
-  def pipeline(data: Bool) = data.d(1)
+  def pipeline(data: Bool): Bool = data.d(1)
 
-  def zero() = False
+  def zero(): Bool = False
 }
 
 case class BitHeapCompressorUseInversion(config: BitHeapCompressorUseInversionConfig)
@@ -57,17 +46,12 @@ case class BitHeapCompressorUseInversion(config: BitHeapCompressorUseInversionCo
   val operands = dataIn.fragment.zip(infos)
     .map { case (int, info) => if (info.sign) int else ~int }
     .map(_.asBools)
-  logger.info("caution")
-  println(s"positive ${positiveCompensation.mkString("")}")
-  print(160.toBinaryString)
+
   val bitHeap = BitHeap.getHeapFromInfos(infos, operands)
-    .addConstant(positiveCompensation.reverse.map(int => if (int == 1) True else False), False)
-  logger.info(s"bit heap base = ${bitHeap.weightLow}")
   val (ret, _, _) = bitHeap.compressAll(GPC(), pipeline)
 
-  // TODO: better CPA
   val rows = ret.output(zero).map(_.asBits().asUInt)
-  dataOut.fragment.head := rows(0) +^ rows(1) - negativeCompensation
+  dataOut.fragment.head := rows(0) +^ rows(1) - compensation
 
   autoValid()
   autoLast()
