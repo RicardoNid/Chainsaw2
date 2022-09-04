@@ -17,6 +17,9 @@ case class Decomposition(shape: (Int, Int), part: Int) {
 
 }
 
+/** search for optimized Karatsuba decomposition for specific width
+ *
+ */
 object KaraSearch {
 
   val shapes = Seq((1, 1), (2, 3), (2, 5), (3, 4), (3, 5), (4, 5))

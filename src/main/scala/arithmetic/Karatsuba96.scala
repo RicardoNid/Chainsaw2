@@ -48,7 +48,7 @@ object Karatsuba96 {
     graph.addEdge(resized, z)
 
     logger.info(graph.toString)
-    graph.toPng("kara96_before")
+    //    graph.toPng("kara96_before")
     logger.info(s"karatsuba96 graph built")
     graph
   }

@@ -5,7 +5,7 @@ import spinal.core._
 import spinal.lib._
 
 import scala.language.postfixOps
-import arithmetic.MultplierMode._
+import arithmetic.MultiplierMode._
 
 /** Dedicated pipeline for 34 * 52 multipliers
  */
@@ -15,15 +15,15 @@ case class MultiplicationByDspConfig(mode: MultiplierMode)
   val baseWidth = mode match {
     case FULL => 32
     case FULL34 => 34
-    case HALFLOW => 34
+    case LSB => 34
     case SQUARE => 34
   }
 
   val opWidth = baseWidth / 2
   val widthOut= mode match {
     case FULL => baseWidth * 2
-    case HALFLOW => baseWidth
-    case HALFHIGH => baseWidth
+    case LSB => baseWidth
+    case MSB => baseWidth
     case SQUARE => baseWidth * 2
   }
 
@@ -31,7 +31,7 @@ case class MultiplicationByDspConfig(mode: MultiplierMode)
     val bigInts = dataIn.asInstanceOf[Seq[BigInt]]
     val prod = bigInts.product
     mode match {
-      case HALFLOW => Seq(prod % (BigInt(1) << baseWidth))
+      case LSB => Seq(prod % (BigInt(1) << baseWidth))
       case _ => Seq(prod)
     }
   }
@@ -43,7 +43,7 @@ case class MultiplicationByDspConfig(mode: MultiplierMode)
     case FULL => 7
     // FIXME: remove the option "FULL34"
     case FULL34 => 7
-    case HALFLOW => 6
+    case LSB => 6
     case SQUARE => 5
   }
 
@@ -83,7 +83,7 @@ case class MultiplicationByDsp(config: MultiplicationByDspConfig) extends Transf
       val (high, mid, low) = (dsp0.d(4), adbc, dsp1.d(4))
       val ret = ((high @@ low) + (mid << opWidth)).d(1)
       ret
-    case HALFLOW =>
+    case LSB =>
       // 0-2
       val dsp0 = Dsp48.ab(b, c)
       val dsp0Low = dsp0.takeLow(opWidth).asUInt
@@ -123,7 +123,7 @@ case class MultiplicationByDsp(config: MultiplicationByDspConfig) extends Transf
 
   val defName = mode match {
     case FULL => "FullMult32"
-    case HALFLOW => "LowMult34"
+    case LSB => "LowMult34"
     case SQUARE => "SquareMult34"
   }
 

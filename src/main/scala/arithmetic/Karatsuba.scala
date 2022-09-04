@@ -1,8 +1,8 @@
 package org.datenlord
 package arithmetic
 
-import arithmetic.MultplierMode.{FULL, HALFLOW, MultiplierMode, SQUARE}
-import dfg.{ArithInfo, RingDag, RingPort}
+import arithmetic.MultiplierMode.{FULL, LSB, MultiplierMode, SQUARE}
+import dfg.{RingDag, RingPort}
 
 object Karatsuba {
 
@@ -21,7 +21,7 @@ object Karatsuba {
 
     val golden = mode match {
       case FULL => (data: Seq[BigInt]) => Seq(data.product)
-      case HALFLOW => (data: Seq[BigInt]) => Seq(data.product % (BigInt(1) << width))
+      case LSB => (data: Seq[BigInt]) => Seq(data.product % (BigInt(1) << width))
       case SQUARE => (data: Seq[BigInt]) => Seq(data.head * data.head)
     }
 
@@ -29,7 +29,7 @@ object Karatsuba {
     val x = graph.addInput("bigMultX", width)
     val y = if (mode != SQUARE) graph.addInput("bigMultY", width) else null
     val widthOut = mode match {
-      case HALFLOW => width
+      case LSB => width
       case _ => width * 2
     }
 
@@ -88,10 +88,10 @@ object Karatsuba {
               bd +^ (adbc << lowWidth) + (ac << doubleWidth)
             }
 
-          case HALFLOW =>
+          case LSB =>
             val bd = recursiveTask(lowWidth, xLow, yLow, FULL)
-            val cb = recursiveTask(crossWidth, xLow.resize(crossWidth), yHigh.resize(crossWidth), HALFLOW)
-            val ad = recursiveTask(crossWidth, xHigh.resize(crossWidth), yLow.resize(crossWidth), HALFLOW)
+            val cb = recursiveTask(crossWidth, xLow.resize(crossWidth), yHigh.resize(crossWidth), LSB)
+            val ad = recursiveTask(crossWidth, xHigh.resize(crossWidth), yLow.resize(crossWidth), LSB)
             if (!useCompressorTree) {
               val partial = cb.resize(crossWidth) +:+ ad.resize(crossWidth)
               if (lowWidth >= bd.width) logger.warn(s"problem: $lowWidth >= ${bd.width}")
@@ -116,7 +116,7 @@ object Karatsuba {
             else bd +^ (cb << (lowWidth + 1)) + (ac << doubleWidth)
         }
       }
-      ret.resize(if (mode == HALFLOW) width else width * 2)
+      ret.resize(if (mode == LSB) width else width * 2)
     }
 
     val ret: RingPort = recursiveTask(width, x, y, mode)

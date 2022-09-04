@@ -58,7 +58,6 @@ object Dsp48 {
   }
 
   def karaBase(aHigh: UInt, aLow: UInt, bHigh: UInt, bLow: UInt) = {
-    logger.info(s"karabase width: ${aHigh.getBitsWidth},${aLow.getBitsWidth},${bHigh.getBitsWidth},${bLow.getBitsWidth}")
     require(aHigh.getBitsWidth == aLow.getBitsWidth && bHigh.getBitsWidth == bLow.getBitsWidth)
     // TODO: absorb aHigh - aLow in pre-adder, using blackbox?
     // 0-1

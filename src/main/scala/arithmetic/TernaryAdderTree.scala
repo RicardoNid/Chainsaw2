@@ -17,7 +17,7 @@ case class TernaryAdderTreeConfig(infos: Seq[ArithInfo]) extends TransformBase {
   override def impl(dataIn: Seq[Any]) = {
     val ret = dataIn.asInstanceOf[Seq[BigInt]].zip(infos).map { case (int, info) =>
       val sign = if (info.sign) 1 else -1
-      (int << info.shift) * sign
+      (int << info.weight) * sign
     }.sum
     Seq(ret)
   }
@@ -40,17 +40,17 @@ case class TernaryAdderTree(config: TernaryAdderTreeConfig) extends TransformMod
   var ternaryCost = 0
 
   val signedOperands = dataIn.fragment.zip(infos).map { case (int, info) => if (info.sign) int else -int }
-  val operands: Seq[(SInt, ArithInfo)] = dataIn.fragment.zip(infos).sortBy(_._2.shift)
+  val operands: Seq[(SInt, ArithInfo)] = dataIn.fragment.zip(infos).sortBy(_._2.weight)
 
   def rec(operands: Seq[(SInt, ArithInfo)]) = {
 
     val groups = operands.grouped(3).toSeq
     val init = groups.init.map { group =>
       val Seq(a, b, c) = group
-      val baseShift = group.map(_._2.shift).min
-      val adderWidth = group.map(_._2).map(info => info.width + info.shift - baseShift).max + 1
+      val baseShift = group.map(_._2.weight).min
+      val adderWidth = group.map(_._2).map(info => info.width + info.weight - baseShift).max + 1
       val config = TernaryAdderSignedConfig(adderWidth)
-      val ret = config.implH.asNode(group.map{ case (int, info) => int << info.shift - baseShift})
+      val ret = config.implH.asFunc(group.map{ case (int, info) => int << info.weight - baseShift})
     }
 
 

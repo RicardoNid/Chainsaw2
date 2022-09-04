@@ -2,17 +2,17 @@ package org.datenlord
 package arithmetic
 
 import dfg._
-import arithmetic.MultplierMode._
+import arithmetic.MultiplierMode._
 
 object Karatsuba377 {
 
-  def apply(mode: MultiplierMode): RingDag = {
+  def apply(mode: MultiplierMode = FULL): RingDag = {
     val golden = (data: Seq[BigInt]) => mode match {
       case FULL => Seq(data.product)
-      case HALFLOW => Seq(data.product % (BigInt(1) << 378))
+      case LSB => Seq(data.product % (BigInt(1) << 378))
     }
 
-    implicit val graph: RingDag = new RingDag(s"karatsubaGraph96", golden)
+    implicit val graph: RingDag = new RingDag(s"kara377", golden)
 
     val a = graph.addInput("Mult377A", 378)
     val b = graph.addInput("Mult377B", 378)
@@ -33,9 +33,9 @@ object Karatsuba377 {
             val all = rec(xMerge, yMerge, widthNext, FULL)
             val mid = all - high - low
             (high << width) +^ (mid << width / 2) +^ low
-          case HALFLOW =>
-            val cross0 = rec(xHigh.resize(widthNext), yLow.resize(widthNext), widthNext, HALFLOW)
-            val cross1 = rec(yHigh.resize(widthNext), xLow.resize(widthNext), widthNext, HALFLOW)
+          case LSB =>
+            val cross0 = rec(xHigh.resize(widthNext), yLow.resize(widthNext), widthNext, LSB)
+            val cross1 = rec(yHigh.resize(widthNext), xLow.resize(widthNext), widthNext, LSB)
             val low = rec(xLow.resize(widthNext), yLow.resize(widthNext), widthNext, FULL)
             ((cross0 +^ cross1) << (width / 2)) +^ low
         }
@@ -46,14 +46,13 @@ object Karatsuba377 {
 
     val widthOut = mode match {
       case FULL => 756
-      case HALFLOW => 378
-      case HALFHIGH => 378
+      case LSB => 378
+      case MSB => 378
     }
 
     val resized = ret.resize(widthOut)
     val z = graph.addOutput(s"Mult377Z", widthOut)
     graph.addEdge(resized, z)
-    graph.toPng("karatsuba377")
     graph
   }
 
