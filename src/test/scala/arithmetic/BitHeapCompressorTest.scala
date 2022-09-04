@@ -43,8 +43,8 @@ class BitHeapCompressorTest extends AnyFlatSpec {
 
   def testForInfos(infos: Seq[ArithInfo]) = {
     val data = (0 until 1000).flatMap(_ => infos.map(info => Random.nextBigInt(info.width)))
-    val config = BitHeapCompressorConfig(infos)
-    TransformTest.test(config.implH, data, config.metric)
+    val config = BitHeapCompressorUseInversionConfig(infos)
+    TransformTest.test(config.implH, data)
   }
 
   behavior of "Bit Matrix Compressor"
