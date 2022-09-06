@@ -1,9 +1,6 @@
 package org.datenlord
 package arithmetic
 
-import arithmetic.MultplierMode._
-import dfg.ArithInfo
-
 import spinal.core._
 import spinal.lib._
 
@@ -16,25 +13,37 @@ import scala.language.postfixOps
  * @param useCsd    reduce number of non-zero digits in constant by csd encoding
  * @see [[arithmetic.Csd]]
  */
-case class BcmConfig(constant: BigInt, widthIn: Int, mode: MultiplierMode, widthTake: Int = 0, useCsd: Boolean = false)
-  extends TransformBase {
+case class BcmConfig(constant: BigInt, widthIn: Int, mode: OperatorType, widthTake: Int = 0, useCsd: Boolean = false)
+  extends TransformDfg {
+
+  override val name = "bcm"
+  override val opType = mode
+  override val widthsIn = Seq(widthIn)
+  val widthOut = if (mode == FullMultiplier) widthIn + constant.bitLength else widthTake
+  override val widthsOut = Seq(widthOut)
 
   val constantDigits: String = { // get digits of the constant, low to high
     val temp = if (useCsd) Csd.fromBigInt(constant).csd else constant.toString(2) // get binary/CSD coded digits
     if (temp.startsWith("0")) temp.tail else temp // remove the leading 0 of CSD
   }
-  logger.info(s"constant in use: $constantDigits")
 
   val widthAll = constantDigits.length + widthIn // width of the full product
   val widthDrop = widthAll - widthTake // width of dropped bits
-  logger.info(s"widthAll: $widthAll, widthTake: $widthTake, widthDrop: $widthDrop")
+
+  logger.info(
+    s"\n----configuration report of big constant multiplier----" +
+      s"\n\tmode: ${mode.getClass.getSimpleName}" +
+      s"\n\twidthAll: $widthAll, widthTake: $widthTake, widthDrop: $widthDrop" +
+      s"\n\tuse csd: $useCsd" +
+      s"\n\tconstant sequence in use: $constantDigits"
+  )
 
   override def impl(dataIn: Seq[Any]): Seq[BigInt] = {
     val product = dataIn.asInstanceOf[Seq[BigInt]].map(_ * constant)
     mode match {
-      case FULL => product
-      case LSB => product.map(_ % (BigInt(1) << widthTake))
-      case MSB => product.map(_ >> widthDrop)
+      case FullMultiplier => product
+      case LsbMultiplier => product.map(_ % (BigInt(1) << widthTake))
+      case MsbMultiplier => product.map(_ >> widthDrop)
     }
   }
 
@@ -48,21 +57,22 @@ case class BcmConfig(constant: BigInt, widthIn: Int, mode: MultiplierMode, width
     .map { case (digit, position) =>
       val sign = digit == '1' // for CSD, '1' stands for 1 and '9' stands for -1
       val shift =
-        if (mode == MSB) widthDrop max position
+        if (mode == MsbMultiplier) widthDrop max position
         else position // weight of truncated operands
       val width = mode match {
-        case FULL => widthIn
-        case LSB => (widthTake - position) min widthIn // see the diagram
-        case MSB => (widthIn + position - widthDrop) min widthIn
+        case FullMultiplier => widthIn
+        case LsbMultiplier => (widthTake - position) min widthIn // see the diagram
+        case MsbMultiplier => (widthIn + position - widthDrop) min widthIn
       }
       ArithInfo(width, shift, sign)
     }.filterNot(_.width <= 0)
   val compressorConfig = BitHeapCompressorUseInversionConfig(infos)
 
   // for MSB mode, get the error bound and the worst cases
+  // using the worst case, we can have an error very close to the error bound
   val widthCoeff = constantDigits.length
   var upperBound, lowerBound, dataForUpper, dataForLower = BigInt(0)
-  if (mode == MSB) {
+  if (mode == MsbMultiplier) {
     (0 until widthIn).foreach { i => // accumulate the error bit by bit(low to high), as they are independent
       val widthDropped = (widthDrop - i) min widthCoeff max 0
       val constantDropped = // the constant which a bit should have been multiplied by
@@ -80,16 +90,18 @@ case class BcmConfig(constant: BigInt, widthIn: Int, mode: MultiplierMode, width
     upperBound = (upperBound >> widthDrop) + 1
     lowerBound = lowerBound >> widthDrop
 
-    logger.info(s"error bound of MSB multiplication: [$lowerBound, $upperBound]")
-    logger.info(s"lower bound achieved by ${dataForLower.toString(2)}")
-    logger.info(s"upper bound achieved by ${dataForUpper.toString(2)}")
+    logger.info(
+      s"\n----error analysis for big constant multiplier at MSB mode----" +
+        s"\n\terror bound of MSB multiplication: [$lowerBound, $upperBound]" +
+        s"\n\tlower bound achieved by $dataForLower" +
+        s"\n\tupper bound achieved by $dataForUpper")
   }
 
   def metric(yours: Seq[BigInt], golden: Seq[BigInt]): Boolean =
     yours.zip(golden).forall { case (y, g) =>
-      if (mode == MSB) {
+      if (mode == MsbMultiplier) {
         val error = g - y
-        logger.info(s"error of MSB mode is $error")
+        println(s"error of MSB mode is $error")
         error >= lowerBound && error <= upperBound
       } else g == y
     }
@@ -103,24 +115,25 @@ case class Bcm(config: BcmConfig)
   extends TransformModule[UInt, UInt] {
 
   import config._
+
   override val dataIn = slave Flow Fragment(Vec(UInt(widthIn bits)))
   override val dataOut = master Flow Fragment(Vec(UInt()))
 
   val data = dataIn.fragment.head
   val operandsIn = infos.map { info => // get operands by bit heap compressor infos
     mode match {
-      case FULL => data
-      case LSB => data.takeLow(info.width).asUInt
-      case MSB => data.takeHigh(info.width).asUInt
+      case FullMultiplier => data
+      case LsbMultiplier => data.takeLow(info.width).asUInt
+      case MsbMultiplier => data.takeHigh(info.width).asUInt
     }
   }
 
-  val ret = compressorConfig.implH.asNode(operandsIn).head // using bit heap compressor
+  val ret = compressorConfig.implH.asFunc(operandsIn).head // using bit heap compressor
 
   mode match { // take bits of interest according to multiplication mode
-    case FULL => dataOut.fragment.head := ret.resized
-    case LSB => dataOut.fragment.head := ret(widthTake - 1 downto 0)
-    case MSB => dataOut.fragment.head := ret(widthAll - 1 downto widthDrop)
+    case FullMultiplier => dataOut.fragment.head := ret.resized
+    case LsbMultiplier => dataOut.fragment.head := ret(widthTake - 1 downto 0)
+    case MsbMultiplier => dataOut.fragment.head := ret(widthAll - 1 downto widthDrop)
   }
 
   autoValid()
