@@ -8,14 +8,10 @@ import spinal.lib._
 
 import scala.language.postfixOps
 
-case class MeanUnwrap() extends Component {
+case class MeanUnwrap(meanPointsMax:Int, typeFull:HardType[SFix], typeStored:HardType[SFix]) extends Component {
 
-  val meanPointsMax = 8e3.toInt
-
-  val unWrappedPhaseType = HardType(SFix(4 exp, -8 exp))
-
-  val flowIn = slave(DasFlow(unWrappedPhaseType()))
-  val flowOut = master(DasFlow(unWrappedPhaseType()))
+  val flowIn = slave(DasFlow(typeFull))
+  val flowOut = master(DasFlow(typeFull))
   val validIn = in Bool()
   val validOut = out Bool()
 
@@ -30,14 +26,14 @@ case class MeanUnwrap() extends Component {
   firstPulse.setWhen(flowIn.modeChange.validAfter(2))
   firstPulse.clearWhen(pulseCounter.willOverflow.validAfter(2)) // readSync latency
 
-  val buffer = Mem(unWrappedPhaseType, meanPointsMax)
-  val ret = unWrappedPhaseType()
-  buffer.write(pulseCounter, ret)
+  val buffer = Mem(typeStored, meanPointsMax)
+  val ret = typeFull()
+  buffer.write(pulseCounter, ret.truncate(typeStored))
   val fakeAddr = pulseCounter.value // 1 for read sync latency, 2 for unwrap latency
   val addr = Mux(fakeAddr >= meanPoints, fakeAddr - meanPoints, fakeAddr)
   val bufferOut = buffer.readSync(addr)
 
-  val core = UnwrapConfig(unWrappedPhaseType).implH.asFunc // unwrap module
+  val core = UnwrapConfig(typeStored, typeFull).implH.asFunc // unwrap module
   val unwrapped = core(Seq(bufferOut, flowIn.payload)).head
   ret := Mux(firstPulse, flowIn.payload.d(2), unwrapped)
 

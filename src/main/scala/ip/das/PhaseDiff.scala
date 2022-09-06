@@ -6,9 +6,7 @@ import spinal.lib._
 
 import scala.language.postfixOps
 
-case class PhaseDiff(typeIn: HardType[SFix], typeOut: HardType[SFix]) extends Component {
-
-  val gaugePointsMax = 1000
+case class PhaseDiff(gaugePointsMax:Int, typeIn: HardType[SFix], typeOut: HardType[SFix]) extends Component {
 
   val flowIn = slave(DasFlow(typeIn))
   val flowOut = master(DasFlow(typeOut))
