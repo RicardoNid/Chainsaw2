@@ -9,12 +9,12 @@ import spinal.lib._
 import scala.language.postfixOps
 
 case class UpFirDnAnotherConfig(upSample: Int, multiple: Int,
-                                coeffs: Seq[Double], typeIn: HardType[SFix])
+                                coeffs: Seq[Double], typeIn: HardType[SFix], typeOut:HardType[SFix])
   extends TransformBase {
 
   val taps = coeffs.length
-  val typeCoeff = HardType(SFix(0 exp, -17 exp))
-  val typeOut = HardType(SFix(log2Up(taps) exp, -11 exp))
+  val coeffMaxExp = log2Up(coeffs.map(_.abs.ceil.toInt).max)
+  val typeCoeff = HardType(SFix(coeffMaxExp exp, -(17 - coeffMaxExp) exp))
 
   /** --------
    * taps calculation
@@ -48,6 +48,7 @@ case class UpFirDnAnotherConfig(upSample: Int, multiple: Int,
   val termYs = (0 until phaseCount)
     .map(i => allTerms.filter(_.order % phaseCount == i).map(_.delay(-i)))
   termYs.zipWithIndex.foreach { case (terms, i) => logger.info(s"Y$i = ${terms.mkString(" + ")}") }
+
   val sumLatency = log2Up(termYs.head.length)
 
   override def impl(dataIn: Seq[Any]) = {
@@ -69,8 +70,10 @@ case class UpFirDnAnother(config: UpFirDnAnotherConfig) extends TransformModule[
 
   import config._
 
-  override val dataIn = slave Flow Fragment(Vec(typeIn(), inputWidth))
-  override val dataOut = master Flow Fragment(Vec(typeOut(), outputWidth))
+  logger.info(s"latency of upfirdn: $latency")
+
+  override val dataIn = slave Flow Fragment(Vec(typeIn(), inputPortWidth))
+  override val dataOut = master Flow Fragment(Vec(typeOut(), outputPortWidth))
 
   val coeffsGroupHard = coeffGroups.map(_.map(SFConstant(_, typeCoeff())))
 
@@ -87,13 +90,15 @@ case class UpFirDnAnother(config: UpFirDnAnotherConfig) extends TransformModule[
     val subFilterRets = terms.map { term =>
       val inPort = dataIn.payload(term.xIndex / upSample)
       val coeffs = coeffsGroupHard(term.hIndex)
-      val delay = -(term.z / outputWidth) // divided by sizeOut as the system is running at a higher speed
+      val delay = -(term.z / outputPortWidth) // divided by sizeOut as the system is running at a higher speed
       DoFir(inPort, coeffs, mult, add, SYSTOLIC).d(delay)
     }
+    logger.info(s"sub filter ret widths: ${subFilterRets.map(_.getBitsWidth).mkString(" ")}")
     subFilterRets.reduceBalancedTree(add, pipeline)
+    // TODO: will reduce balanced Tree have the output registered?
   }
 
-  dataOut.fragment.zip(rets).foreach { case (port, value) => port := value }
+  dataOut.fragment.zip(rets).foreach { case (port, value) => port := value}
   autoValid()
   autoLast()
 }

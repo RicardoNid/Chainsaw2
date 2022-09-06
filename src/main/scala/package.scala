@@ -19,7 +19,10 @@ import com.mathworks.engine._
 
 package object datenlord {
 
+  // adjustable parameters
+
   val logger = LoggerFactory.getLogger("Chainsaw logger")
+  var verbose = 1
 
   type ChainsawFlow[T <: Data] = Flow[Fragment[Vec[T]]]
 
@@ -335,8 +338,6 @@ package object datenlord {
       tmp
     }
   }
-
-  var verbose = 1
 
   implicit class IntUtil(int: Int) {
     def divideAndCeil(base: Int) = (int + base - 1) / base

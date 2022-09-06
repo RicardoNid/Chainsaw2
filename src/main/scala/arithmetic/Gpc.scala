@@ -1,17 +1,31 @@
+/** --------
+ * general purpose compressors
+ * -------- */
+
 package org.datenlord
 package arithmetic
 
 import device._
 
+import org.datenlord.xilinx.{VivadoUtil, VivadoUtilRequirement}
 import spinal.core._
 import spinal.lib._
 
 import scala.collection.mutable.ArrayBuffer
 import scala.language.postfixOps
 
+/** list of available compressors
+ *
+ * @see [[Compressor4to2]]
+ * @see [[Compressor3to1]]
+ * @see [[Compressor3to2]]
+ * @see [[Compressor6to3]]
+ */
 object GPC {
-  // list of a
-  def apply() = Seq(Compressor1to1, Compressor4to2, Compressor3to1, Compressor6to3)
+  def apply(): Seq[Compressor[Bool]] = {
+    val ret = Seq(Compressor1to1, Compressor4to2, Compressor3to1, Compressor6to3, Compressor3to2)
+    ret
+  }
 }
 
 /** general parallel counter (4; 2) for Xilinx FPGA
@@ -64,6 +78,9 @@ case class Compressor4to2Hard(width: Int) extends Component {
   cOut := carryChains.last.CO((width + 7) % 8)
 }
 
+/**
+ * @see ''''Kumm, Martin & Zipf, P.. (2014). Efficient High Speed Compression Trees on Xilinx FPGAs. ''''
+ */
 case class Compressor3to1Hard(width: Int, sub: Int = 0) extends Component {
   val cIn0, cIn1 = in Bool()
   val x, y, z = in UInt (width bits)
@@ -118,9 +135,9 @@ case class Compressor3to1Hard(width: Int, sub: Int = 0) extends Component {
 object Compressor4to2 extends Compressor[Bool] {
   override val isFixed = false
 
-  override val widthLimit = 32
+  override val widthMax = 32
 
-  override def inputFormat(width: Int) = Seq.fill(width)(4)
+  override def inputFormat(width: Int) =  Seq.fill(width)(4)
 
   override def outputFormat(width: Int) = 1 +: Seq.fill(width)(2)
 
@@ -140,6 +157,8 @@ object Compressor4to2 extends Compressor[Bool] {
     core.carrysOut.asBools.zip(bitHeap.tail).foreach { case (bit, column) => column += bit }
     BitHeap(bitHeap, bitsIn.weightLow)
   }
+
+  override def utilRequirement(width: Int) = VivadoUtilRequirement(lut = width, carry8 = width.divideAndCeil(8))
 }
 
 /** compression by ternary adder
@@ -149,29 +168,42 @@ object Compressor3to1 extends Compressor[Bool] {
 
   override val isFixed = false
 
-  override val widthLimit = 16
+  override val widthMax = 16
 
-  override def inputFormat(width: Int) = Seq.fill(width)(3)
+  override def inputFormat(width: Int): Seq[Int] = 5 +: Seq.fill(width - 1)(3)
 
-  override def outputFormat(width: Int) = Seq.fill(width + 2)(1)
+  override def outputFormat(width: Int): Seq[Int] = Seq.fill(width)(1) :+ 2
 
   override def cost(width: Int): Int = width
 
   override def impl(bitsIn: BitHeap[Bool], width: Int) = {
-    val dataIns = bitsIn.bitHeap.map(_.padTo(4, False)).transpose.map(_.asBits().asUInt)
-    val op = TernaryAdderConfig(width, pipelined = 0).implH.asFunc
-    val ret = op(dataIns)
-    val bitHeap = ArrayBuffer.fill(width + 2)(ArrayBuffer[Bool]())
-    ret.asBits().asBools.zip(bitHeap).foreach { case (bit, column) => column += bit }
+
+    val paddedHeap = bitsIn.bitHeap.head.padTo(5, False) +: bitsIn.bitHeap.tail.map(_.padTo(3, False))
+    val Seq(cIn0, cIn1) = paddedHeap.head.takeRight(2)
+    val Seq(x, y, z) = (paddedHeap.head.take(3) +: paddedHeap.tail).transpose.map(_.asBits().asUInt)
+    val core = Compressor3to1Hard(width)
+    core.cIn0 := cIn0
+    core.cIn1 := cIn1
+
+    core.x := x
+    core.y := y
+    core.z := z
+
+    val bitHeap = ArrayBuffer.fill(width + 1)(ArrayBuffer[Bool]())
+    bitHeap.last += core.cOut0
+    bitHeap.last += core.cOut1
+    core.sumsOut.asBools.zip(bitHeap).foreach { case (bit, column) => column += bit }
     BitHeap(bitHeap, bitsIn.weightLow)
   }
+
+  override def utilRequirement(width: Int) = VivadoUtilRequirement(lut = width, carry8 = width.divideAndCeil(8))
 }
 
 object Compressor1to1 extends Compressor[Bool] {
 
   override val isFixed = false
 
-  override val widthLimit = Int.MaxValue
+  override val widthMax = Int.MaxValue
 
   override def inputFormat(width: Int) = Seq.fill(width)(1)
 
@@ -180,6 +212,8 @@ object Compressor1to1 extends Compressor[Bool] {
   override def cost(width: Int): Int = 0
 
   override def impl(bitsIn: BitHeap[Bool], width: Int): BitHeap[Bool] = bitsIn
+
+  override def utilRequirement(width: Int) = null
 }
 
 case class Compressor6to3Hard() extends Component {
@@ -187,6 +221,7 @@ case class Compressor6to3Hard() extends Component {
   val dataIn = in Bits (6 bits)
   val dataOut = out Bits (3 bits)
 
+  // TODO: implement this by LUT primitive
   switch(dataIn) {
     (0 until 64).foreach { i =>
       is(B(i, 6 bits))(dataOut := B(i.toBinaryString.map(_.asDigit).sum, 3 bits))
@@ -198,7 +233,7 @@ object Compressor6to3 extends Compressor[Bool] {
 
   override val isFixed = true
 
-  override val widthLimit = 1
+  override val widthMax = 1
 
   override def inputFormat(width: Int) = Seq(6)
 
@@ -215,4 +250,36 @@ object Compressor6to3 extends Compressor[Bool] {
     ret.asBools.zip(bitHeap).foreach { case (bit, column) => column += bit }
     BitHeap(bitHeap, bitsIn.weightLow)
   }
+
+  override def utilRequirement(width: Int) = VivadoUtilRequirement(lut = 3, carry8 = 0)
+}
+
+/** full adder with carry
+ *
+ */
+// FIXME: this compressor is wrong
+object Compressor3to2 extends Compressor[Bool] {
+
+  override val isFixed = true
+
+  override val widthMax = 1
+
+  override def inputFormat(width: Int) = Seq(3)
+
+  override def outputFormat(width: Int): Seq[Int] = Seq.fill(2)(1)
+
+  override def cost(width: Int): Int = 1
+
+  // TODO: implement this by LUT primitive
+  override def impl(bitsIn: BitHeap[Bool], width: Int): BitHeap[Bool] = {
+    val dataIns = bitsIn.bitHeap.head.padTo(3, False)
+    val Seq(x, y, z) = dataIns
+    val ret = x.asUInt +^ y.asUInt + z.asUInt
+    require(ret.getBitsWidth == 2)
+    val bitHeap = ArrayBuffer.fill(2)(ArrayBuffer[Bool]())
+    ret.asBools.zip(bitHeap).foreach { case (bit, column) => column += bit }
+    BitHeap(bitHeap, bitsIn.weightLow)
+  }
+
+  override def utilRequirement(width: Int): VivadoUtil = VivadoUtilRequirement(lut = 1, carry8 = 0)
 }

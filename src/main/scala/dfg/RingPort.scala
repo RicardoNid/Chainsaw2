@@ -1,11 +1,9 @@
 package org.datenlord
 package dfg
 
-import arithmetic.MultplierMode._
-import dfg.ArithmeticGraphs._
 import dfg.Direction._
-import dfg.OpType._
 
+import org.datenlord.arithmetic.CpaConfig
 import spinal.core.UInt
 
 /** Consisting of a vertex and its output/input order, RingPort can be used as a variable in datapath, this class makes the description of RingDag more natural
@@ -19,32 +17,19 @@ case class RingPort(override val vertex: RingVertex, override val order: Int, ov
 
   def checkIsOut(): Unit = assert(direction == Out, "only out ports can be used as drivers")
 
+  def :=(that: RingPort)(implicit dag: RingDag) = {
+    require(this.direction == In && that.direction == Out)
+    dag.addEdge(that, this)
+  }
+
   /** --------
    * following methods are the interface of RingOps exposed to the programmer/user, they can be used like a dsl
-   -------- */
-  private def baseAddSub(that: RingPort, carry: RingPort = null, opType: OpType)(implicit dag: RingDag): (RingPort, RingPort) = {
-    checkIsOut()
-    val widthsIn = if (carry != null) Seq(width, that.width, carry.width) else Seq(width, that.width)
-    val name = if (opType == BASEADD) "+<" else "-<"
-    val vertex = BaseBinaryAddSubVertex(name, opType, widthsIn)
-    dag.addVertexWithDrivers(vertex, this, that)
-    if (carry != null) dag.addEdge(carry, vertex.in(2))
-    (vertex.out(0), vertex.out(1))
-  }
+   * -------- */
 
-  private def addSub(that: RingPort, opType: OpType)(implicit dag: RingDag) = {
-    val name = opType match {
-      case ADD => "++"
-      case SUB => "--"
-      case ADDC => "++^"
-      case SUBC => "--^"
-    }
-    val vertex = AddSubVertex(name, opType, Seq(this.width, that.width))
-    dag.addVertexWithDrivers(vertex, this, that)
-    vertex.out(0)
-  }
+  private def addSub(that: RingPort, opType: AdderType)(implicit dag: RingDag) =
+    CpaConfig(this.width max that.width, opType).asRingOp(Seq(this, that)).head
 
-  def mult(that: RingPort, mode: MultiplierMode)(implicit dag: RingDag) = {
+  def mult(that: RingPort, mode: MultiplierType)(implicit dag: RingDag) = {
     checkIsOut()
     val multVertex = BaseMultVertex(s"*", mode, Seq(this.width, that.width))
     dag.addVertex(multVertex)
@@ -114,72 +99,18 @@ case class RingPort(override val vertex: RingVertex, override val order: Int, ov
 
   /** --------
    * following methods are aliases of the methods above
-   -------- */
-  def +<(that: RingPort, carry: RingPort = null)(implicit dag: RingDag): (RingPort, RingPort) =
-    baseAddSub(that, carry, BASEADD)
+   * -------- */
+  def +^(that: RingPort)(implicit dag: RingDag): RingPort = addSub(that, BinaryAdder)
 
-  def -<(that: RingPort, carry: RingPort = null)(implicit dag: RingDag): (RingPort, RingPort) =
-    baseAddSub(that, carry, BASESUB)
-
-  def +(that: RingPort)(implicit dag: RingDag): RingPort = addSub(that, ADD)
-
-  def -(that: RingPort)(implicit dag: RingDag): RingPort = addSub(that, SUB)
-
-  def +^(that: RingPort)(implicit dag: RingDag): RingPort = addSub(that, ADDC)
-
-  def -^(that: RingPort)(implicit dag: RingDag): RingPort = addSub(that, SUBC)
+  def -(that: RingPort)(implicit dag: RingDag): RingPort = addSub(that, BinarySubtractor)
 
   def @@(that: RingPort)(implicit dag: RingDag): RingPort = merge(Seq(that))
 
+  def *(that: RingPort)(implicit dag: RingDag): RingPort = mult(that, FullMultiplier)
 
-  def *(that: RingPort)(implicit dag: RingDag): RingPort = mult(that, FULL)
+  def *%(that: RingPort)(implicit dag: RingDag): RingPort = mult(that, LsbMultiplier)
 
-  def *%(that: RingPort)(implicit dag: RingDag): RingPort = mult(that, HALFLOW)
-
-  def square(implicit dag: RingDag): RingPort = mult(this, SQUARE)
-
-  def +:+^(that: RingPort)(implicit dag: RingDag): RingPort = {
-    //    require(this.shift == that.shift)
-    val widthAdd = this.width max that.width
-    val padded = Seq(this, that).map(port => if (port.width < widthAdd) port.resize(widthAdd) else port)
-    dag.addGraphsAfter(addGraph(widthAdd), padded)
-      .head.asInstanceOf[RingPort]
-  }
-
-  def +:+(that: RingPort)(implicit dag: RingDag): RingPort = {
-    val widthAdd = this.width max that.width
-    (this +:+^ that).resize(widthAdd)
-  }
-
-  def -:-^(that: RingPort)(implicit dag: RingDag): RingPort = {
-    require(this.width >= that.width)
-    //    require(this.shift == that.shift)
-    val widthSub = this.width max that.width
-    val padded = that.resize(widthSub)
-    dag.addGraphsAfter(subGraph(widthSub), Seq(this, padded))
-      .head.asInstanceOf[RingPort]
-  }
-
-  def -:-(that: RingPort)(implicit dag: RingDag) = {
-    require(this.width >= that.width)
-    val widthSub = this.width max that.width
-    (this -:-^ that).resize(widthSub)
-  }
-
-  def bigMult(a: RingPort, b: RingPort, mode: MultiplierMode)(implicit dag: RingDag) = {
-    require(a.width == b.width)
-    val inputs = if (mode == SQUARE) Seq(a) else Seq(a, b)
-    dag.addGraphsAfter(karatsubaGraph(a.width, mode), inputs)
-      .head.asInstanceOf[RingPort]
-  }
-
-  def *:*(that: RingPort)(implicit dag: RingDag) = bigMult(this, that, FULL)
-
-  def *%:*%(that: RingPort)(implicit dag: RingDag) = bigMult(this, that, HALFLOW)
-
-  def bigSquare(implicit dag: RingDag) = bigMult(this, this, SQUARE)
-
-  def bigSquare(that: RingPort)(implicit dag: RingDag) = bigMult(this, that, SQUARE)
+  def square(implicit dag: RingDag): RingPort = mult(this, SquareMultiplier)
 
   def >>(shift: Int)(implicit dag: RingDag) = <<(-shift)
 
