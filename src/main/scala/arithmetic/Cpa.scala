@@ -72,8 +72,6 @@ case class CpaConfig(widthIn: Int, mode: AdderType, sub: Int = 0)
 
 case class Cpa(config: CpaConfig) extends TransformModule[UInt, UInt] {
 
-  logger.info(s"here in module $name")
-
   import config._
 
   override val dataIn = slave Flow Fragment(Vec(UInt(widthIn bits), inputPortWidth))
@@ -125,7 +123,6 @@ case class Cpa(config: CpaConfig) extends TransformModule[UInt, UInt] {
     }
   }
 
-  logger.info(s"cpa width out = $widthOut")
   dataOut.fragment.head := sumWords.reverse.reduce(_ @@ _).resize(widthOut)
 
   autoValid()
