@@ -17,6 +17,9 @@ case class DasFlow[T <: Data](dataType: HardType[T]) extends Bundle with IMaster
   override def asMaster(): Unit = out(pulseChange, modeChange, payload)
 }
 
+/** pulse trigger generator
+ *
+ */
 case class Controller() extends Component {
 
   // parameters
@@ -44,33 +47,7 @@ case class Controller() extends Component {
   pulseBack := pulseBackCounter === pulseBackIn
 }
 
-case class PhasePath() extends Component {
 
-  val phaseType = HardType(SFix(1 exp, -14 exp)) // [-1, 1] for normalized phase
-  val phaseDiffType = HardType(SFix(2 exp, -14 exp)) // [-2, 2] for phase difference
-  val phaseUnwrappedType = HardType(SFix(6 exp, -14 exp)) // [-64, 64] for phase difference
-
-  val phaseDiff = PhaseDiff(phaseType, phaseDiffType)
-  val pulseUnwrap = PulseUnwrap()
-  val phaseMean = PhaseMean()
-  val meanUnwrap = MeanUnwrap()
-
-  val flowIn = slave(DasFlow(phaseType))
-  val flowOut = master(DasFlow(phaseUnwrappedType))
-
-  phaseDiff.flowIn := flowIn
-  pulseUnwrap.flowIn := phaseDiff.flowOut
-  phaseMean.flowIn := pulseUnwrap.flowOut
-  meanUnwrap.flowIn := phaseMean.flowOut
-  flowOut := meanUnwrap.flowOut
-
-}
-
-object PhasePath {
-  def main(args: Array[String]): Unit = {
-    VivadoSynth(PhasePath())
-  }
-}
 
 
 
