@@ -64,6 +64,57 @@ case class Compressor4to2Hard(width: Int) extends Component {
   cOut := carryChains.last.CO((width + 7) % 8)
 }
 
+case class Compressor3to1Hard(width: Int, sub: Int = 0) extends Component {
+  val cIn0, cIn1 = in Bool()
+  val x, y, z = in UInt (width bits)
+  val sumsOut = out UInt (width bits)
+  val cOut0, cOut1 = out Bool()
+
+  val lutContent = sub match {
+    case 0 => BigInt("69699696e8e8e8e8", 16) // x + y + z + cin0 + cin1
+    case 1 => BigInt("969669698e8e8e8e", 16) // x + y - z - 1 + cin0 + cin1
+  }
+
+  def lut(c: Bool, x: Bool, y: Bool, z: Bool) = {
+    val core = LUT6_2(lutContent)
+    core.I0 := x
+    core.I1 := y
+    core.I2 := z
+    core.I3 := False
+    core.I4 := c
+    core.I5 := True
+    (core.O5, core.O6) // O5 is carry output, O6 is XOR output
+  }
+
+  val innerCarries = Seq.fill(width + 1)(Bool())
+
+  val lutOuts = (0 until width).map(i => lut(innerCarries(i), x(i), y(i), z(i)))
+  innerCarries.head := cIn1
+  innerCarries.tail.zip(lutOuts.map(_._1)).foreach { case (port, signal) => port := signal }
+  cOut1 := innerCarries.last
+
+  val carryCount = (width + 7) / 8
+  val carryChains = Seq.fill(carryCount)(CARRY8())
+
+  carryChains.zipWithIndex.foreach { case (carryChain, i) =>
+    (0 until 8).foreach { j =>
+      val index = i * 8 + j
+      if (index < width) {
+        carryChain.DI(j) := innerCarries(index)
+        carryChain.S(j) := lutOuts(index)._2
+      } else {
+        carryChain.DI(j) := False
+        carryChain.S(j) := False
+      }
+    }
+    if (i == 0) carryChain.CI := cIn0 else carryChain.CI := carryChains(i - 1).CO(7)
+    carryChain.CI_TOP := False
+  }
+
+  sumsOut := carryChains.reverse.map(_.O).reduce(_ @@ _).takeLow(width).asUInt
+  cOut0 := carryChains.last.CO((width + 7) % 8)
+}
+
 object Compressor4to2 extends Compressor[Bool] {
   override val isFixed = false
 
@@ -108,7 +159,7 @@ object Compressor3to1 extends Compressor[Bool] {
 
   override def impl(bitsIn: BitHeap[Bool], width: Int) = {
     val dataIns = bitsIn.bitHeap.map(_.padTo(4, False)).transpose.map(_.asBits().asUInt)
-    val op = TernaryAdderConfig(width, pipelined = 0).implH.asNode
+    val op = TernaryAdderConfig(width, pipelined = 0).implH.asFunc
     val ret = op(dataIns)
     val bitHeap = ArrayBuffer.fill(width + 2)(ArrayBuffer[Bool]())
     ret.asBits().asBools.zip(bitHeap).foreach { case (bit, column) => column += bit }
