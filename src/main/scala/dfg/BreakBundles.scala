@@ -1,8 +1,6 @@
 package org.datenlord
 package dfg
 
-import dfg.OpType._
-
 import scala.collection.JavaConversions._
 import scala.collection.mutable.ArrayBuffer
 
@@ -15,9 +13,9 @@ object BreakBundles {
     implicit val refDag: RingDag = ringDag
 
     def getCandidates: Seq[(RingVertex, RingVertex)] = ringDag.vertexSet().toSeq
-      .filter(_.opType == MERGE)
+      .filter(_.opType == Merge)
       .filter(_.targets.length == 1)
-      .filter(_.targets.head.opType == SPLIT)
+      .filter(_.targets.head.opType == Split)
       .map(merge => (merge, merge.targets.head)) // merge-split
       .asInstanceOf[Seq[(RingVertex, RingVertex)]]
 
