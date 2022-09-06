@@ -1,5 +1,7 @@
 package org.datenlord
 
+import org.datenlord.xilinx.{VivadoUtil, VivadoUtilRequirement}
+
 import scala.reflect.ClassTag
 import scala.util.Random
 
@@ -24,11 +26,14 @@ abstract class TransformConfig {
 
   def outputFlow: DataFlow = flowFormat.outputFlow
 
-  def inputWidth = inputFlow.portWidth
+  def inputPortWidth = inputFlow.portWidth
 
-  def outputWidth = outputFlow.portWidth
+  def outputPortWidth = outputFlow.portWidth
 
   def getRandomDataIn[T: ClassTag](randGen: () => T): Seq[T] =
     Random.RandomSequence(10 * inputFlow.rawDataCount, randGen)
+
+  // util estimation of the transform, it is not set by default
+  def utilRequirement: VivadoUtil = VivadoUtilRequirement()
 
 }
