@@ -114,10 +114,11 @@ case class BitHeap[T](bitHeap: ArrayBuffer[ArrayBuffer[T]], weightLow: Int) {
     //    require(compressors.head.inputBitsCount(-1) == compressors.head.outputBitsCount(-1))
 
     val effBound = if (finalStage) 0.0 else 1.0
+    val columnIndex = heights.indexWhere(_ == heights.max) // find the first(lowest weight) column with maximum height
+
     // when no qualified compressor can be found, the 1 to 1 compressor(no compression) will be chosen
     var bestCompressor = compressors.head
     var bestEff = 0.0
-    val columnIndex = heights.indexWhere(_ == heights.max) // find the first(lowest weight) column with maximum height
     // number of continuous nonempty columns that 1 to 1 compressor can be applied on
     var bestWidth = bitHeap.drop(columnIndex).takeWhile(_.nonEmpty).length
 
@@ -126,6 +127,7 @@ case class BitHeap[T](bitHeap: ArrayBuffer[ArrayBuffer[T]], weightLow: Int) {
 
     candidates.foreach { compressor => // traverse all available compressors
       val widthMax = compressor.widthMax min (this.width - columnIndex)
+      val widthMin = compressor.widthMin min widthMax
       val maximumEff = compressor.efficiency(widthMax)
       if (maximumEff >= bestEff) // skip when ideal efficiency is lower than current best efficiency
       {
@@ -133,7 +135,7 @@ case class BitHeap[T](bitHeap: ArrayBuffer[ArrayBuffer[T]], weightLow: Int) {
           if (compressor.isFixed) (getExactEfficiency(compressor, -1, columnIndex), -1) // for GPC, get eff
           else { // for row compressor, try different widths, get the best one with its width
             // TODO: avoid trying all widths
-            if (widthMax >= 1) (1 to widthMax).map(w => (getExactEfficiency(compressor, w, columnIndex), w)).maxBy(_._1)
+            if (widthMax >= 1) (widthMin to widthMax).map(w => (getExactEfficiency(compressor, w, columnIndex), w)).maxBy(_._1)
             else (-1.0, 0) // skip
           }
         }
@@ -144,6 +146,7 @@ case class BitHeap[T](bitHeap: ArrayBuffer[ArrayBuffer[T]], weightLow: Int) {
         }
       }
     }
+
 
     //    if (bestCompressor != compressors.head)
     //      logger.info(s"get ${bestCompressor.getClass.getSimpleName} column=$columnIndex width=$bestWidth efficiency=$bestEff")

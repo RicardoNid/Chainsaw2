@@ -137,7 +137,9 @@ object Compressor4to2 extends Compressor[Bool] {
 
   override val widthMax = 32
 
-  override def inputFormat(width: Int) =  Seq.fill(width)(4)
+  override val widthMin = 8
+
+  override def inputFormat(width: Int) = Seq.fill(width)(4)
 
   override def outputFormat(width: Int) = 1 +: Seq.fill(width)(2)
 
@@ -169,6 +171,8 @@ object Compressor3to1 extends Compressor[Bool] {
   override val isFixed = false
 
   override val widthMax = 16
+
+  override val widthMin = 8
 
   override def inputFormat(width: Int): Seq[Int] = 5 +: Seq.fill(width - 1)(3)
 
@@ -205,6 +209,8 @@ object Compressor1to1 extends Compressor[Bool] {
 
   override val widthMax = Int.MaxValue
 
+  override val widthMin = 1
+
   override def inputFormat(width: Int) = Seq.fill(width)(1)
 
   override def outputFormat(width: Int) = Seq.fill(width)(1)
@@ -235,6 +241,8 @@ object Compressor6to3 extends Compressor[Bool] {
 
   override val widthMax = 1
 
+  override val widthMin = 1
+
   override def inputFormat(width: Int) = Seq(6)
 
   override def outputFormat(width: Int) = Seq.fill(3)(1)
@@ -263,6 +271,8 @@ object Compressor3to2 extends Compressor[Bool] {
   override val isFixed = true
 
   override val widthMax = 1
+
+  override val widthMin = 1
 
   override def inputFormat(width: Int) = Seq(3)
 

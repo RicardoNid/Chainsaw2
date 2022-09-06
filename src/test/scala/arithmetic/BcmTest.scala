@@ -57,6 +57,6 @@ class BcmTest extends AnyFlatSpec {
 
   it should "work for BLS-377 modulus for low-bits" in TransformTest.test(configLSB.implH, data)
 
-  ignore should "impl for BLS-377 modulus for low-bits" in VivadoImpl(configLSB.implH, "ZPRIZE_modulus_BCM_low")
+  it should "impl for BLS-377 modulus for low-bits" in VivadoImpl(configLSB.implH, "ZPRIZE_modulus_BCM_low")
 
 }

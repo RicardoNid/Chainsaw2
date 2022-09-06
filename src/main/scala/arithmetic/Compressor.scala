@@ -14,7 +14,7 @@ abstract class Compressor[T] {
 
   val widthMax: Int // for delay consideration
 
-  // TODO: widthMin
+  val widthMin: Int
 
   /** --------
    * key definitions
