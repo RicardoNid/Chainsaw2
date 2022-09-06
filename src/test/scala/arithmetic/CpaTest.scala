@@ -35,7 +35,7 @@ class CpaTest extends AnyFlatSpec {
 
   it should "work for ternary addition x + y + z" in ternaryWidths.foreach(testTernary(_, 0))
   it should "work for ternary addition x + y - z" in ternaryWidths.foreach(testTernary(_, 1))
-  ignore should "synth for ternary addition" in ternaryWidths.foreach(synthTernary)
+  it should "synth for ternary addition" in ternaryWidths.foreach(synthTernary)
 
   behavior of "binary CPA"
 

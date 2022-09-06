@@ -2,7 +2,6 @@ package org.datenlord
 package arithmetic
 
 import algos.ZPrizeMSM.{MPrime, baseModulus}
-import arithmetic.MultplierMode._
 
 import org.scalatest.flatspec.AnyFlatSpec
 
@@ -21,13 +20,13 @@ class BcmTest extends AnyFlatSpec {
 
   it should "work correctly for FULL mode" in {
     logger.info(s"testing $constant")
-    val configSmallFull = BcmConfig(constant, smallDataWidth, FULL, useCsd = true)
+    val configSmallFull = BcmConfig(constant, smallDataWidth, FullMultiplier, useCsd = true)
     TransformTest.test(configSmallFull.implH, smallData, name = "toy_full")
   }
 
   it should s"work correctly for LSB mode" in {
     logger.info(s"testing $constant")
-    val configSmallLSB = BcmConfig(constant, smallDataWidth, LSB, smallDataWidth, useCsd = true)
+    val configSmallLSB = BcmConfig(constant, smallDataWidth, LsbMultiplier, smallDataWidth, useCsd = true)
     TransformTest.test(configSmallLSB.implH, smallData, name = "toy_lsb")
   }
 
@@ -35,7 +34,7 @@ class BcmTest extends AnyFlatSpec {
     (0 until 100).foreach { _ =>
       val constant = Random.nextBigInt(smallDataWidth)
       logger.info(s"testing $constant")
-      val config = BcmConfig(constant, smallDataWidth, MSB, smallDataWidth, useCsd = true)
+      val config = BcmConfig(constant, smallDataWidth, MsbMultiplier, smallDataWidth, useCsd = true)
       TransformTest.test(config.implH, smallData, metric = config.metric, name = "toy_msb")
     }
   }
@@ -45,7 +44,7 @@ class BcmTest extends AnyFlatSpec {
 
   behavior of "BLS-377 configurations"
 
-  def configMSB = BcmConfig(MPrime, widthIn = dataWidth + 1, MSB, widthTake = dataWidth + 5, useCsd = true)
+  def configMSB = BcmConfig(MPrime, widthIn = dataWidth + 1, MsbMultiplier, widthTake = dataWidth + 5, useCsd = true)
 
   it should "work for BLS-377 modulus under MSB mode" in
     TransformTest.test(configMSB.implH, Seq(configMSB.dataForLower, configMSB.dataForUpper) ++ data, configMSB.metric)
@@ -54,7 +53,7 @@ class BcmTest extends AnyFlatSpec {
 
   behavior of "low-bits version, for the third multiplication in barrett"
 
-  def configLSB = BcmConfig(baseModulus, widthIn = dataWidth + 1, LSB, widthTake = dataWidth + 2, useCsd = true)
+  def configLSB = BcmConfig(baseModulus, widthIn = dataWidth + 1, LsbMultiplier, widthTake = dataWidth + 2, useCsd = true)
 
   it should "work for BLS-377 modulus for low-bits" in TransformTest.test(configLSB.implH, data)
 

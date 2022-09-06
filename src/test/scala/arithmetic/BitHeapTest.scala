@@ -1,8 +1,6 @@
 package org.datenlord
 package arithmetic
 
-import dfg.ArithInfo
-
 import org.scalatest.flatspec.AnyFlatSpec
 import spinal.core._
 import spinal.lib._
