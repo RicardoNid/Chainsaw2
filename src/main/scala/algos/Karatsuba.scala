@@ -1,10 +1,8 @@
 package org.datenlord
 package algos
 
-import arithmetic.BitHeap
-import arithmetic.MultiplierMode._
+import arithmetic.{ArithInfo, BitHeap}
 
-import org.datenlord.dfg.ArithInfo
 import spinal.core._
 
 import scala.language.implicitConversions
@@ -14,7 +12,7 @@ import scala.language.implicitConversions
  *
  * @param mode special situation where we use "generalized karatsuba" method
  */
-case class Karatsuba(width: Int, mode: MultiplierMode, baseWidth: Int, constant: BigInt = null, byDsp: Boolean = true) {
+case class Karatsuba(width: Int, mode: MultiplierType, baseWidth: Int, constant: BigInt = null, byDsp: Boolean = true) {
 
   // counters for cost
   var baseMultCount = 0
@@ -54,7 +52,7 @@ case class Karatsuba(width: Int, mode: MultiplierMode, baseWidth: Int, constant:
 
   def getSplit(width: Int) = Seq.iterate(baseWidth, 10)(2 * _).filter(_ < width).last
 
-  def multRec(op0: BigInt, op1: BigInt, width: Int, mode: MultiplierMode): BigInt = {
+  def multRec(op0: BigInt, op1: BigInt, width: Int, mode: MultiplierType): BigInt = {
     val ret =
       if (op0 == BigInt(0) || op1 == BigInt(0)) BigInt(0) // skip imbalanced part
       else if (width <= baseWidth) op0 ** op1
@@ -68,35 +66,35 @@ case class Karatsuba(width: Int, mode: MultiplierMode, baseWidth: Int, constant:
         val (c, d) = op1.split(lowWidth)
 
         mode match {
-          case FULL =>
+          case FullMultiplier =>
             // pre
             val (abMsb, abMain) = (a +< b).split(lowWidth)
             val (cdMsb, cdMain) = (c +< d).split(lowWidth)
             // mult
-            val ac = multRec(a, c, highWidth, FULL)
-            val bd = multRec(b, d, lowWidth, FULL)
-            val all = multRec(abMain, cdMain, lowWidth, FULL) + ((abMsb * cdMain + cdMsb * abMain) << lowWidth) + ((abMsb * cdMsb) << doubleWidth)
+            val ac = multRec(a, c, highWidth, FullMultiplier)
+            val bd = multRec(b, d, lowWidth, FullMultiplier)
+            val all = multRec(abMain, cdMain, lowWidth, FullMultiplier) + ((abMsb * cdMain + cdMsb * abMain) << lowWidth) + ((abMsb * cdMsb) << doubleWidth)
             // post
             val adPlusBc = all - ac - bd
             (ac << doubleWidth) +> (adPlusBc << lowWidth) +> bd
-          case LSB =>
+          case LsbMultiplier =>
             // mult
-            val ad = multRec(a, d, lowWidth, LSB) // this multiplication is imbalanced
-            val cb = multRec(c, b, lowWidth, LSB) // this multiplication is imbalanced
-            val bd = multRec(b, d, lowWidth, FULL)
+            val ad = multRec(a, d, lowWidth, LsbMultiplier) // this multiplication is imbalanced
+            val cb = multRec(c, b, lowWidth, LsbMultiplier) // this multiplication is imbalanced
+            val bd = multRec(b, d, lowWidth, FullMultiplier)
             // post
             ((ad +> cb) << lowWidth) +> bd
           // TODO: estimate this
-          case MSB =>
+          case MsbMultiplier =>
             // mult
-            val ad = multRec(a, d, lowWidth, MSB) // this multiplication is imbalanced
-            val cb = multRec(c, b, lowWidth, MSB) // this multiplication is imbalanced
-            val ac = multRec(b, d, lowWidth, MSB)
+            val ad = multRec(a, d, lowWidth, MsbMultiplier) // this multiplication is imbalanced
+            val cb = multRec(c, b, lowWidth, MsbMultiplier) // this multiplication is imbalanced
+            val ac = multRec(b, d, lowWidth, MsbMultiplier)
             (ac << lowWidth) +> (ad +> cb)
-          case SQUARE =>
-            val ac = multRec(a, c, highWidth, SQUARE)
-            val adOrBc = multRec(a, d, lowWidth, FULL) // this multiplication is imbalanced
-            val bd = multRec(b, d, lowWidth, SQUARE)
+          case SquareMultiplier =>
+            val ac = multRec(a, c, highWidth, SquareMultiplier)
+            val adOrBc = multRec(a, d, lowWidth, FullMultiplier) // this multiplication is imbalanced
+            val bd = multRec(b, d, lowWidth, SquareMultiplier)
             (ac << doubleWidth) +> (adOrBc << (lowWidth + 1)) + bd
         }
       }
@@ -134,7 +132,7 @@ case class Karatsuba(width: Int, mode: MultiplierMode, baseWidth: Int, constant:
     def negativePart = data.filter(_.sign == false)
   }
 
-  def multImprovedRec(op0: BigInt, op1: BigInt, width: Int, mode: MultiplierMode): Ariths = {
+  def multImprovedRec(op0: BigInt, op1: BigInt, width: Int, mode: MultiplierType): Ariths = {
     val ret =
       if (op0 == BigInt(0) || op1 == BigInt(0)) Ariths(Seq[Arith]()) // skip imbalanced part
       else if (width <= baseWidth) Ariths(Seq(Arith(op0 ** op1, width * 2, 0)))
@@ -148,7 +146,7 @@ case class Karatsuba(width: Int, mode: MultiplierMode, baseWidth: Int, constant:
         val (c, d) = op1.split(lowWidth)
 
         mode match {
-          case FULL =>
+          case FullMultiplier =>
             // before mults
             val (abMsb, abMain) = (a +< b).split(lowWidth)
             val (cdMsb, cdMain) = (c +< d).split(lowWidth)
@@ -157,24 +155,24 @@ case class Karatsuba(width: Int, mode: MultiplierMode, baseWidth: Int, constant:
             val msbOption = Arith(abMsb * cdMsb, 1, 0)
 
             // mults
-            val ac = multImprovedRec(a, c, highWidth, FULL)
-            val bd = multImprovedRec(b, d, lowWidth, FULL)
-            val allLow = multImprovedRec(abMain, cdMain, lowWidth, FULL)
+            val ac = multImprovedRec(a, c, highWidth, FullMultiplier)
+            val bd = multImprovedRec(b, d, lowWidth, FullMultiplier)
+            val allLow = multImprovedRec(abMain, cdMain, lowWidth, FullMultiplier)
 
             // after mults
             val all = allLow + ((cdOption + abOption) << lowWidth) + (msbOption << doubleWidth)
             //            val all = multImprovedRec(a + b, c + d, lowWidth + 1, Full)
             val adPlusBc = all - ac - bd
             (ac << doubleWidth) + (adPlusBc << lowWidth) + bd
-          case LSB =>
-            val ad = multImprovedRec(a, d, lowWidth, LSB) // this multiplication is imbalanced
-            val cb = multImprovedRec(c, b, lowWidth, LSB) // this multiplication is imbalanced
-            val bd = multImprovedRec(b, d, lowWidth, FULL)
+          case LsbMultiplier =>
+            val ad = multImprovedRec(a, d, lowWidth, LsbMultiplier) // this multiplication is imbalanced
+            val cb = multImprovedRec(c, b, lowWidth, LsbMultiplier) // this multiplication is imbalanced
+            val bd = multImprovedRec(b, d, lowWidth, FullMultiplier)
             ((ad + cb) << lowWidth) + bd
-          case SQUARE =>
-            val ac = multImprovedRec(a, c, highWidth, SQUARE)
-            val adOrBc = multImprovedRec(a, d, lowWidth, FULL) // this multiplication is imbalanced
-            val bd = multImprovedRec(b, d, lowWidth, SQUARE)
+          case SquareMultiplier =>
+            val ac = multImprovedRec(a, c, highWidth, SquareMultiplier)
+            val adOrBc = multImprovedRec(a, d, lowWidth, FullMultiplier) // this multiplication is imbalanced
+            val bd = multImprovedRec(b, d, lowWidth, SquareMultiplier)
             (ac << doubleWidth) + (adOrBc << (lowWidth + 1)) + bd
         }
       }
@@ -201,11 +199,11 @@ case class Karatsuba(width: Int, mode: MultiplierMode, baseWidth: Int, constant:
     val lowWidth = getSplit(width)
 
     val ret = mode match {
-      case LSB => retWhole % (BigInt(1) << lowWidth)
+      case LsbMultiplier => retWhole % (BigInt(1) << lowWidth)
       case _ => retWhole
     }
     val golden = mode match {
-      case LSB => (op0 * op1) % (BigInt(1) << lowWidth)
+      case LsbMultiplier => (op0 * op1) % (BigInt(1) << lowWidth)
       case _ => op0 * op1
     }
     logger.info(s"${baseMultCount * 3} base mult consumed")
