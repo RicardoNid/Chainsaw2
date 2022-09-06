@@ -2,8 +2,11 @@ package org.datenlord
 package arithmetic
 
 import dfg._
+
 import spinal.core.log2Up
+
 import scala.collection.mutable.ArrayBuffer
+import scala.language.postfixOps
 
 /** Storing information of a bit matrix(heap), while providing util methods, making operations on bit matrix easier
  *
@@ -187,7 +190,7 @@ case class BitHeap[T](bitHeap: ArrayBuffer[ArrayBuffer[T]], weightLow: Int) {
     }
 
     val compressed = bitsCountBefore - nextStage.bitsCount
-    logger.info(s"stage efficiency = ${compressed.toDouble / stageCost}, cost = $stageCost \n${nextStage.toString}")
+    if (verbose >= 1) logger.info(s"stage efficiency = ${compressed.toDouble / stageCost}, cost = $stageCost \n${nextStage.toString}")
     (nextStage, stageCost)
   }
 
@@ -196,8 +199,9 @@ case class BitHeap[T](bitHeap: ArrayBuffer[ArrayBuffer[T]], weightLow: Int) {
    * @return final bit heap and the key information of the compressor tree (latency, widthOut, etc.)
    */
   def compressAll[T0](candidates: Seq[Compressor[T0]], pipeline: T0 => T0 = null) = {
-    logger.info(s"initial state:\n${this.toString}")
+    if (verbose >= 1) logger.info(s"initial state:\n${this.toString}")
     val bitsInTotal = this.bitsCount
+    val maxValue = this.maxValue
     var current = this
     var latency = 0
     var badLatency = 0
@@ -210,14 +214,19 @@ case class BitHeap[T](bitHeap: ArrayBuffer[ArrayBuffer[T]], weightLow: Int) {
       latency += 1
     }
     val allCompressed = bitsInTotal - current.bitsCount
-    logger.info(s"compressor tree - cost in total: $allCost, efficiency in total = ${allCompressed.toDouble / allCost}")
-    logger.info(s"latency: $latency, bad latency: $badLatency, widthOut: ${current.width}")
+    logger.info(
+      s"\n----efficiency report of bit heap compressor----" +
+        s"\n\tcost in total: $allCost, compressed in total: $allCompressed" +
+        s"\n\tefficiency in total: ${allCompressed.toDouble / allCost}" +
+        s"\n\tideal widthOut: ${maxValue.bitLength}, actual widthOut: ${current.width}"
+    )
     (current, latency, current.width)
   }
 
   def output(zero: () => T): Seq[Seq[T]] = {
     require(height <= 2)
-    (Seq.fill(weightLow)(ArrayBuffer[T]()) ++ bitHeap).map(_.padTo(2, zero())).transpose
+    //    (Seq.fill(weightLow)(ArrayBuffer[T]()) ++ bitHeap).map(_.padTo(2, zero())).transpose
+    bitHeap.map(_.padTo(2, zero())).transpose
   }
 
   override def toString = {
@@ -257,7 +266,7 @@ object BitHeap {
     // build the table from operands
     val table = ArrayBuffer.fill(width)(ArrayBuffer[T]())
     operands.zip(infos).foreach { case (operand, info) =>
-      val start = info.shift - positionLow
+      val start = info.weight - positionLow
       // insert bits from low to high
       (start until start + info.width).foreach(i => table(i) += operand(i - start))
     }
