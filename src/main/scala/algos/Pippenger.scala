@@ -9,9 +9,9 @@ import scala.util.Random
  * @param N       number of all scalars
  * @param W       bit width of a scalar
  * @param w       word width of a scalar
- * @param add
- * @param dbl
- * @param zero
+ * @param add     add operator
+ * @param dbl     dbl operator
+ * @param zero    zero generator
  * @param latency latency of EC adder
  */
 case class Pippenger[T](N: Int, W: Int, w: Int, add: (T, T) => T, dbl: T => T, zero: T, latency: Int = 300) {

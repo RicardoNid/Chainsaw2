@@ -12,7 +12,7 @@ class BcmTest extends AnyFlatSpec {
   Random.setSeed(42)
 
   val testCount = 1000
-  val smallDataWidth = 16
+  val smallDataWidth = 32
   val constant = Random.nextBigInt(smallDataWidth)
   val smallData = Seq.fill(testCount)(BigInt(smallDataWidth, Random))
 
@@ -22,6 +22,7 @@ class BcmTest extends AnyFlatSpec {
     logger.info(s"testing $constant")
     val configSmallFull = BcmConfig(constant, smallDataWidth, FullMultiplier, useCsd = true)
     TransformTest.test(configSmallFull.implH, smallData, name = "toy_full")
+    VivadoImpl(configSmallFull.implH, "toy_full")
   }
 
   it should s"work correctly for LSB mode" in {
@@ -30,6 +31,7 @@ class BcmTest extends AnyFlatSpec {
     TransformTest.test(configSmallLSB.implH, smallData, name = "toy_lsb")
   }
 
+  // FIXME: for the compressor, ideal widthOut: 32, actual widthOut: 31
   it should s"work correctly for MSB mode" in {
     (0 until 100).foreach { _ =>
       val constant = Random.nextBigInt(smallDataWidth)
@@ -49,7 +51,7 @@ class BcmTest extends AnyFlatSpec {
   it should "work for BLS-377 modulus under MSB mode" in
     TransformTest.test(configMSB.implH, Seq(configMSB.dataForLower, configMSB.dataForUpper) ++ data, configMSB.metric)
 
-  ignore should "impl for BLS-377 modulus for high-bits" in VivadoImpl(configMSB.implH, "ZPRIZE_modulus_BCM_high")
+  it should "impl for BLS-377 modulus for high-bits" in VivadoImpl(configMSB.implH, "ZPRIZE_modulus_BCM_high")
 
   behavior of "low-bits version, for the third multiplication in barrett"
 
@@ -57,6 +59,14 @@ class BcmTest extends AnyFlatSpec {
 
   it should "work for BLS-377 modulus for low-bits" in TransformTest.test(configLSB.implH, data)
 
-  it should "impl for BLS-377 modulus for low-bits" in VivadoImpl(configLSB.implH, "ZPRIZE_modulus_BCM_low")
+  it should "impl for BLS-377 modulus for low-bits" in {
+    TransformTest.test(configLSB.implH, data)
+    VivadoImpl(configLSB.implH, "ZPRIZE_modulus_BCM_low")
+  }
+
+  it should "synth for BLS-377 modulus for low-bits" in {
+    VivadoSynth(configLSB.implH, "ZPRIZE_modulus_BCM_low_synth")
+  }
+
 
 }

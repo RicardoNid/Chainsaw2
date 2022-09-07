@@ -10,7 +10,7 @@ import cc.redberry.rings.scaladsl.syntax._
  */
 case class EcGroup(modulus: IntZ, a: IntZ, b: IntZ) {
 
-  val zp = Zp(modulus)
+  val zp: Ring[IntZ] = Zp(modulus)
   val polyRing = UnivariateRing(zp, "x")
   val curveExpr = s"x ^ 3 + $a * x + $b"
   val curve = polyRing(curveExpr)

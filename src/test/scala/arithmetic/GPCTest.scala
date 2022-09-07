@@ -84,6 +84,11 @@ class GPCTest extends AnyFlatSpec {
   it should "work" in (1 to Compressor3to1.widthMax by 4).foreach(compressorFuncTest(Compressor3to1, _))
   ignore should "synth" in (1 to Compressor3to1.widthMax by 4).foreach(compressorPerfTest(Compressor3to1, _))
 
+  behavior of "counter31 another"
+
+  it should "work" in (1 to Compressor3to1NoCarry.widthMax by 4).foreach(compressorFuncTest(Compressor3to1NoCarry, _))
+  ignore should "synth" in (1 to Compressor3to1NoCarry.widthMax by 4).foreach(compressorPerfTest(Compressor3to1NoCarry, _))
+
   behavior of "counter32"
 
   it should "work" in (1 to Compressor3to2.widthMax by 4).foreach(compressorFuncTest(Compressor3to2, _))

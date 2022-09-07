@@ -36,6 +36,8 @@ object ZPrizeMSM {
   }
 
   def main(args: Array[String]): Unit = {
-    println(baseModulus.bitLength)
+    assert(baseModulus == (z - 1).pow(2) * (z.pow(4) - z.pow(2) + 1) / 3 + z)
+    assert(scalarModulus == z.pow(4) - z.pow(2) + 1)
   }
+
 }

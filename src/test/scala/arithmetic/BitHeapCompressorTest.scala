@@ -48,7 +48,7 @@ class BitHeapCompressorTest extends AnyFlatSpec {
   behavior of "Bit Matrix Compressor"
 
   it should "work on simple situation" in testForInfos(infosSmall)
-  ignore should "impl for a simple situation" in VivadoImpl(BitHeapCompressorConfig(infosSmall).implH, "SmallTree")
+  it should "impl for a simple situation" in VivadoImpl(BitHeapCompressorConfig(infosSmall).implH, "SmallTree")
 
   it should "work on simple situation with noise" in testForInfos(infosSmallWithNoise)
   ignore should "impl for simple situation with noise" in testForInfos(infosSmallWithNoise)
@@ -59,7 +59,7 @@ class BitHeapCompressorTest extends AnyFlatSpec {
 
   ignore should "impl for rectangular bits" in VivadoImpl(BitHeapCompressorConfig(infosRegular).implH, "RegularSum")
   ignore should "impl for output from a multiplier" in VivadoImpl(BitHeapCompressorConfig(infosFromMult).implH, "PostSum")
-  ignore should "impl for irregular output from a multiplier" in VivadoImpl(BitHeapCompressorConfig(infosFromMultWithNoise).implH, "PostSumIrregular")
+  it should "impl for irregular output from a multiplier" in VivadoImpl(BitHeapCompressorConfig(infosFromMultWithNoise).implH, "PostSumIrregular")
 
   it should "work for negative operands" in testForInfos(infosWithNegative)
 }

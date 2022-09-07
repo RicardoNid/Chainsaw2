@@ -37,8 +37,9 @@ object KaraSearch {
 
     // TODO: implement LUT cost
     def searchRec(width: (Int, Int), path: Seq[Decomposition], dspCost: Int, lutCost: Int): Unit = {
-      if (width._1 <= 17 && width._2 <= 26 || width._2 <= 17 && width._1 <= 26) {
+      if (width._1 <= 17 && width._2 <= 26 || width._2 <= 17 && width._1 <= 26) { // decomposition done
         pathCount += 1
+        // make judgement by cost function
         val pass = (dspCost < bestDspCost) || ((dspCost == bestDspCost) && (path.length < bestPath.length))
         if (pass) {
           bestDspCost = dspCost

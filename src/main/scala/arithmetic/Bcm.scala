@@ -30,14 +30,6 @@ case class BcmConfig(constant: BigInt, widthIn: Int, mode: OperatorType, widthTa
   val widthAll = constantDigits.length + widthIn // width of the full product
   val widthDrop = widthAll - widthTake // width of dropped bits
 
-  logger.info(
-    s"\n----configuration report of big constant multiplier----" +
-      s"\n\tmode: ${mode.getClass.getSimpleName}" +
-      s"\n\twidthAll: $widthAll, widthTake: $widthTake, widthDrop: $widthDrop" +
-      s"\n\tuse csd: $useCsd" +
-      s"\n\tconstant sequence in use: $constantDigits"
-  )
-
   override def impl(dataIn: Seq[Any]): Seq[BigInt] = {
     val product = dataIn.asInstanceOf[Seq[BigInt]].map(_ * constant)
     mode match {
@@ -67,6 +59,15 @@ case class BcmConfig(constant: BigInt, widthIn: Int, mode: OperatorType, widthTa
       ArithInfo(width, shift, sign)
     }.filterNot(_.width <= 0)
   val compressorConfig = BitHeapCompressorUseInversionConfig(infos)
+
+  logger.info(
+    s"\n----configuration report of big constant multiplier----" +
+      s"\n\tmode: ${mode.getClass.getSimpleName}" +
+      s"\n\twidthAll: $widthAll, widthTake: $widthTake, widthDrop: $widthDrop" +
+      s"\n\tuse csd: $useCsd" +
+      s"\n\tconstant sequence in use: $constantDigits" +
+      s"\n\toperands in total: ${infos.length}"
+  )
 
   // for MSB mode, get the error bound and the worst cases
   // using the worst case, we can have an error very close to the error bound
@@ -106,7 +107,7 @@ case class BcmConfig(constant: BigInt, widthIn: Int, mode: OperatorType, widthTa
       } else g == y
     }
 
-  override def latency: Int = compressorConfig.latency
+  override def latency: Int = compressorConfig.latency + 1 // 2 for register duplication
 
   override def implH = Bcm(this)
 }
@@ -119,12 +120,21 @@ case class Bcm(config: BcmConfig)
   override val dataIn = slave Flow Fragment(Vec(UInt(widthIn bits)))
   override val dataOut = master Flow Fragment(Vec(UInt()))
 
+  val fanOutFactor = 3
   val data = dataIn.fragment.head
-  val operandsIn = infos.map { info => // get operands by bit heap compressor infos
+  // TODO: solve the high fan-out problem in a better way
+
+  /** --------
+   * register duplication for solving high fan-out
+   -------- */
+  val dataBufs = Seq.fill(infos.length.divideAndCeil(10))(data.d(1))
+  dataBufs.foreach(_.addAttribute("dont_touch", "yes"))
+  val operandsIn = infos.zipWithIndex.map { case (info, i) => // get operands by bit heap compressor infos
+    val dataBuf = dataBufs(i / 10)
     mode match {
-      case FullMultiplier => data
-      case LsbMultiplier => data.takeLow(info.width).asUInt
-      case MsbMultiplier => data.takeHigh(info.width).asUInt
+      case FullMultiplier => dataBuf
+      case LsbMultiplier => dataBuf.takeLow(info.width).asUInt
+      case MsbMultiplier => dataBuf.takeHigh(info.width).asUInt
     }
   }
 

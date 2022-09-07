@@ -20,7 +20,6 @@ case class FilterPathConfig(dasConfig: DasConfig) extends TransformBase {
     val coeffs = dasConfig.combinedCoeffGroups.head
     val filtered = matlab.MatlabFeval[Array[MComplex]]("upfirdn", 0, data.toArray, coeffs, dasConfig.upSampleFactor.toDouble, 1.toDouble)
     matlab.MatlabFeval[Array[Double]]("angle", 0, filtered).drop(coeffs.length - 1)
-
   }
 
   override val implMode = Infinite
