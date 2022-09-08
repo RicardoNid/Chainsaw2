@@ -10,7 +10,7 @@ import spinal.core._
 import scala.language.postfixOps
 import scala.util.Random
 
-class UpFirDnAnotherTest extends AnyFlatSpec {
+class UpFirDnTest extends AnyFlatSpec {
 
   val data = (0 until 100).map(_ => Random.nextDouble())
   val coeffs = (0 until 144).map(_ => Random.nextDouble())

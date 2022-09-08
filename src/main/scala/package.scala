@@ -36,7 +36,7 @@ package object datenlord {
 
   }
 
-  def RtlGen[T<:Component](gen: => T, name:String = "temp") = {
+  def RtlGen[T <: Component](gen: => T, name: String = "temp") = {
     SpinalConfig(netlistFileName = s"$name.v").generateVerilog(gen)
   }
 
@@ -391,5 +391,13 @@ package object datenlord {
   object Merge extends OperatorType
 
   object Resize extends OperatorType
+
+  sealed trait SopStructure
+
+  object Direct extends SopStructure
+
+  object Transpose extends SopStructure
+
+  object Systolic extends SopStructure
 
 }

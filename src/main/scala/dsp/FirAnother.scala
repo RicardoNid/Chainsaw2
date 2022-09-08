@@ -1,14 +1,12 @@
 package org.datenlord
 package dsp
 
-import dsp.FilterStructure._
-
 import spinal.core._
 import spinal.lib._
 
 import scala.language.postfixOps
 
-case class FirAnotherConfig(coeffs: Seq[Double], typeIn: HardType[SFix], structure: FilterStructure) extends TransformBase {
+case class FirAnotherConfig(coeffs: Seq[Double], typeIn: HardType[SFix], structure: SopStructure) extends TransformBase {
 
   val taps = coeffs.length
   val typeCoeff = HardType(SFix(0 exp, -17 exp))
