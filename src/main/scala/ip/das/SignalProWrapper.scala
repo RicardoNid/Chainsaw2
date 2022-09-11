@@ -71,7 +71,7 @@ case class SignalProWrapper() extends Component {
     mode.init(0) // raw mode
     gain.init(0) // minimum gain
     // control update logic
-    // TODO: do sync by a async FIFO
+    // TODO: do sync by an async FIFO in XillybusWrapper
     when(ctrlIn.ctrlUpdate.d(3)) { // delay for CDC
       switch(ctrlIn.ctrlAddr.d(3)) { // FIXME: metastability?
         is(0)(mode := ctrlIn.ctrlValue.d(3))
@@ -104,12 +104,5 @@ case class SignalProWrapper() extends Component {
       pulseOutDefault()
     }
   }
-
-
 }
 
-object SignalProWrapper {
-  def main(args: Array[String]): Unit = {
-    RtlGen(SignalProWrapper())
-  }
-}

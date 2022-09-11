@@ -55,7 +55,7 @@ case class DasTop() extends Component {
    * -------- */
 
   // signalAcq instantiation
-  val signalAcq = SignalAcqAnother()
+  val signalAcq = SignalAcq()
   signalAcq.adc_clk := adc_clk
   signalAcq.BUF_CLK := BUF_CLK
   signalAcq.rstn := rstn

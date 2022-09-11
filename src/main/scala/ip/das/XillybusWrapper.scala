@@ -6,6 +6,10 @@ import spinal.lib._
 
 import scala.language.postfixOps
 
+
+/** interface of a MemWrite device when you use it a as control channel which modify a register file for control
+ * @param ctrlDevice the MemWrite device configuration
+ */
 case class CtrlInterface(ctrlDevice: XillybusDevice) extends Bundle {
   val ctrlUpdate = Bool()
   val ctrlAddr = UInt(ctrlDevice.addrWidth bits)
@@ -81,11 +85,4 @@ case class XillybusWrapper(devices: Seq[XillybusDevice]) extends Component {
   def getWriteInterfaceByName(name: String) =
     xillybus.streamsRead.zip(fifoWriteInterfaces)
       .find(_._1.name == name).get._2
-}
-
-object XillybusWrapper {
-  def main(args: Array[String]): Unit = {
-    RtlGen(XillybusWrapper(DasXillybusDevices()))
-    // TODO: Gen xillydemo devices for comparison
-  }
 }

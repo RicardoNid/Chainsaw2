@@ -6,7 +6,7 @@ import matlab.MatlabFeval
 import breeze.math._
 import matlab._
 
-/**
+/** DAS parameter generator
  *
  * @param samplingFreq     sampling frequency after upsampling
  * @param gaugeLengthRange range of gauge length (meter)

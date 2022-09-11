@@ -1,68 +1,57 @@
 package org.datenlord
 package ip.das
 
-import intel.{AlteraFIFO, AlteraPll}
-
 import spinal.core._
 import spinal.lib._
 
 import scala.language.postfixOps
 
-case class P2SCCInterface(width:Int, factor: Int) {
-  val clkIn, rstn = in Bool() // clk for parallel in
-  val clkOut = out Bool() // clk for serial out
-  val dataIns = in Vec(Bits(width bits), factor)
-  val dataOut = out Bits (width bits)
-}
-
 // cross clock-domain parallel-to-serial converter
-case class P2SCC(width: Int, factor: Int) extends Bundle  {
+case class P2SCC(width: Int, factor: Int, baseFrequency: HertzNumber = 100 MHz)
+  extends Component {
 
-  val clkRef, rstn = in Bool()
-  val clkOut = out Bool()
-  val dataIns = in Vec(Bits(width bits), factor)
-  val dataOut = out Bits (width bits)
+  // clk for parallel in and serial out
+  val clkIn, clkOut, rstn = in Bool()
+  val dataIns = in Vec(Bits(width bits), factor) // parallel in, dataIns(0) should be the first element in serial out
+  val dataOut = out Bits (width bits) // serial out
 
-  // clock generation
-  val pll = AlteraPll(2)
-  pll.setDefinitionName("PllP2S")
-  pll.refclk := clkRef
-  pll.rst := ~rstn
-  val clkSlow = pll.outclks.head
-  val clkFast = pll.outclks.last
-  clkOut := clkFast
+  /** --------
+   * clock domain definitions
+   * -------- */
+  val frequencySlow = FixedFrequency(baseFrequency)
+  val frequencyFast = FixedFrequency(frequencySlow.getValue * factor)
+  val domainSlow = ClockDomain(clock = clkIn, reset = rstn, config = dasClockConfig, frequency = frequencySlow)
+  val domainFast = ClockDomain(clock = clkOut, reset = rstn, config = dasClockConfig, frequency = frequencyFast)
+  clkIn.setName(s"clk_${frequencySlow.getValue.toInt/1000000}M")
+  clkOut.setName(s"clk_${frequencyFast.getValue.toInt/1000000}M")
 
-  // clock domain definitions
-  val domainSlow = ClockDomain(clock = clkSlow, reset = rstn, config = dasClockConfig)
-  val domainFast = ClockDomain(clock = clkFast, reset = rstn, config = dasClockConfig)
-
-  // instantiating async FIFO
-  val fifos = Seq.fill(4)(AlteraFIFO(width))
-  fifos.foreach { fifo =>
-    fifo.setDefinitionName("AsyncFifo")
-    fifo.rdclk := clkFast
-    fifo.wrclk := clkSlow
-  }
+  /** --------
+   * CDC data transfer by async FIFO
+   -------- */
+  val fifo = DcFifo(width * factor)
+  fifo.setDefinitionName("P2SFIFO")
+  fifo.wrclk := clkIn
+  fifo.rdclk := clkOut
 
   new ClockingArea(domainSlow) {
-    fifos.zip(dataIns).foreach { case (fifo, data) =>
-      fifo.wrreq := True // real-time
-      fifo.data := data
-    }
+    fifo.wrreq := True // real-time
+    fifo.data := dataIns.reduce(_ ## _)
   }
 
-  // P2S logic
+  /** --------
+   * P2S logic in serial domain
+   -------- */
   new ClockingArea(domainFast) {
-    val reqCounter = CounterFreeRun(4)
-    val qs = Vec(Bits(width bits), 4)
-    fifos.zipWithIndex.foreach { case (fifo, i) =>
-      fifo.rdreq := reqCounter.willOverflow
-      qs(i) := fifo.q
-    }
+    val reqCounter = CounterFreeRun(factor) // controlled by a counter
+    // get the data from domainSlow
+    fifo.rdreq := reqCounter.willOverflow
+    val parallel = RegNextWhen(fifo.q, reqCounter.willOverflow)
+    // distribute data to different cycles
+    val qs = parallel.subdivideIn(width bits).reverse
     switch(reqCounter.value) {
-      qs.reverse.zipWithIndex.foreach { case (q, i) =>
-        is(i)(dataOut := q.d(i))
-      }
+      qs.zipWithIndex.foreach { case (q, i) => is(i)(dataOut := q.d(i)) }
     }
   }
 }
+
+
