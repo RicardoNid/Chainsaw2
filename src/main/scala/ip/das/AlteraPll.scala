@@ -1,5 +1,5 @@
 package org.datenlord
-package intel
+package ip.das
 
 import spinal.core.{BlackBox, Bool, in, out}
 
@@ -11,4 +11,5 @@ case class AlteraPll(outClockCount: Int) extends BlackBox {
   val refclk = in Bool()
   val rst = in Bool()
   val outclks = out Vec(Bool(), outClockCount)
+  outclks.zipWithIndex.map{ case (clk, i) => clk.setName(s"outclk_$i")}
 }
