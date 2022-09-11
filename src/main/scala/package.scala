@@ -11,7 +11,7 @@ import spinal.core.sim._
 import spinal.lib.{Delay, com => _, _}
 
 import scala.collection.mutable.ArrayBuffer
-import scala.math.{BigDecimal, BigInt, round}
+import scala.math.{BigDecimal, BigInt, log, round}
 import scala.reflect.{ClassTag, classTag}
 import scala.sys.process.Process
 import scala.util.Random
@@ -37,7 +37,8 @@ package object datenlord {
   }
 
   def RtlGen[T <: Component](gen: => T, name: String = "temp") = {
-    SpinalConfig(netlistFileName = s"$name.v").generateVerilog(gen)
+    val ret = SpinalConfig(netlistFileName = s"$name.v").generateVerilog(gen)
+    logger.info(s"rtl generated:\n${ret.rtlSourcesPaths.mkString("\n")}")
   }
 
   def VivadoImpl[T <: Component](gen: => T, name: String = "temp", target: XilinxDevice = defaultDevice, xdcPath: String = null) = {

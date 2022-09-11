@@ -1,5 +1,2 @@
-import scala.collection.mutable.ArrayBuffer
-
-val a = ArrayBuffer(1,2,3,4,5)
-a --= a.take(3)
-a
+val c = 2*1e8
+1 / (2 * 25 * 1e3 / c)

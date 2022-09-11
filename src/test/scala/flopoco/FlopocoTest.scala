@@ -22,7 +22,7 @@ class FlopocoTest extends AnyFlatSpec {
 
   "IntMultiAdder" should "sim" in TransformTest.test(multiAddConfig.implH, unsignedData)
 
-  ignore should "synth" in VivadoSynth(multiAddConfig.implH, "multiAdd")
+  it should "impl" in VivadoImpl(multiAddConfig.implH, "multiAdd")
 
   val dspConfig = DSPBlockConfig(Seq(16, 26, 42), xSigned = false, ySigned = false, 1, 1)
 
