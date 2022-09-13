@@ -6,7 +6,7 @@ import spinal.lib._
 
 import scala.language.postfixOps
 
-case class SignalProWrapper() extends Component {
+case class SignalProWrapper(implicit config: DasConfig) extends Component {
 
   val clkIn, rstn = in Bool() // 62.5MHz
   val clkOut = out Bool() // 125MHz
@@ -23,7 +23,7 @@ case class SignalProWrapper() extends Component {
   pll.setDefinitionName("P2SPLL")
   pll.refclk := clkIn
   pll.rst := ~rstn
-  clkOut := pll.outclks.head // 62.5MHz, 125MHz
+  clkOut := pll.outclks.head // 62.5MHz->125MHz
 
   val domainPro = ClockDomain(clock = clkOut, reset = rstn, config = dasClockConfig, frequency = FixedFrequency(125 MHz))
 
@@ -57,7 +57,6 @@ case class SignalProWrapper() extends Component {
     pulsesOut.Pulseout0N := False
     pulsesOut.Pulseout1 := clkIn
     pulsesOut.Pulseout1N := False
-    pulsesOut.Pulse_Single := clkIn
   }
 
   new ClockingArea(domainPro) {
@@ -66,21 +65,50 @@ case class SignalProWrapper() extends Component {
      * register file for control
      * -------- */
     val controlType = HardType(UInt(8 bits))
-    val mode, gain = Reg(controlType)
+    val mode,
+    pulsePoints0, pulsePoints1, pulsePoints2,
+    gaugePoints,
+    spatialPoints0, spatialPoints1,
+    pulsePeriod0, pulsePeriod1,
+    gain = Reg(controlType)
+
+    val controlRegs = Seq(mode, pulsePoints0, pulsePoints1, pulsePoints2, gaugePoints, spatialPoints0, spatialPoints1, pulsePeriod0, pulsePeriod1, gain)
+    controlRegs.foreach(_.allowPruning())
+
     // initialization
     mode.init(0) // raw mode
     gain.init(0) // minimum gain
     // control update logic
     // TODO: do sync by an async FIFO in XillybusWrapper
-    when(ctrlIn.ctrlUpdate.d(3)) { // delay for CDC
-      switch(ctrlIn.ctrlAddr.d(3)) { // FIXME: metastability?
-        is(0)(mode := ctrlIn.ctrlValue.d(3))
-        is(31)(gain := ctrlIn.ctrlValue.d(3))
+    val ctrlUpdate = ctrlIn.ctrlUpdate.d(3)
+    val ctrlAddr = ctrlIn.ctrlAddr.d(3)
+    val ctrlValue = ctrlIn.ctrlValue.d(3)
+
+    when(ctrlUpdate) { // delay for CDC
+      switch(ctrlAddr) { // FIXME: metastability?
+        is(0)(mode := ctrlValue)
+        is(2)(pulsePoints0 := ctrlValue)
+        is(3)(pulsePoints1 := ctrlValue)
+        is(4)(pulsePoints2 := ctrlValue)
+        is(5)(gaugePoints := ctrlValue)
+        is(6)(spatialPoints0 := ctrlValue)
+        is(7)(spatialPoints1 := ctrlValue)
+        is(8)(pulsePeriod0 := ctrlValue)
+        is(9)(pulsePeriod1 := ctrlValue)
+        is(10)(gain := ctrlValue)
       }
     }
+
+    val pulsePointsFull = pulsePoints0 @@ pulsePoints1 @@ pulsePoints2
+    val spatialPointsFull = spatialPoints0 @@ spatialPoints1
+    val pulsePeriodFull = pulsePeriod0 @@ pulsePeriod1
+
     gainOut := gain.resize(6 bits)
 
     val selfTestCore = DasSelfTest()
+
+    val pulseGen = PulseGen()
+    pulseGen.pulsePeriodIn := pulsePeriodFull.resized
 
     // TODO: implement signal processing logic in a module like DasSelfTest
     /** --------
@@ -89,20 +117,37 @@ case class SignalProWrapper() extends Component {
     when(mode === 0) { // self-testing mode
       selfTestCore.dataOut0 >> dataOut0
       selfTestCore.dataOut1 >> dataOut1
-      pulsesOut := selfTestCore.pulsesOut
+      pulseOutDefault()
+      pulsesOut.Pulse_Single := pulseGen.pulseOut
     }.elsewhen(mode === 1) { // raw mode, adc -> pcie
       dataOut0.payload := adc0X0S.resize(16) // first phase component of adc0
       dataOut1.payload := adc1X0S.resize(16) // first phase component of adc1
       dataOut0.valid := True
       dataOut1.valid := True
-      pulsesOut := selfTestCore.pulsesOut
+      pulseOutDefault()
+      pulsesOut.Pulse_Single := pulseGen.pulseOut
+      // 4KHz pulse out
     }.otherwise { // normal mode
       dataOut0.payload := adc0X0S.resize(16)
       dataOut1.payload := adc1X0S.resize(16)
       dataOut0.valid := True
       dataOut1.valid := True
       pulseOutDefault()
+      pulsesOut.Pulse_Single := pulseGen.pulseOut
     }
+
+    /** --------
+     * fix signal names for SignalTap
+     -------- */
+    clkOut.setName("clkOut")
+    pulsePointsFull.setName("pulsePointsFull")
+    gaugePoints.setName("gaugePoints")
+    spatialPointsFull.setName("spatialPointsFull")
+    pulsePeriodFull.setName("pulsePeriodFull")
+    mode.setName("mode")
+    ctrlUpdate.setName("ctrlUpdate")
+    ctrlAddr.setName("ctrlAddr")
+    ctrlValue.setName("ctrlValue")
   }
 }
 

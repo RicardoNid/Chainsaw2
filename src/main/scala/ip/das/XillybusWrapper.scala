@@ -8,6 +8,7 @@ import scala.language.postfixOps
 
 
 /** interface of a MemWrite device when you use it a as control channel which modify a register file for control
+ *
  * @param ctrlDevice the MemWrite device configuration
  */
 case class CtrlInterface(ctrlDevice: XillybusDevice) extends Bundle {
@@ -77,6 +78,8 @@ case class XillybusWrapper(devices: Seq[XillybusDevice]) extends Component {
   ctrlOut.ctrlUpdate := ctrlChannel.wren
   ctrlOut.ctrlAddr := ctrlChannel.addr
   ctrlOut.ctrlValue := ctrlChannel.data
+
+  //  val ctrlValues = CtrlInterface(ctrlDevice) // ctrl related values from xillybus side
 
   def getReadInterfaceByName(name: String) =
     xillybus.streamsWrite.zip(fifoReadInterfaces)

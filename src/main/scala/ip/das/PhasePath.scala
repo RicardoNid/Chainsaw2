@@ -22,7 +22,7 @@ case class PhasePath(config: DasConfig) extends Component {
   // configuration
   val gaugePointsIn = in UInt (log2Up(gaugePointsMax + 5) bits)
   val pulsePointsIn = in UInt (log2Up(pulsePointsMax + 5) bits)
-  val meanPointsIn = in UInt (log2Up(meanPointsMax + 5) bits)
+  val meanPointsIn = in UInt (log2Up(spatialPointsMax + 5) bits)
   // data
   val flowIn = slave(DasFlow(phaseType))
   val flowOut = master(DasFlow(phaseUnwrappedType))
@@ -32,7 +32,7 @@ case class PhasePath(config: DasConfig) extends Component {
   val phaseDiff = PhaseDiff(gaugePointsMax, phaseType, phaseDiffType)
   val pulseUnwrap = PulseUnwrap(pulsePointsMax, phaseUnwrappedType, phaseStoredType)
   val phaseMean = PhaseMean(gaugePointsMax, gaugePointsMin, phaseUnwrappedType)
-  val meanUnwrap = MeanUnwrap(meanPointsMax, phaseUnwrappedType, phaseStoredType)
+  val meanUnwrap = MeanUnwrap(spatialPointsMax, phaseUnwrappedType, phaseStoredType)
 
   // connection
   phaseDiff.flowIn := flowIn

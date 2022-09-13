@@ -5,6 +5,8 @@ import spinal.core._
 
 import scala.language.postfixOps
 
+
+
 /** pcie-related signals on a board, corresponding pin locations are needed
  *
  */
@@ -32,7 +34,7 @@ case class PulsesOut() extends Bundle {
   this.setName("")
 }
 
-case class DasTop() extends Component {
+case class DasTop(implicit config: DasConfig) extends Component {
 
   /** --------
    * I/O
@@ -114,12 +116,15 @@ case class DasTop() extends Component {
   setDefinitionName("xillydemo")
 }
 
-object DasTop {
+/** update top module file in DAS project
+ *
+ */
+object UpdateDasProject {
   def main(args: Array[String]): Unit = {
+    implicit val config: DasConfig = DasConfig()
     SpinalConfig(
       netlistFileName = "xillydemo.v",
       targetDirectory = "/home/ltr/sysudas/project/xillyfinal/verilog/src")
       .generateVerilog(DasTop())
-    //    SpinalConfig().generateVerilog(DasTop())
   }
 }
