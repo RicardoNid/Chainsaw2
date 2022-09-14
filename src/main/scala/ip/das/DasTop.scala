@@ -5,8 +5,6 @@ import spinal.core._
 
 import scala.language.postfixOps
 
-
-
 /** pcie-related signals on a board, corresponding pin locations are needed
  *
  */

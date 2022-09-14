@@ -12,12 +12,21 @@ import scala.util.Random
 
 class UpFirDnTest extends AnyFlatSpec {
 
-  val data = (0 until 100).map(_ => Random.nextDouble())
-  val coeffs = (0 until 144).map(_ => Random.nextDouble())
+
+  val coeffCount = 16
+  val coeffs = Seq.fill(coeffCount)(Random.nextDouble())
+
   val typeIn = HardType(SFix(0 exp, -13 exp))
   val typeOut = HardType(SFix(log2Up(coeffs.length) exp, typeIn().minExp exp))
 
-  val config = UpFirDnAnotherConfig(4, 2, coeffs, typeIn, typeOut)
+  val config = UpFirDnConfig(4, 2, coeffs, typeIn, typeOut)
+
+  val validData = Seq.fill(100)(Random.nextDouble())
+
+  // tail padding >= length of coeffs
+  val tailPad = Seq.fill(config.subFilterTaps)(0.0)
+
+  val data = validData ++ tailPad
 
   behavior of "upfirdn"
 

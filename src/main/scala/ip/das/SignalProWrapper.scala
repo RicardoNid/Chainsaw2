@@ -78,6 +78,8 @@ case class SignalProWrapper(implicit config: DasConfig) extends Component {
     // initialization
     mode.init(0) // raw mode
     gain.init(0) // minimum gain
+    pulsePeriod0.init(50000 >> 256) // minimum gain
+    pulsePeriod1.init(50000 % 256) // minimum gain
     // control update logic
     // TODO: do sync by an async FIFO in XillybusWrapper
     val ctrlUpdate = ctrlIn.ctrlUpdate.d(3)

@@ -6,7 +6,7 @@ import spinal.lib._
 
 import scala.language.postfixOps
 
-case class FirAnotherConfig(coeffs: Seq[Double], typeIn: HardType[SFix], structure: SopStructure) extends TransformBase {
+case class FirConfig(coeffs: Seq[Double], typeIn: HardType[SFix], structure: SopStructure) extends TransformBase {
 
   val taps = coeffs.length
   val typeCoeff = HardType(SFix(0 exp, -17 exp))
@@ -14,7 +14,7 @@ case class FirAnotherConfig(coeffs: Seq[Double], typeIn: HardType[SFix], structu
 
   override def impl(dataIn: Seq[Any]) = {
     val data = dataIn.asInstanceOf[Seq[Double]]
-    matlab.Dsp.fir(data.toArray, coeffs.toArray)
+    matlab.Dsp.fir(data.toArray, coeffs.toArray).drop(coeffs.length - 1) // drop leading results, size unchanged
   }
 
   override val implMode = Infinite
@@ -23,10 +23,10 @@ case class FirAnotherConfig(coeffs: Seq[Double], typeIn: HardType[SFix], structu
 
   override def latency = DoFir.latency(taps, structure)
 
-  override def implH = FirAnother(this)
+  override def implH = Fir(this)
 }
 
-case class FirAnother(config: FirAnotherConfig) extends TransformModule[SFix, SFix] {
+case class Fir(config: FirConfig) extends TransformModule[SFix, SFix] {
 
   import config._
 

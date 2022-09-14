@@ -35,8 +35,8 @@ case class FilterPathConfig(dasConfig: DasConfig) extends TransformBase {
   val adcDataType = HardType(SFix(0 exp, -13 exp))
   val firOutDataType = HardType(SFix(4 exp, -13 exp))
 
-  val realFirConfig = UpFirDnAnotherConfig(dasConfig.upSampleFactor, 2, coeffsReal, adcDataType, firOutDataType)
-  val imagFirConfig = UpFirDnAnotherConfig(dasConfig.upSampleFactor, 2, coeffsImag, adcDataType, firOutDataType)
+  val realFirConfig = UpFirDnConfig(dasConfig.upSampleFactor, 2, coeffsReal, adcDataType, firOutDataType)
+  val imagFirConfig = UpFirDnConfig(dasConfig.upSampleFactor, 2, coeffsImag, adcDataType, firOutDataType)
 
   val cordicConfig = CordicConfig(CIRCULAR, VECTORING, dasConfig.cordicIteration, dasConfig.cordicFraction)
 
