@@ -1,5 +1,5 @@
 name := "Chainsaw2"
-idePackagePrefix := Some("org.datenlord")
+//idePackagePrefix := Some("org.datenlord")
 
 ThisBuild / version := "1.0"
 ThisBuild / scalaVersion := "2.11.12"
