@@ -21,8 +21,8 @@ case class TransformExample(config: TransformExampleConfig)
 
   import config._
 
-  override val dataIn = slave Flow Fragment(Vec(UInt(widthIn bits), inputWidth))
-  override val dataOut = master Flow Fragment(Vec(UInt(widthIn bits), outputWidth))
+  override val dataIn = slave Flow Fragment(Vec(UInt(widthIn bits), inputPortWidth))
+  override val dataOut = master Flow Fragment(Vec(UInt(widthIn bits), outputPortWidth))
 
   dataOut.fragment.head := dataIn.fragment.reduce(_ +^ _).d(1)
 

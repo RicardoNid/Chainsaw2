@@ -53,7 +53,7 @@ abstract class TransformModule[TIn <: Data, TOut <: Data] extends Component {
 
   def outSize = dataOut.fragment.length
 
-  def asNode: Seq[TIn] => Seq[TOut] = (dataIn: Seq[TIn]) => {
+  def asFunc: Seq[TIn] => Seq[TOut] = (dataIn: Seq[TIn]) => {
     val core = this
     core.dataIn.fragment := Vec(dataIn)
     core.skipControl()
@@ -73,8 +73,8 @@ object TransformBitsWrapper {
 
       import config._
 
-      override val dataIn = slave Flow Fragment(Vec(Bits(inWidth bits), inputWidth))
-      override val dataOut = master Flow Fragment(Vec(Bits(outWidth bits), outputWidth))
+      override val dataIn = slave Flow Fragment(Vec(Bits(inWidth bits), inputPortWidth))
+      override val dataOut = master Flow Fragment(Vec(Bits(outWidth bits), outputPortWidth))
 
       core.dataIn.fragment.assignFromBits(dataIn.fragment.asBits)
       core.dataIn.valid := dataIn.valid

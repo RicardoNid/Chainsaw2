@@ -2,7 +2,6 @@ package org.datenlord
 package algos
 
 import cc.redberry.rings.scaladsl._
-import spinal.core._
 
 object ZPrizeMSM {
 

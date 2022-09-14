@@ -2,8 +2,6 @@ package org.datenlord
 package arithmetic
 
 import arithmetic.McmType._
-import arithmetic.MultplierMode._
-import dfg.{ArithInfo}
 
 import spinal.core._
 import spinal.lib._
@@ -16,16 +14,22 @@ import scala.language.postfixOps
  * @param mode      full, MSB, and LSB mode are supported
  * @param widthTake for MSB/LSB case, it is the width of the final result
  */
-case class BigConstantMultiplicationConfig(constant: BigInt, widthIn: Int, mode: MultiplierMode, widthTake: Int = 0)
-  extends TransformBase {
-  if (mode != FULL) require(widthTake > 0, "for MSB/LSB mode, param widthTake is necessary")
+case class BigConstantMultiplicationConfig(constant: BigInt, widthIn: Int, mode: MultiplierType, widthTake: Int = 0)
+  extends TransformDfg {
+
+  if (mode != FullMultiplier) require(widthTake > 0, "for MSB/LSB mode, param widthTake is necessary")
   val widthAll = widthIn + constant.bitLength // for full multiplication
   val widthDrop = widthAll - widthTake // number of dropped bits for MSB/LSB implementation
   val widthOut = mode match {
-    case FULL => widthAll
-    case HALFLOW => widthTake
-    case HALFHIGH => widthTake
+    case FullMultiplier => widthAll
+    case LsbMultiplier => widthTake
+    case MsbMultiplier => widthTake
   }
+
+  override val name = "bcm"
+  override val opType = mode
+  override val widthsIn = Seq(widthIn)
+  override val widthsOut = Seq(widthOut)
 
   // TODO: a more accurate error bound
   val errorBound = {
@@ -46,10 +50,10 @@ case class BigConstantMultiplicationConfig(constant: BigInt, widthIn: Int, mode:
   override def impl(dataIn: Seq[Any]): Seq[BigInt] = {
     val product = dataIn.asInstanceOf[Seq[BigInt]].map(_ * constant)
     mode match {
-      case FULL => product
       // TODO: draw pictures for explanation
-      case HALFLOW => product.map(_ % (BigInt(1) << widthTake))
-      case HALFHIGH => product.map(_ >> widthDrop)
+      case FullMultiplier => product
+      case LsbMultiplier => product.map(_ % (BigInt(1) << widthTake))
+      case MsbMultiplier => product.map(_ >> widthDrop)
     }
   }
 
@@ -101,9 +105,9 @@ case class BigConstantMultiplicationConfig(constant: BigInt, widthIn: Int, mode:
       val position = dataPosition + j * solverLimit
       val width = dataWidth + coeffWord.bitLength
       val pass = mode match {
-        case FULL => true // full multiplication takes all
-        case HALFLOW => position < widthTake // LSB multiplication takes the ones on the lower half
-        case HALFHIGH => position + width >= widthDrop - 1 // MSB multiplication takes the ones that have influence on the higher half
+        case FullMultiplier => true // full multiplication takes all
+        case LsbMultiplier => position < widthTake // LSB multiplication takes the ones on the lower half
+        case MsbMultiplier => position + width >= widthDrop - 1 // MSB multiplication takes the ones that have influence on the higher half
       }
       logger.info(s"range: $position->${position + width}, drop $widthDrop, pass: $pass, coeff: $coeffWord")
       if (pass) {
@@ -112,7 +116,7 @@ case class BigConstantMultiplicationConfig(constant: BigInt, widthIn: Int, mode:
       }
   }
 
-  coeffs.flatten.zip(arithInfos).foreach { case (coeff, info) => logger.info(s"position: ${info.shift}, width: ${info.width}, coeff: $coeff") }
+  coeffs.flatten.zip(arithInfos).foreach { case (coeff, info) => logger.info(s"position: ${info.weight}, width: ${info.width}, coeff: $coeff") }
 
   // for each segment of dataIn, implement a MCM by the coeffWords allocated
   val adderGraphConfigs = dataWidths.zip(coeffs)
@@ -148,12 +152,12 @@ case class BigConstantMultiplication(config: BigConstantMultiplicationConfig)
   // stage1: MCM
   val partialProds = dataWords.zip(adderGraphConfigs)
     .flatMap { case (dataWord, config) =>
-      config.implH.asNode(Seq(dataWord))
+      config.implH.asFunc(Seq(dataWord))
         .map(_.d(adderGraphLatency - config.latency)) // padding the latency
     }.map(_.resized)
 
   // stage2: BHC
-  val rows = compressorConfig.implH.asNode(partialProds)
+  val rows = compressorConfig.implH.asFunc(partialProds)
 
   // TODO: output should be registered, to show the critical path on final binary adder
   // stage3: CPA
@@ -161,9 +165,9 @@ case class BigConstantMultiplication(config: BigConstantMultiplicationConfig)
 
   // take
   mode match {
-    case FULL => dataOut.fragment.head := ret.resized
-    case HALFLOW => dataOut.fragment.head := ret(widthTake - 1 downto 0)
-    case HALFHIGH => dataOut.fragment.head := ret(widthAll - 1 downto widthDrop)
+    case FullMultiplier => dataOut.fragment.head := ret.resized
+    case LsbMultiplier => dataOut.fragment.head := ret(widthTake - 1 downto 0)
+    case MsbMultiplier => dataOut.fragment.head := ret(widthAll - 1 downto widthDrop)
   }
 
   autoValid()

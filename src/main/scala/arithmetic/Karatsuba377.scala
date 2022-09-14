@@ -2,22 +2,21 @@ package org.datenlord
 package arithmetic
 
 import dfg._
-import arithmetic.MultplierMode._
 
 object Karatsuba377 {
 
-  def apply(mode: MultiplierMode): RingDag = {
+  def apply(mode: MultiplierType = FullMultiplier): RingDag = {
     val golden = (data: Seq[BigInt]) => mode match {
-      case FULL => Seq(data.product)
-      case HALFLOW => Seq(data.product % (BigInt(1) << 378))
+      case FullMultiplier => Seq(data.product)
+      case LsbMultiplier => Seq(data.product % (BigInt(1) << 378))
     }
 
-    implicit val graph: RingDag = new RingDag(s"karatsubaGraph96", golden)
+    implicit val graph: RingDag = new RingDag(s"kara377", golden)
 
     val a = graph.addInput("Mult377A", 378)
     val b = graph.addInput("Mult377B", 378)
 
-    def rec(x: RingPort, y: RingPort, width: Int, mode: MultiplierMode): RingPort = {
+    def rec(x: RingPort, y: RingPort, width: Int, mode: MultiplierType): RingPort = {
       if (width == 96) buildKara96(x, y)(graph)
       else {
         val (xHigh, xLow) = x.splitAt(width / 2)
@@ -25,18 +24,18 @@ object Karatsuba377 {
         val widthNext = width / 2 + 1
 
         mode match {
-          case FULL =>
-            val xMerge = xHigh +:+^ xLow
-            val yMerge = yHigh +:+^ yLow
-            val high = rec(xHigh.resize(widthNext), yHigh.resize(widthNext), widthNext, FULL)
-            val low = rec(xLow.resize(widthNext), yLow.resize(widthNext), widthNext, FULL)
-            val all = rec(xMerge, yMerge, widthNext, FULL)
+          case FullMultiplier =>
+            val xMerge = xHigh +^ xLow
+            val yMerge = yHigh +^ yLow
+            val high   = rec(xHigh.resize(widthNext), yHigh.resize(widthNext), widthNext, FullMultiplier)
+            val low = rec(xLow.resize(widthNext), yLow.resize(widthNext), widthNext, FullMultiplier)
+            val all = rec(xMerge.resize(widthNext), yMerge.resize(widthNext), widthNext, FullMultiplier)
             val mid = all - high - low
-            (high << width) +^ (mid << width / 2) +^ low
-          case HALFLOW =>
-            val cross0 = rec(xHigh.resize(widthNext), yLow.resize(widthNext), widthNext, HALFLOW)
-            val cross1 = rec(yHigh.resize(widthNext), xLow.resize(widthNext), widthNext, HALFLOW)
-            val low = rec(xLow.resize(widthNext), yLow.resize(widthNext), widthNext, FULL)
+            (high << width) +^ (mid << (width / 2)) +^ low
+          case LsbMultiplier =>
+            val cross0 = rec(xHigh.resize(widthNext), yLow.resize(widthNext), widthNext, LsbMultiplier)
+            val cross1 = rec(yHigh.resize(widthNext), xLow.resize(widthNext), widthNext, LsbMultiplier)
+            val low = rec(xLow.resize(widthNext), yLow.resize(widthNext), widthNext, FullMultiplier)
             ((cross0 +^ cross1) << (width / 2)) +^ low
         }
       }
@@ -45,15 +44,14 @@ object Karatsuba377 {
     val ret = rec(a, b, 378, mode)
 
     val widthOut = mode match {
-      case FULL => 756
-      case HALFLOW => 378
-      case HALFHIGH => 378
+      case FullMultiplier => 756
+      case LsbMultiplier => 378
+      case MsbMultiplier => 378
     }
 
     val resized = ret.resize(widthOut)
     val z = graph.addOutput(s"Mult377Z", widthOut)
     graph.addEdge(resized, z)
-    graph.toPng("karatsuba377")
     graph
   }
 

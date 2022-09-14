@@ -1,6 +1,9 @@
 package org.datenlord
 
-import xilinx.{VivadoUtil, VivadoUtilRequirement}
+import dfg.OpType.MUX
+import dfg.{RingDag, RingPort, RingVertex}
+
+import spinal.core.{UInt, Vec}
 
 abstract class TransformBase extends TransformConfig {
 
@@ -23,7 +26,4 @@ abstract class TransformBase extends TransformConfig {
   def getConfigWithFoldsChanged(spaceFold: Int, timeFold: Int): TransformBase = throw new IllegalArgumentException("this transform is not foldable")
 
   def flowFormat = MeshFormat(this, Repetition.unit, Reuse(1, 1, spaceFold, timeFold))
-
-  // util estimation of the transform, it is not set by default
-  def utilRequirement: VivadoUtil = VivadoUtilRequirement()
 }

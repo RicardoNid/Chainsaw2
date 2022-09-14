@@ -1,13 +1,20 @@
 package org.datenlord
 package arithmetic
 
+import xilinx._
+
 /** define necessary properties for a basic compressor which can be used to build a compressor tree
  *
  */
 abstract class Compressor[T] {
 
+  val name = getClass.getSimpleName.init
+
   val isFixed: Boolean // if the size is fixed, it is a GPC, otherwise, it is a row compressor
-  val widthLimit: Int // for delay consideration
+
+  val widthMax: Int // for delay consideration
+
+  // TODO: widthMin
 
   /** --------
    * key definitions
@@ -25,7 +32,7 @@ abstract class Compressor[T] {
    */
   def cost(width: Int): Int
 
-  /** hardware implementation
+  /** hardware implementation, the compressor is responsible for padding zeros
    */
   def impl(bitsIn: BitHeap[T], width: Int): BitHeap[T]
 
@@ -40,6 +47,8 @@ abstract class Compressor[T] {
   def reduction(width: Int): Int = inputBitsCount(width) - outputBitsCount(width)
 
   def efficiency(width: Int): Double = reduction(width).toDouble / cost(width)
+
+  def utilRequirement(width: Int): VivadoUtil
 
   /** this is very beautiful, try it!
    */

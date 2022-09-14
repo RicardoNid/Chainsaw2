@@ -13,9 +13,9 @@ case class ConvEncConfig(codeGen: Seq[Seq[String]], codeGenRadix: Int = 8)
   val constraintLengths = binaryCodeGen.map(_.map(_.length).max)
 
   val inputStep = binaryCodeGen.length
-  val codeRate = inputStep.toDouble / outputWidth
+  val codeRate = inputStep.toDouble / outputPortWidth
 
-  override val size = (constraintLength, outputWidth)
+  override val size = (constraintLength, outputPortWidth)
 
   override def latency = constraintLength - 1
 
@@ -30,8 +30,8 @@ case class ConvEnc(config: ConvEncConfig) extends TransformModule[Bool, Bool] {
 
   import config._
 
-  override val dataIn = slave Flow Fragment(Vec(Bool(), inputWidth))
-  override val dataOut = master Flow Fragment(Vec(Bool(), outputWidth))
+  override val dataIn = slave Flow Fragment(Vec(Bool(), inputPortWidth))
+  override val dataOut = master Flow Fragment(Vec(Bool(), outputPortWidth))
 
   val delayLines = (0 until inputStep).map(i =>
     dataIn.fragment.zipWithIndex.filter(_._2 % inputStep == i).map(_._1))

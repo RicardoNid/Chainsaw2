@@ -1,7 +1,6 @@
 package org.datenlord
 package dfg
 
-import org.datenlord.arithmetic.MultplierMode._
 import org.jgrapht._
 import org.jgrapht.alg.shortestpath.FloydWarshallShortestPaths
 import org.jgrapht.graph._
@@ -12,20 +11,20 @@ import scala.collection.JavaConversions._
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
 
-object OpType extends Enumeration {
-  val Var = Value // variable (opposite to operation)
-  val FullMult, LowMult, HighMult, SquareMult, BASEADD, BASESUB, ADD, SUB, ADDC, SUBC, MERGE, SPLIT, RESIZE, MUX, AND, SHIFT, COMPRESS, KARA = Value // Ring operations
-  type OpType = Value
-
-  def fromMultMode(mode:MultiplierMode) = {
-    mode match {
-      case FULL => FullMult
-      case HALFLOW => LowMult
-      case HALFHIGH => HighMult
-      case SQUARE => SquareMult
-    }
-  }
-}
+//object OpType extends Enumeration {
+//  val Var = Value // variable (opposite to operation)
+//  val FullMult, LowMult, HighMult, SquareMult, BASEADD, BASESUB, ADD, SUB, ADDC, SUBC, MERGE, SPLIT, RESIZE, MUX, AND, SHIFT, COMPRESS, KARA, CPA, BCM = Value // Ring operations
+//  type OpType = Value
+//
+//  def fromMultMode(mode:MultiplierMode) = {
+//    mode match {
+//      case FULL => FullMult
+//      case LSB => LowMult
+//      case MSB => HighMult
+//      case SQUARE => SquareMult
+//    }
+//  }
+//}
 
 object Direction extends Enumeration {
   val In, Out = Value
@@ -33,7 +32,6 @@ object Direction extends Enumeration {
 }
 
 import dfg.Direction._
-import dfg.OpType._
 
 /** This is for vertices which do no operations, this can be used as input, output or intermediate variables
  *
@@ -68,6 +66,7 @@ class Dag[THard <: Data](val name: String)
 
   val inputs = ArrayBuffer[V]()
   val outputs = ArrayBuffer[V]()
+  var retimingInfo = Map[V, Int]()
 
   @deprecated
   override def addEdge(sourceVertex: V, targetVertex: V) = super.addEdge(sourceVertex, targetVertex)
@@ -154,12 +153,8 @@ class Dag[THard <: Data](val name: String)
 
   /** This latency is true only when the graph is homogeneous
    */
-  def latency = getIoPath.init.zip(getIoPath.tail)
-    .map { case (s, t) =>
-      val weight = getEdge(s, t).weight
-      logger.info(s"weight on path $weight")
-      weight
-    }.sum.toInt
+  def latency: Int = getIoPath.init.zip(getIoPath.tail)
+    .map { case (s, t) => getEdge(s, t).weight}.sum.toInt
 
   def pathToString(path: GraphPath[V, E]) = {
     path.getVertexList.zip(path.getEdgeList)
@@ -186,11 +181,6 @@ class Dag[THard <: Data](val name: String)
   def doDrc() = {
     assureAcyclic()
     assert(vertexSet().filter(_.latency > 0).forall(_.outDegree > 0))
-  }
-
-  def showCost = {
-    val costOfOps = OpType.values.map(op => s"$op -> ${vertexSet().count(_.opType == op)}").mkString("\n\t")
-    logger.info(s"number of operators:\n\t$costOfOps")
   }
 
   override def toString =

@@ -22,6 +22,10 @@ case class Csd(csd: String) {
 
   def weight = csd.count(_ != '0') // number of nonzero digits
 
+  def takeLow(value: Int) = Csd(csd.takeRight(value))
+
+  def takeHigh(value: Int) = Csd(csd.take(value))
+
   override def toString = csd
 }
 

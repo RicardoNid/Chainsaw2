@@ -1,3 +1,5 @@
-import scala.util.Random
+import scala.collection.mutable.ArrayBuffer
 
-Seq.fill(5)(Random.nextDouble())
+val a = ArrayBuffer(1,2,3,4,5)
+a --= a.take(3)
+a

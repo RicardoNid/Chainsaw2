@@ -26,7 +26,6 @@ class ModularMultTest extends AnyFlatSpec {
     logger.info(s"error passed with bound: $bound1")
   }
 
-
   "hrmmm algo" should "work" in {
     as.zip(bs).foreach { case (a, b) => ModularMult.hrmmm(a, b, moduli, lN, 16) }
   }
