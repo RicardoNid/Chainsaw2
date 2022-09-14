@@ -32,8 +32,8 @@ class SignalProTest extends AnyFlatSpec {
     SimConfig.workspaceName("testDasSigPro").withFstWave.compile(SignalPro(staticConfig)).doSim { dut =>
 
       dut.clockDomain.forkStimulus(2)
-      dut.modeChange #= false
-      dut.validIn #= false
+      dut.flowIn.modeChange #= false
+      dut.flowIn.valid #= false
       dut.clockDomain.waitSampling()
 
       val pulses = data.grouped(pulsePoints).toSeq
@@ -41,20 +41,21 @@ class SignalProTest extends AnyFlatSpec {
 
       pulses.zipWithIndex.foreach { case (pulse, i) =>
         println(s"currently simulating on pulse ${i + 1}/${pulses.length}")
-        dut.pulseChange #= true
+        dut.flowIn.pulseChange #= true
         pulse.grouped(subFilterCount).toSeq.foreach { vec =>
           dut.clockDomain.waitSampling()
-          if (dut.validOut.toBoolean) ret(dut.indexOut.toInt) ++= dut.dataOut.map(_.toDouble)
-          dut.validIn #= true
-          dut.dataIn.zip(vec).foreach { case (port, data) => port #= data }
-          dut.indexIn #= i
+          if (dut.flowOut.valid.toBoolean) ret(dut.flowOut.index.toInt) ++= dut.flowOut.payload.map(_.toDouble)
+          dut.flowIn.valid #= true
+          dut.flowIn.payload.zip(vec).foreach { case (port, data) => port #= data }
+          dut.flowIn.index #= i
+          dut.flowIn.pulseChange #= false
         }
       }
 
       (0 until 1000).foreach { _ =>
         dut.clockDomain.waitSampling()
-        if (dut.validOut.toBoolean) ret(dut.indexOut.toInt) ++= dut.dataOut.map(_.toDouble)
-        dut.validIn #= false
+        if (dut.flowOut.valid.toBoolean) ret(dut.flowOut.index.toInt) ++= dut.flowOut.payload.map(_.toDouble)
+        dut.flowIn.valid #= false
       }
 
       val (goldenPhase, goldenIntensity) = DoDas(staticConfig, runtimeConfig, data)

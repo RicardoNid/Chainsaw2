@@ -5,69 +5,44 @@ import dsp.AlgebraicMode._
 import dsp.RotationMode._
 import dsp._
 import intel.QuartusFlow
-import matlab.MComplex
 
 import spinal.core._
-import spinal.core.sim._
 import spinal.lib._
 
 import scala.language.postfixOps
 
-case class FilterPathConfig(dasConfig: DasConfig) extends TransformBase {
 
-  override def impl(dataIn: Seq[Any]) = {
-    val data = dataIn.asInstanceOf[Seq[Double]]
-    val coeffs = dasConfig.combinedCoeffGroups.head
-    val filtered = matlab.MatlabFeval[Array[MComplex]]("upfirdn", 0, data.toArray, coeffs, dasConfig.upSampleFactor.toDouble, 1.toDouble)
-    matlab.MatlabFeval[Array[Double]]("angle", 0, filtered).drop(coeffs.length - 1)
-  }
+case class FilterPath(staticConfig: DasStaticConfig) extends Component {
 
-  override val implMode = Infinite
+  val constants: DasConstants = staticConfig.genConstants()
 
-  // at 125MHz, first subFilterCount are intensities and the next subFilterCount are phases
-  override val size = (2, dasConfig.subFilterCount)
+  import constants._
 
-  logger.info(s"upsample: ${dasConfig.upSampleFactor}, subfilters: ${dasConfig.subFilterCount}")
-
-  val coeffsReal = dasConfig.realCoeffGroups.head
-  val coeffsImag = dasConfig.imagCoeffGroups.head
-  // TODO: implement precision coeffs in dasConfig
+  // hardtypes
   val adcDataType = HardType(SFix(0 exp, -13 exp))
   val firOutDataType = HardType(SFix(4 exp, -13 exp))
+  val cordicIteration = 10
+  val cordicFraction = 16
 
-  val realFirConfig = UpFirDnConfig(dasConfig.upSampleFactor, 2, coeffsReal, adcDataType, firOutDataType)
-  val imagFirConfig = UpFirDnConfig(dasConfig.upSampleFactor, 2, coeffsImag, adcDataType, firOutDataType)
+  // submodule configs
+  val realFirConfig = UpFirDnConfig(1, subFilterCount, realCoeffGroups(5e6), adcDataType, firOutDataType)
+  val imagFirConfig = UpFirDnConfig(1, subFilterCount, imagCoeffGroups(5e6), adcDataType, firOutDataType)
+  val cordicConfig = CordicConfig(CIRCULAR, VECTORING, cordicIteration, cordicFraction)
 
-  val cordicConfig = CordicConfig(CIRCULAR, VECTORING, dasConfig.cordicIteration, dasConfig.cordicFraction)
+  assert(realFirConfig.latency == imagFirConfig.latency)
+  val latency = realFirConfig.latency + cordicConfig.latency
 
-  //  override def latency = realFirConfig.latency
+  // I/O
+  val flowIn = in(DasFlowAnother(adcDataType, subFilterCount))
+  val flowOut = out(DasFlowAnother(cordicConfig.phaseType, subFilterCount))
 
-  override def latency = realFirConfig.latency + cordicConfig.latency
+  assert(~(flowIn.modeChange && ~flowIn.pulseChange)) // pulseChange must be asserted when modeChange is asserted
 
-  override def implH = FilterPath(this)
-
-}
-
-case class FilterPath(config: FilterPathConfig) extends TransformModule[SFix, SFix] {
-
-  import config._
-
-  override val dataIn = slave Flow Fragment(Vec(adcDataType, inputPortWidth))
-
-  //  def outputSeq = Seq.fill(dasConfig.subFilterCount)(cordicConfig.amplitudeType()) ++ Seq.fill(dasConfig.subFilterCount)(cordicConfig.phaseType())
-  def outputSeq = Seq.fill(dasConfig.subFilterCount)(cordicConfig.phaseType())
-
-  override val dataOut = master Flow Fragment(Vec(outputSeq))
-
-  val realFirRets = realFirConfig.implH.asFunc(dataIn.fragment)
-    .map(_ >> 4) // normalization
-  val imagFirRets = imagFirConfig.implH.asFunc(dataIn.fragment)
-    .map(_ >> 4) // normalization
-
-  logger.info(s"max exp = ${realFirRets.head.maxExp}")
-
-  realFirRets.foreach(_.simPublic())
-  imagFirRets.foreach(_.simPublic())
+  // filter path
+  val realFirRets = realFirConfig.implH.asFunc(flowIn.payload)
+    .map(_ >> 4) // normalization for CORDIC
+  val imagFirRets = imagFirConfig.implH.asFunc(flowIn.payload) // FIXME: this becomes the inverse of expected ret, why?
+    .map(_ >> 4).map(sf => -sf) // normalization for CORDIC
 
   val both = realFirRets.zip(imagFirRets).map { case (real, imag) =>
     val core = cordicConfig.implH
@@ -78,18 +53,15 @@ case class FilterPath(config: FilterPathConfig) extends TransformModule[SFix, SF
 
   val intensities = both.map(_.head)
   val phases = both.map(_.last)
-
-  dataOut.fragment.zip(phases).foreach { case (port, value) => port := value }
-  //  dataOut.fragment.zip(realFirRets).foreach { case (port, value) => port := value }
-  //    dataOut.fragment.zip(imagFirRets).foreach { case (port, value) => port := value }
-
-  autoValid()
-  autoLast()
+  flowOut.payload := (Vec(phases.map(_ >> 0)))
+  flowOut.valid := flowIn.valid.validAfter(latency)
+  flowOut.pulseChange := flowIn.pulseChange.validAfter(latency)
+  flowOut.modeChange := flowIn.modeChange.validAfter(latency)
+  flowOut.index := Delay(flowIn.index, latency, init = U(0, 10 bits))
 }
 
 object FilterPath {
   def main(args: Array[String]): Unit = {
-    //    SpinalConfig().generateVerilog(FilterPathConfig(DasConfig(samplingFreq = 1e9)).implH)
-    new QuartusFlow(FilterPathConfig(DasConfig(samplingFreq = 1e9)).implH, "filterpath").impl()
+    new QuartusFlow(FilterPath(DasStaticConfig()), "filterpath").impl()
   }
 }
