@@ -386,7 +386,7 @@ object pippengerSim {
   def main(args: Array[String]): Unit = {
     val N = 1024 * 1024 * 64
     val W = 253
-    val w = 12
+    val w = 10
     val pWidth = 377
     val latency = 300
     val fifoDepth = 1024

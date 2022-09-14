@@ -23,15 +23,14 @@ class mem[T <: Data](dataType: HardType[T], W: Int, w: Int) extends Component {
     val port = Vec(slave(memPort(dataType, log2Up(G) + w)), 2)
   }
 
-  val mem = Mem(dataType(), G << w)
+  val mem = Mem(dataType(), G << w) addAttribute("ram_style", "ultra")
 
-  for (i <- 0 until 2) {
-    io.port(i).readData := mem.readWriteSync(io.port(i).address, io.port(i).writeData, io.port(i).we, io.port(i).ce)
-  }
+  io.port(0).readData := mem.readWriteSync(io.port(0).address, io.port(0).writeData, io.port(0).we, io.port(0).ce, duringWrite = dontRead)
+  io.port(1).readData := mem.readWriteSync(io.port(1).address, io.port(1).writeData, io.port(1).we, io.port(1).ce, duringWrite = dontRead)
 }
 
 import org.datenlord._
 
 object mem extends App {
-  VivadoImpl(new mem(UInt(1131 bits), 253, 12))
+  VivadoImpl(new mem(UInt(1131 bits), 253, 10))
 }
