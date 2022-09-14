@@ -75,6 +75,7 @@ case class CordicConfig(algebraicMode: AlgebraicMode, rotationMode: RotationMode
       case CIRCULAR => rotationMode match {
         case ROTATION => Seq(x * cos(z) - y * sin(z), y * cos(z) + x * sin(z), 0.0)
         case VECTORING => Seq(sqrt(x * x + y * y), 0.0, z + atan(y / x))
+        // FIXME: atan is not the same as angle
       }
       case HYPERBOLIC => rotationMode match {
         case ROTATION => Seq(x * cosh(z) - y * sinh(z), y * cosh(z) + x * sinh(z), 0.0)
@@ -122,7 +123,8 @@ case class Cordic(config: CordicConfig)
   // TODO: pipeline for this stage
   // TODO: for circular mode only?
   val Seq(xPrime, yPrime, zPrime) = Seq(x, y, z).map(_.clone())
-  switch(determinant) {
+
+  switch(determinant) { // range extension
     is(U(0)) { // first quadrant
       xPrime := x
       yPrime := y

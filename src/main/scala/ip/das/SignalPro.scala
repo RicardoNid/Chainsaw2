@@ -1,15 +1,22 @@
 package org.datenlord
 package ip.das
 
-import org.datenlord.dsp.AlgebraicMode.CIRCULAR
-import org.datenlord.dsp.RotationMode.VECTORING
-import org.datenlord.dsp.{CordicConfig, UpFirDnConfig}
+import dsp.AlgebraicMode.CIRCULAR
+import dsp.RotationMode.VECTORING
+import dsp.{CordicConfig, UpFirDnConfig}
+
 import spinal.core._
-import spinal.core.sim._
 import spinal.lib._
-import spinal.lib.fsm._
 
 import scala.language.postfixOps
+
+case class DasFlow(hardType: HardType[SFix], portWidth: Int) extends Bundle {
+  val payload = Vec(hardType(), portWidth)
+  val valid = Bool()
+  val pulseChange = Bool()
+  val modeChange = Bool()
+  val index = UInt(10 bits) // for sim only
+}
 
 case class SignalPro(staticConfig: DasStaticConfig) extends Component {
 
@@ -24,13 +31,17 @@ case class SignalPro(staticConfig: DasStaticConfig) extends Component {
   val cordicFraction = 16
 
   // submodule configs
-  val realFirConfig = UpFirDnConfig(1, subFilterCount, realCoeffGroups.values.head, adcDataType, firOutDataType)
-  val imagFirConfig = UpFirDnConfig(1, subFilterCount, imagCoeffGroups.values.head, adcDataType, firOutDataType)
+  val realFirConfig = UpFirDnConfig(1, subFilterCount, realCoeffGroups(5e6), adcDataType, firOutDataType)
+  val imagFirConfig = UpFirDnConfig(1, subFilterCount, imagCoeffGroups(5e6), adcDataType, firOutDataType)
   val cordicConfig = CordicConfig(CIRCULAR, VECTORING, cordicIteration, cordicFraction)
 
-  val latency = realFirConfig.latency //  + cordicConfig.latency
+  assert(realFirConfig.latency == imagFirConfig.latency)
+  val latency = realFirConfig.latency + cordicConfig.latency
 
   // I/O
+//  val flowIn = in(DasFlow(adcDataType, subFilterCount))
+//  val flowOut = out(DasFlow(cordicConfig.phaseType, subFilterCount))
+
   val pulseChange = in Bool()
   val modeChange = in Bool()
   val validIn = in Bool()
@@ -45,10 +56,9 @@ case class SignalPro(staticConfig: DasStaticConfig) extends Component {
 
   // filter path
   val realFirRets = realFirConfig.implH.asFunc(dataIn)
-    .map(_ >> 0)
-  //    .map(_ >> 4) // normalization for CORDIC
-  val imagFirRets = imagFirConfig.implH.asFunc(dataIn)
     .map(_ >> 4) // normalization for CORDIC
+  val imagFirRets = imagFirConfig.implH.asFunc(dataIn) // FIXME: this becomes the inverse of expected ret, why?
+    .map(_ >> 4).map(sf => -sf) // normalization for CORDIC
 
   val both = realFirRets.zip(imagFirRets).map { case (real, imag) =>
     val core = cordicConfig.implH
@@ -59,7 +69,7 @@ case class SignalPro(staticConfig: DasStaticConfig) extends Component {
 
   val intensities = both.map(_.head)
   val phases = both.map(_.last)
-  val dataOut = out(Vec(realFirRets))
+  val dataOut = out(Vec(phases.map(_ >> 0)))
   validOut := validIn.validAfter(latency)
   indexOut := Delay(indexIn, latency, init = U(0, 10 bits))
 

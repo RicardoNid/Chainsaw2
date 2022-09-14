@@ -66,11 +66,13 @@ object DoDas {
     var finalPhaseMax = 0.0
     var finalIntensityMax = 0.0
 
+    val taps = coeffsReal.length
+
     pulses.zipWithIndex.foreach { case (pulse, i) =>
       println(s"currently running on pulse ${i + 1}/${pulses.length}")
       // filtering
-      val filteredReal = conv(pulse, coeffsReal)
-      val filteredImag = conv(pulse, coeffsImag)
+      val filteredReal = conv(pulse, coeffsReal).drop(taps)
+      val filteredImag = conv(pulse, coeffsImag).drop(taps)
       filteredMax = filteredMax max filteredReal.max
       val dataComplex = filteredReal.zip(filteredImag).map { case (r, i) => Complex(r, i) }
       val phases = matlab.MatlabFeval[Array[Double]]("angle", 0, dataComplex.map(complex => new MComplex(complex.real, complex.imag)))
@@ -86,8 +88,8 @@ object DoDas {
       finalPhaseMax = finalPhaseMax max unwrappedMeanPulse.take((20000 / runtimeConfig.gaugeLength).toInt).max
       logger.info(s"current final phase max: $finalPhaseMax")
       meanRam = unwrappedMeanPulse
-      //      phaseRet += unwrappedMeanPulse
-      phaseRet += filteredReal
+
+      phaseRet += phases
 
       // intensity path
       val meanIntensity = intensities.grouped(gaugePoints).toArray.map(slice => slice.sum / slice.length) // mean
