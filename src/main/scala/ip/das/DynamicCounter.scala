@@ -16,8 +16,12 @@ class DynamicCounter(end: UInt) extends ImplicitArea[UInt] {
 
   def increment(): Unit = willIncrement := True
 
+  def set(value:UInt) = valueNext := value
+
+  val width = end.getBitsWidth
+
   val valueNext = cloneOf(end)
-  val value = RegNext(valueNext) init (valueNext.getZero)
+  val value = RegNext(valueNext) init valueNext.getZero
   val willOverflowIfInc = value === end - U(1)
   val willOverflow = willOverflowIfInc && willIncrement
 

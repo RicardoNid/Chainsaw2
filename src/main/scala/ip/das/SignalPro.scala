@@ -5,6 +5,7 @@ import dsp.AlgebraicMode.CIRCULAR
 import dsp.RotationMode.VECTORING
 import dsp.{CordicConfig, UpFirDnConfig}
 
+import spinal.core
 import spinal.core._
 import spinal.lib._
 
@@ -16,60 +17,60 @@ case class DasFlowAnother(hardType: HardType[SFix], portWidth: Int) extends Bund
   val pulseChange = Bool()
   val modeChange = Bool()
   val index = UInt(10 bits) // for sim only
+
+  def pipeWith(payload:Vec[SFix], cycle:Int) = {
+    val ret = DasFlowAnother(HardType(payload.head), portWidth)
+    ret.payload := payload
+    ret.valid := valid.validAfter(cycle)
+    ret.pulseChange := pulseChange.validAfter(cycle)
+    ret.modeChange := modeChange.validAfter(cycle)
+    ret.index := Delay(index, cycle, init = U(0, 10 bits))
+    ret
+  }
 }
 
 case class SignalPro(staticConfig: DasStaticConfig) extends Component {
 
-//  val constants: DasConstants = staticConfig.genConstants()
-//
-//  import constants._
+  /** --------
+   * constants
+   -------- */
+  val constants = staticConfig.genConstants()
+  import constants._
+  val phaseDiffType = HardType(SFix(3 exp, -16 exp)) // [-2, 2] for phase difference
+  val phaseUnwrapType = HardType(SFix(4 exp, -16 exp))
+  val phaseStoredType = HardType(SFix(4 exp, -16 exp))
+  val phaseSumType = HardType(SFix(4 + log2Up(gaugePointsMax) exp, -16 exp))
 
+  /** --------
+   * sub-modules
+   -------- */
   val filterPath = FilterPath(staticConfig)
+  val phaseDiff = PhaseDiff(staticConfig, filterPath.cordicConfig.phaseType, phaseDiffType)
+  val pulseUnwrap = PulseUnwrap(staticConfig, phaseUnwrapType, phaseStoredType)
+  val phaseMean = PhaseMean(staticConfig, phaseUnwrapType, phaseSumType)
+
+  /** --------
+   * parameters path
+   -------- */
+  // parameters input
+  val gaugePointsIn = in UInt (log2Up(gaugePointsMax.divideAndCeil(subFilterCount) + 1) bits)
+  val pulsePointsIn = in UInt (log2Up(pulsePointsMax.divideAndCeil(subFilterCount) + 2) bits)
+  val gaugeReverseIn = in SFix(0 exp, -17 exp)
+  // allocate parameters
+  phaseDiff.gaugePointsIn := gaugePointsIn
+  pulseUnwrap.pulsePointsIn := pulsePointsIn
+  phaseMean.gaugePointsIn := gaugePointsIn
+  phaseMean.gaugeReverseIn := gaugeReverseIn
+
+  /** --------
+   * datapath
+   -------- */
   val flowIn = in cloneOf filterPath.flowIn
-  val flowOut = out cloneOf filterPath.flowOut
-
   filterPath.flowIn := flowIn
-  flowOut := filterPath.flowOut
+  phaseDiff.flowIn := filterPath.flowOut
+  pulseUnwrap.flowIn := phaseDiff.flowOut
+  phaseMean.flowIn := pulseUnwrap.flowOut
 
-//
-//  // hardtypes
-//  val adcDataType = HardType(SFix(0 exp, -13 exp))
-//  val firOutDataType = HardType(SFix(4 exp, -13 exp))
-//  val cordicIteration = 12
-//  val cordicFraction = 16
-//
-//  // submodule configs
-//  val realFirConfig = UpFirDnConfig(1, subFilterCount, realCoeffGroups(5e6), adcDataType, firOutDataType)
-//  val imagFirConfig = UpFirDnConfig(1, subFilterCount, imagCoeffGroups(5e6), adcDataType, firOutDataType)
-//  val cordicConfig = CordicConfig(CIRCULAR, VECTORING, cordicIteration, cordicFraction)
-//
-//  assert(realFirConfig.latency == imagFirConfig.latency)
-//  val latency = realFirConfig.latency + cordicConfig.latency
-//
-//  // I/O
-//  val flowIn = in(DasFlowAnother(adcDataType, subFilterCount))
-//  val flowOut = out(DasFlowAnother(cordicConfig.phaseType, subFilterCount))
-//
-//  assert(~(flowIn.modeChange && ~flowIn.pulseChange)) // pulseChange must be asserted when modeChange is asserted
-//
-//  // filter path
-//  val realFirRets = realFirConfig.implH.asFunc(flowIn.payload)
-//    .map(_ >> 4) // normalization for CORDIC
-//  val imagFirRets = imagFirConfig.implH.asFunc(flowIn.payload) // FIXME: this becomes the inverse of expected ret, why?
-//    .map(_ >> 4).map(sf => -sf) // normalization for CORDIC
-//
-//  val both = realFirRets.zip(imagFirRets).map { case (real, imag) =>
-//    val core = cordicConfig.implH
-//    core.dataIn.fragment := Vec(real.truncated, imag.truncated, SFConstant(0.0, cordicConfig.phaseType))
-//    core.skipControl()
-//    core.dataOut.fragment
-//  }
-//
-//  val intensities = both.map(_.head)
-//  val phases = both.map(_.last)
-//  flowOut.payload := (Vec(phases.map(_ >> 0)))
-//  flowOut.valid := flowIn.valid.validAfter(latency)
-//  flowOut.pulseChange := flowIn.pulseChange.validAfter(latency)
-//  flowOut.modeChange := flowIn.modeChange.validAfter(latency)
-//  flowOut.index := Delay(flowIn.index, latency, init = U(0, 10 bits))
+  val flowOut = out cloneOf phaseMean.flowOut
+  flowOut := phaseMean.flowOut
 }

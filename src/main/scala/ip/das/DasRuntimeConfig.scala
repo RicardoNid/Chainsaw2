@@ -18,12 +18,14 @@ case class DasRuntimeConfig(
   def genRegValues(staticConfig: DasStaticConfig) = {
 
     import staticConfig._
+    val constants = staticConfig.genConstants()
+    import constants._
 
     def pulseFreq = c / ((probeLength + 0.1) * 1e3 * 2)
 
-    def pulsePoints = (samplingFreq / pulseFreq).ceil.toInt
+    def pulsePoints = (samplingFreq / pulseFreq).ceil.toInt.nextMultiple(subFilterCount)
 
-    def gaugePoints = (gaugeLength * 2 / c * samplingFreq).ceil.toInt
+    def gaugePoints = (gaugeLength * 2 / c * samplingFreq).ceil.toInt.nextMultiple(subFilterCount)
 
     DasRegValues(
       pulsePoints = pulsePoints,

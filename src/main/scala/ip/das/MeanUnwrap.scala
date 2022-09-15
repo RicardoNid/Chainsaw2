@@ -8,7 +8,8 @@ import spinal.lib._
 
 import scala.language.postfixOps
 
-case class MeanUnwrap(meanPointsMax:Int, typeFull:HardType[SFix], typeStored:HardType[SFix]) extends Component {
+case class MeanUnwrap(meanPointsMax:Int, typeFull:HardType[SFix], typeStored:HardType[SFix])
+  extends Component {
 
   val flowIn = slave(DasFlow(typeFull))
   val flowOut = master(DasFlow(typeFull))

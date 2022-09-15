@@ -5,40 +5,61 @@ import dsp.UnwrapConfig
 
 import spinal.core._
 import spinal.lib._
+import spinal.lib.fsm.{State, StateEntryPoint, StateMachine}
 
 import scala.language.postfixOps
 
-case class PulseUnwrap(pulsePointsMax:Int, typeFull:HardType[SFix], typeStored:HardType[SFix]) extends Component {
+case class PulseUnwrap(staticConfig: DasStaticConfig, typeFull: HardType[SFix], typeStored: HardType[SFix]) extends Component {
 
-  val flowIn = slave(DasFlow(typeFull))
-  val flowOut = master(DasFlow(typeFull))
+  val constants = staticConfig.genConstants()
 
-  val pulsePointsIn = in UInt (log2Up(pulsePointsMax + 5) bits)
+  import constants._
+
+  val flowIn = in(DasFlowAnother(typeFull, subFilterCount))
+  val flowOut = out(DasFlowAnother(typeFull, subFilterCount))
+
+  val pulsePointsIn = in UInt (log2Up(pulsePointsMax.divideAndCeil(subFilterCount) + 2) bits)
   val pulsePoints = RegNextWhen(pulsePointsIn, flowIn.modeChange)
 
-  val pulseCounter = DynamicCounter(pulsePoints)
-  logger.info(s"length of the addr counter: ${pulsePoints.getBitsWidth}")
-  pulseCounter.increment()
-  when(flowIn.modeChange)(pulseCounter.clear())
+  val writeCounter = DynamicCounter(pulsePoints)
+  val readCounter = DynamicCounter(pulsePoints)
+  val counterWidth = log2Up(pulsePointsMax.divideAndCeil(subFilterCount) + 2)
+  writeCounter.increment()
+  readCounter.increment()
 
-  val firstPulse = RegInit(True)
-  firstPulse.setWhen(flowIn.modeChange.validAfter(2))
-  firstPulse.clearWhen(pulseCounter.willOverflow.validAfter(2)) // readSync latency
+  val buffer = Mem(Vec(typeStored, subFilterCount), pulsePointsMax.divideAndCeil(subFilterCount))
+  val bufferOut = buffer.readSync(readCounter)
 
-  val buffer = Mem(typeStored, pulsePointsMax)
+  val unwrapCores = Seq.fill(subFilterCount)(UnwrapConfig(typeStored, typeFull).implH) // unwrap module
+  val unwrapLatency = UnwrapConfig(typeStored, typeFull).latency
+  val unwrapped = bufferOut.zip(flowIn.payload).zip(unwrapCores).map { case ((prev, next), core) => core.asFunc(Seq(prev, next)).head }
 
-  val ret = typeFull()
+  val ret = cloneOf(flowOut.payload)
+  ret.assignDontCare() // pre-assignment
 
-  buffer.write(pulseCounter, ret.truncate(typeStored))
-  val fakeAddr = (U(5) + pulseCounter).d(1) // 1 for read sync latency, 2 for unwrap latency, 2 for address generation
-  val addr = Mux(fakeAddr >= pulsePoints, fakeAddr - pulsePoints, fakeAddr).d(1)
-  val bufferOut = buffer.readSync(addr)
+  buffer.write(writeCounter.value.d(unwrapLatency), Vec(ret.map(_.truncate(typeStored))))
 
-  val core = UnwrapConfig(typeStored, typeFull).implH.asFunc // unwrap module
-  val unwrapped = core(Seq(bufferOut, flowIn.payload.truncated)).head
-  ret := Mux(firstPulse, flowIn.payload.d(2), unwrapped)
+  val fsm: StateMachine = new StateMachine { // fsm has to be declared, or else, no state can be seen during simulation
+    val first = State()
+    val normal = StateEntryPoint()
+    first.whenIsActive {
+      ret := flowIn.payload.d(unwrapLatency)
+      when(flowIn.pulseChange) {
+        writeCounter.clear()
+        readCounter.value := U(1, counterWidth bits) // read latency = 1
+        goto(normal)
+      }
+    }
+    normal.whenIsActive {
+      ret := Vec(unwrapped)
+      when(flowIn.pulseChange) {
+        writeCounter.clear()
+        readCounter.value := U(1, counterWidth bits)
+      }
+      when(flowIn.modeChange)(goto(first))
+    }
+  }
 
-  flowOut.payload := ret
-  flowOut.pulseChange := flowIn.pulseChange.validAfter(2)
-  flowOut.modeChange := flowIn.modeChange.validAfter(2)
+  flowOut := flowIn.pipeWith(ret, unwrapLatency)
+
 }

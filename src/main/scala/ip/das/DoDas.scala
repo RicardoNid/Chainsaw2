@@ -4,6 +4,7 @@ package ip.das
 import matlab.{MComplex, MatlabFeval}
 
 import breeze.math._
+import breeze.numerics.atan
 import breeze.numerics.constants._
 
 import scala.collection.mutable.ArrayBuffer
@@ -18,7 +19,9 @@ object DoDas {
   def apply(
              staticConfig: DasStaticConfig,
              runtimeConfig: DasRuntimeConfig,
-             dataIn: Array[Double]) = {
+             dataIn: Array[Double],
+             show: Boolean = false
+           ) = {
 
     val constants = staticConfig.genConstants()
     val regValues = runtimeConfig.genRegValues(staticConfig)
@@ -49,7 +52,18 @@ object DoDas {
       shuffled.find(ret => (ret - prev).abs <= 1 && (ret - next).abs.round % 2 == 0).get
     }
 
-    def pointwiseUnwrap(prev: Double, next: Double): Double = pointwiseUnwrapNormalized(prev / Pi, next / Pi) * Pi
+    def angle(complex: Complex) = {
+      import complex._
+      val temp = atan(imag / real)
+      val ret = {
+        if (temp > 0 && real < 0) temp - Pi
+        else if (temp < 0 && real < 0) temp + Pi
+        else if (real == 0 && imag > 0) Pi / 2
+        else if (real == 0 && imag < 0) -Pi / 2
+        else temp
+      }
+      ret
+    }
 
     val coeffsReal = realCoeffGroups(runtimeConfig.bandWidth)
     val coeffsImag = imagCoeffGroups(runtimeConfig.bandWidth)
@@ -75,21 +89,27 @@ object DoDas {
       val filteredImag = conv(pulse, coeffsImag).drop(taps)
       filteredMax = filteredMax max filteredReal.max
       val dataComplex = filteredReal.zip(filteredImag).map { case (r, i) => Complex(r, i) }
-      val phases = matlab.MatlabFeval[Array[Double]]("angle", 0, dataComplex.map(complex => new MComplex(complex.real, complex.imag)))
+      val phases = dataComplex.map(angle).map(_ / Pi) // / pi for normalization
       val intensities = dataComplex.map(_.abs)
 
       // phase path
-      val diffPulse = phases.drop(gaugePoints).zip(phases.dropRight(gaugePoints)).map { case (next, prev) => next - prev } // diff
-      phaseDiffMax = phaseDiffMax max diffPulse.max
-      val unwrappedPulse = if (pulseRam.isEmpty) diffPulse else pulseRam.zip(diffPulse).map { case (prev, next) => pointwiseUnwrap(prev, next) } // unwrap
-      pulseRam = unwrappedPulse
+      logger.info(s"gauge points in algo: $gaugePoints")
+      val diffPulse = phases.take(gaugePoints) ++ // keep the first segment, size unchanged
+        phases.drop(gaugePoints).zip(phases.dropRight(gaugePoints)).map { case (next, prev) => next - prev } // diff
+      val unwrappedPulse =
+        if (pulseRam.isEmpty) diffPulse
+        else pulseRam.zip(diffPulse).map { case (prev, next) => pointwiseUnwrapNormalized(prev, next) } // unwrap, size unchanged
       val meanPulse = unwrappedPulse.grouped(gaugePoints).toArray.map(slice => slice.sum / slice.length) // mean
-      val unwrappedMeanPulse = if (meanRam.isEmpty) meanPulse else meanRam.zip(meanPulse).map { case (prev, next) => pointwiseUnwrap(prev, next) } // unwrap
-      finalPhaseMax = finalPhaseMax max unwrappedMeanPulse.take((20000 / runtimeConfig.gaugeLength).toInt).max
-      logger.info(s"current final phase max: $finalPhaseMax")
+      val unwrappedMeanPulse = if (meanRam.isEmpty) meanPulse else meanRam.zip(meanPulse).map { case (prev, next) => pointwiseUnwrapNormalized(prev, next) } // unwrap
+
+      pulseRam = unwrappedPulse
       meanRam = unwrappedMeanPulse
 
-      phaseRet += phases
+      phaseDiffMax = phaseDiffMax max diffPulse.max
+      finalPhaseMax = finalPhaseMax max unwrappedMeanPulse.take((20000 / runtimeConfig.gaugeLength).toInt).max
+      logger.info(s"current final phase max: $finalPhaseMax")
+
+      if (!show) phaseRet += meanPulse else phaseRet += unwrappedMeanPulse
 
       // intensity path
       val meanIntensity = intensities.grouped(gaugePoints).toArray.map(slice => slice.sum / slice.length) // mean
@@ -108,14 +128,17 @@ object DoDas {
     // TODO: precise calculation on position
 
     // draw phase
-    //    val position = (19785 / runtimeConfig.gaugeLength).ceil.toInt
-    //    val position = 0 + 76 + 4
-    //    matlabEngine.eval("figure;")
-    //    (0 until 9).foreach { i =>
-    //      matlabEngine.eval(s"subplot(3,3,${i + 1})")
-    //      matlabEngine.putVariable("target", phaseRet.transpose.apply(position + i - 4).toArray)
-    //      matlabEngine.eval("plot(target)")
-    //    }
+    if (show) {
+      val position = (19785 / runtimeConfig.gaugeLength).ceil.toInt
+      //      val position = 0 + 76 + 4
+      matlabEngine.eval("figure;")
+      (0 until 9).foreach { i =>
+        matlabEngine.eval(s"subplot(3,3,${i + 1})")
+        matlabEngine.putVariable("target", phaseRet.transpose.apply(position + i - 4).toArray)
+        matlabEngine.eval("plot(target)")
+      }
+      StdIn.readLine()
+    }
 
     // draw intensity
     //    matlabEngine.eval("figure;")
@@ -132,6 +155,6 @@ object ShowGen {
     matlabEngine.eval("dataIn = double(dataIn);")
     matlabEngine.eval("dataIn = dataIn ./ max(abs(dataIn));") // normalization
     val data = matlabEngine.getVariable[Array[Double]]("dataIn")
-    DoDas(DasStaticConfig(), DasRuntimeConfig(10, 24.9, 5e6, 31), data)
+    DoDas(DasStaticConfig(), DasRuntimeConfig(10.4, 24.9, 5e6, 31), data, show = true)
   }
 }

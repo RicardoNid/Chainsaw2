@@ -6,11 +6,11 @@ import dsp.RotationMode._
 import dsp._
 import intel.QuartusFlow
 
+import breeze.numerics.constants.Pi
 import spinal.core._
 import spinal.lib._
 
 import scala.language.postfixOps
-
 
 case class FilterPath(staticConfig: DasStaticConfig) extends Component {
 
@@ -30,7 +30,7 @@ case class FilterPath(staticConfig: DasStaticConfig) extends Component {
   val cordicConfig = CordicConfig(CIRCULAR, VECTORING, cordicIteration, cordicFraction)
 
   assert(realFirConfig.latency == imagFirConfig.latency)
-  val latency = realFirConfig.latency + cordicConfig.latency
+  val latency = realFirConfig.latency + cordicConfig.latency + 1 // 1 for multiplication
 
   // I/O
   val flowIn = in(DasFlowAnother(adcDataType, subFilterCount))
@@ -53,11 +53,11 @@ case class FilterPath(staticConfig: DasStaticConfig) extends Component {
 
   val intensities = both.map(_.head)
   val phases = both.map(_.last)
-  flowOut.payload := (Vec(phases.map(_ >> 0)))
-  flowOut.valid := flowIn.valid.validAfter(latency)
-  flowOut.pulseChange := flowIn.pulseChange.validAfter(latency)
-  flowOut.modeChange := flowIn.modeChange.validAfter(latency)
-  flowOut.index := Delay(flowIn.index, latency, init = U(0, 10 bits))
+
+  val normalizedPhases = phases.map(_ * SFConstant(1 / Pi, HardType(SFix(0 exp, -17 exp))))
+    .map(_.truncate(cordicConfig.phaseType).d(1))
+
+    flowOut := flowIn.pipeWith(Vec(normalizedPhases), latency)
 }
 
 object FilterPath {

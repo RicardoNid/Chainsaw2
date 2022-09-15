@@ -2,38 +2,61 @@ package org.datenlord
 package ip.das
 
 import spinal.core._
+import spinal.lib.fsm._
+import spinal.core._
+import spinal.core.sim._
 import spinal.lib._
+import spinal.lib.fsm._
 
 import scala.language.postfixOps
 
-case class PhaseDiff(gaugePointsMax:Int, typeIn: HardType[SFix], typeOut: HardType[SFix]) extends Component {
+case class PhaseDiff(staticConfig: DasStaticConfig, typeIn: HardType[SFix], typeOut: HardType[SFix]) extends Component {
 
-  val flowIn = slave(DasFlow(typeIn))
-  val flowOut = master(DasFlow(typeOut))
-  val gaugePointsIn = in UInt (log2Up(gaugePointsMax + 5) bits)
+  val constants = staticConfig.genConstants()
 
-  // state
+  import constants._
+
+  val flowIn = in(DasFlowAnother(typeIn, subFilterCount))
+  val flowOut = out(DasFlowAnother(typeOut, subFilterCount))
+
+  val gaugePointsIn = in UInt (log2Up(gaugePointsMax.divideAndCeil(subFilterCount) + 1) bits)
   val gaugePoints = RegNextWhen(gaugePointsIn, flowIn.modeChange)
 
-  val gaugeCounter = DynamicCounter(gaugePoints)
-  gaugeCounter.increment()
-  when(flowIn.pulseChange)(gaugeCounter.clear())
+  val writeCounter = DynamicCounter(gaugePoints)
+  val readCounter = DynamicCounter(gaugePoints)
+  writeCounter.increment()
+  readCounter.increment()
 
-  val firstGauge = out(RegInit(True))
-  firstGauge.setWhen(flowIn.pulseChange)
-  firstGauge.clearWhen(firstGauge && gaugeCounter.willOverflow)
+  val buffer = Mem(Vec(typeIn, subFilterCount), gaugePointsMax.divideAndCeil(subFilterCount))
+  buffer.write(writeCounter, flowIn.payload)
+  val bufferOut = buffer.readSync(readCounter)
+  flowIn.payload.simPublic()
+  bufferOut.simPublic()
 
-  val buffer = Mem(typeIn, gaugePointsMax)
+  val ret = cloneOf(flowOut.payload)
+  ret.assignDontCare() // pre-assignment
 
-  buffer.write(gaugeCounter, flowIn.payload)
-  val fakeAddr = U(1) + gaugeCounter // 1 for read sync latency
-  val readAddr = Mux(fakeAddr >= gaugePoints, fakeAddr - gaugePoints, fakeAddr)
-  val bufferOut = buffer.readSync(readAddr)
+  val fsm: StateMachine = new StateMachine { // fsm has to be declared, or else, no state can be seen during simulation
+    val first = StateEntryPoint()
+    val normal = State()
+    first.whenIsActive {
+      ret := flowIn.payload
+      when(writeCounter.willOverflow)(goto(normal))
+      when(flowIn.pulseChange) {
+        writeCounter.clear()
+        readCounter.set(U(1, readCounter.width bits))
+      }
+    }
+    normal.whenIsActive {
+      val diff = flowIn.payload.zip(bufferOut).map { case (next, prev) => next -^ prev }
+      ret := Vec(diff)
+      when(flowIn.pulseChange) {
+        writeCounter.clear()
+        readCounter.set(U(1, readCounter.width bits))
+        goto(first)
+      }
+    }
+  }
 
-  val ret = (flowIn.payload -^ bufferOut).d(1)
-
-  flowOut.payload := ret
-  flowOut.pulseChange := flowIn.pulseChange.validAfter(1)
-  flowOut.modeChange := flowIn.modeChange.validAfter(1)
-
+  flowOut := flowIn.pipeWith(ret.d(1), 1)
 }
