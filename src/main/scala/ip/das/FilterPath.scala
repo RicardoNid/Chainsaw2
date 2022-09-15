@@ -12,15 +12,15 @@ import spinal.lib._
 
 import scala.language.postfixOps
 
-case class FilterPath(staticConfig: DasStaticConfig) extends Component {
+case class FilterPath(implicit staticConfig: DasStaticConfig) extends Component {
 
   val constants: DasConstants = staticConfig.genConstants()
 
   import constants._
 
   // I/O
-  val flowIn = in(DasFlowAnother(adcDataType, subFilterCount))
-  val flowOut = out(DasFlowAnother(normalizedPhaseType, subFilterCount))
+  val flowIn = in(DasFlow(adcDataType, subFilterCount))
+  val flowOut = out(DasFlow(normalizedPhaseType, subFilterCount))
 
   assert(~(flowIn.modeChange && ~flowIn.pulseChange)) // pulseChange must be asserted when modeChange is asserted
 

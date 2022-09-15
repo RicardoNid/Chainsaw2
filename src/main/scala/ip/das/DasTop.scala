@@ -82,8 +82,17 @@ case class DasTop(implicit staticConfig: DasStaticConfig) extends Component {
   signalProWrapper.clkIn := signalAcq.ref_clk_out // 62.5MHz
   val adcData0 = Vec(signalAcq.DOUTA, signalAcq.DOUTB, signalAcq.DOUTC, signalAcq.DOUTD)
   val adcData1 = Vec(signalAcq.DOUTBA, signalAcq.DOUTBB, signalAcq.DOUTBC, signalAcq.DOUTBD)
-  signalProWrapper.adcData0 := adcData0
-  signalProWrapper.adcData1 := adcData1
+
+  val domain625 = ClockDomain(clock = signalAcq.ref_clk_out, reset = rstn, config = dasClockConfig, frequency = FixedFrequency(62.4 MHz))
+
+  //  signalProWrapper.adcData0 := adcData0
+  //  signalProWrapper.adcData1 := adcData1
+
+  new ClockingArea(domain625) {
+    def getAdcAbs(data: Bits) = Mux(data.msb, data.asUInt - U(8192, 14 bits), U(8192, 14 bits) - data.asUInt).d(1)
+    signalProWrapper.adcData0 := Vec(adcData0.map(getAdcAbs).map(_.asBits))
+    signalProWrapper.adcData1 := Vec(adcData1.map(getAdcAbs).map(_.asBits))
+  }
 
   /** --------
    * signalPro <-> xillybus

@@ -9,14 +9,14 @@ import spinal.lib.fsm.{State, StateEntryPoint, StateMachine}
 
 import scala.language.postfixOps
 
-case class PulseUnwrap(staticConfig: DasStaticConfig) extends Component {
+case class PulseUnwrap(implicit staticConfig: DasStaticConfig) extends Component {
 
   val constants = staticConfig.genConstants()
 
   import constants._
 
-  val flowIn = in(DasFlowAnother(phaseUnwrapType, subFilterCount))
-  val flowOut = out(DasFlowAnother(phaseUnwrapType, subFilterCount))
+  val flowIn = in(DasFlow(phaseUnwrapType, subFilterCount))
+  val flowOut = out(DasFlow(phaseUnwrapType, subFilterCount))
 
   val pulsePointsIn = in UInt (log2Up(pulsePointsMax.divideAndCeil(subFilterCount) + 2) bits)
   val pulsePoints = RegNextWhen(pulsePointsIn, flowIn.modeChange)

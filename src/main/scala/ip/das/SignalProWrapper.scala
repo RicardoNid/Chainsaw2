@@ -62,82 +62,64 @@ case class SignalProWrapper(implicit staticConfig: DasStaticConfig)
 
   new ClockingArea(domainPro) {
 
-    /** --------
-     * register file for control
-     * -------- */
-    val controlType = HardType(UInt(8 bits))
-    val mode,
-    pulsePoints0, pulsePoints1, pulsePoints2,
-    gaugePoints,
-    spatialPoints0, spatialPoints1,
-    pulsePeriod0, pulsePeriod1,
-    gain = Reg(controlType)
-
-    val controlRegs = Seq(mode, pulsePoints0, pulsePoints1, pulsePoints2, gaugePoints, spatialPoints0, spatialPoints1, pulsePeriod0, pulsePeriod1, gain)
-    controlRegs.foreach(_.allowPruning())
-
-    // initialization
-    //    val initConfig = DasRuntimeConfig(10, 10.4, 5e6, 31)
-    //    val initRegValues = initConfig.genRegValues(staticConfig = )
-    mode.init(0) // raw mode
-    gain.init(0) // minimum gain
-    pulsePeriod0.init(50000 >> 256) // minimum gain
-    pulsePeriod1.init(50000 % 256) // minimum gain
-    // control update logic
-    // TODO: do sync by an async FIFO in XillybusWrapper
-    val ctrlUpdate = ctrlIn.ctrlUpdate.d(3)
-    val ctrlAddr = ctrlIn.ctrlAddr.d(3)
-    val ctrlValue = ctrlIn.ctrlValue.d(3)
-
-    when(ctrlUpdate) { // delay for CDC
-      switch(ctrlAddr) { // FIXME: metastability?
-        is(0)(mode := ctrlValue)
-        is(2)(pulsePoints0 := ctrlValue)
-        is(3)(pulsePoints1 := ctrlValue)
-        is(4)(pulsePoints2 := ctrlValue)
-        is(5)(gaugePoints := ctrlValue)
-        is(6)(spatialPoints0 := ctrlValue)
-        is(7)(spatialPoints1 := ctrlValue)
-        is(8)(pulsePeriod0 := ctrlValue)
-        is(9)(pulsePeriod1 := ctrlValue)
-        is(10)(gain := ctrlValue)
-      }
-    }
-
-    val pulsePointsFull = pulsePoints0 @@ pulsePoints1 @@ pulsePoints2
-    val spatialPointsFull = spatialPoints0 @@ spatialPoints1
-    val pulsePeriodFull = pulsePeriod0 @@ pulsePeriod1
-
-    gainOut := gain.resize(6 bits)
-
-    val selfTestCore = DasSelfTest()
-
-
+    // declare cores working in signal processing time domain
+    val controlRegs = ControlRegs()
+    val selfTest = DasSelfTest()
+    val signalPro = SignalPro()
     val pulseGen = PulseGen()
-    pulseGen.pulsePeriodIn := pulsePeriodFull.resized
 
-    // TODO: implement signal processing logic in a module like DasSelfTest
+    /** --------
+     * control signal allocation
+     * -------- */
+    controlRegs.ctrlIn := ctrlIn
+    val regsOut = controlRegs.regsOut
+    gainOut := regsOut.gain.resize(6 bits)
+
+    pulseGen.pulsePeriodIn := regsOut.pulsePeriodFull.resized
+
+    signalPro.flowIn.pulseChange := pulseGen.pulseChange
+    signalPro.flowIn.modeChange := pulseGen.modeChange
+    signalPro.flowIn.valid := True
+    signalPro.gaugePointsIn := regsOut.gaugePoints.resized
+    signalPro.gaugeReverseIn := regsOut.gaugeReverseFull
+    signalPro.pulsePointsIn := regsOut.pulsePointsFull.resized
+
+    signalPro.flowIn.index.assignDontCare()
+
+    signalPro.flowIn.payload.head.assignFromBits(adc0X0S)
+    signalPro.flowIn.payload.last.assignFromBits(adc0X1S)
+    //    signalPro.XXX := regsOut.spatialPointsFull
+
+    /** --------
+     * mode change logic
+     * -------- */
+    val todoModeChange = RegInit(True)
+    when(pulseGen.modeChange)(todoModeChange.clear())
+    when(ctrlIn.ctrlUpdate)(todoModeChange.set())
+
+    pulseGen.todoModeChange := todoModeChange
+
     /** --------
      * signal processing logic, running in domainPro
      * -------- */
-    when(mode === 0) { // self-testing mode
-      selfTestCore.dataOut0 >> dataOut0
-      selfTestCore.dataOut1 >> dataOut1
+    when(regsOut.mode === 0) { // self-testing mode
+      selfTest.dataOut0 >> dataOut0
+      selfTest.dataOut1 >> dataOut1
       pulseOutDefault()
       pulsesOut.Pulse_Single := pulseGen.pulseOut
-    }.elsewhen(mode === 1) { // raw mode, adc -> pcie
+    }.elsewhen(regsOut.mode === 1) { // raw mode, adc -> pcie
       dataOut0.payload := adc0X0S.resize(16) // first phase component of adc0
-      dataOut1.payload := adc1X0S.resize(16) // first phase component of adc1
+      dataOut1.payload := adc0X1S.resize(16) // first phase component of adc1
       dataOut0.valid := True
       dataOut1.valid := True
       pulseOutDefault()
       pulsesOut.Pulse_Single := pulseGen.pulseOut
       // 4KHz pulse out
-    }.otherwise { // normal mode
-      dataOut0.payload := adc0X0S.resize(16)
-      dataOut1.payload := adc1X0S.resize(16)
-      dataOut0.valid := True
-      dataOut1.valid := True
+    }.otherwise { // normal mode, do signal processing
+      dataOut0.payload := signalPro.flowOut.payload.head.asBits.takeHigh(16)
+      dataOut1.payload := dataOut1.payload.getZero
+      dataOut0.valid := signalPro.flowOut.valid
+      dataOut1.valid := False
       pulseOutDefault()
       pulsesOut.Pulse_Single := pulseGen.pulseOut
     }
@@ -146,14 +128,13 @@ case class SignalProWrapper(implicit staticConfig: DasStaticConfig)
      * fix signal names for SignalTap
      * -------- */
     clkOut.setName("clkOut")
-    pulsePointsFull.setName("pulsePointsFull")
-    gaugePoints.setName("gaugePoints")
-    spatialPointsFull.setName("spatialPointsFull")
-    pulsePeriodFull.setName("pulsePeriodFull")
-    mode.setName("mode")
-    ctrlUpdate.setName("ctrlUpdate")
-    ctrlAddr.setName("ctrlAddr")
-    ctrlValue.setName("ctrlValue")
+    regsOut.mode.setName("mode")
+    regsOut.gain.setName("gain")
+    regsOut.gaugeReverseFull.setName("gaugeReverse")
+    regsOut.gaugePoints.setName("gaugePoints")
+    regsOut.pulsePointsFull.setName("pulsePoints")
+    regsOut.pulsePeriodFull.setName("pulsePeriod")
+    pulseGen.todoModeChange.setName("modeChange")
   }
 }
 

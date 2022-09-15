@@ -15,8 +15,8 @@ case class PMeanUnwrap(staticConfig: DasStaticConfig, typeFull: HardType[SFix], 
 
   import constants._
 
-  val flowIn = in(DasFlowAnother(typeFull, subFilterCount))
-  val flowOut = out(DasFlowAnother(typeFull, subFilterCount))
+  val flowIn = in(DasFlow(typeFull, subFilterCount))
+  val flowOut = out(DasFlow(typeFull, subFilterCount))
 
   val spatialPointsIn = in UInt (log2Up(spatialPointsMax.divideAndCeil(subFilterCount) + 2) bits)
   val spatialPoints = RegNextWhen(spatialPointsIn, flowIn.modeChange)

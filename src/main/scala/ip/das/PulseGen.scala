@@ -2,9 +2,6 @@ package org.datenlord
 package ip.das
 
 import spinal.core._
-import spinal.core.sim._
-import spinal.lib._
-import spinal.lib.fsm._
 
 import scala.language.postfixOps
 
@@ -17,8 +14,10 @@ case class PulseGen(implicit staticConfig: DasStaticConfig) extends Component {
   import constants._
 
   val pulsePeriodIn = in UInt(log2Up(pulsePointsMax) bits)
+  val todoModeChange = in Bool()
 
   val pulseChange = out Bool()
+  val modeChange = out Bool()
   val pulseOut = out Bool()
 
   // can always update itself as the counter is freerun
@@ -31,4 +30,5 @@ case class PulseGen(implicit staticConfig: DasStaticConfig) extends Component {
 
   pulseOut := (pulseCounter.value <= pulseWidth)
   pulseChange := pulseCounter.willOverflow
+  modeChange := pulseChange && todoModeChange
 }

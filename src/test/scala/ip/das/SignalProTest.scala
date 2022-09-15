@@ -11,7 +11,7 @@ import scala.collection.mutable.ArrayBuffer
 
 class SignalProTest extends AnyFlatSpec {
 
-  val staticConfig = DasStaticConfig()
+  implicit val staticConfig = DasStaticConfig()
   val runtimeConfig = DasRuntimeConfig(10.4, 24.9, 5e6, 31)
   val constants = staticConfig.genConstants()
   val regValues = runtimeConfig.genRegValues(staticConfig)
@@ -31,7 +31,7 @@ class SignalProTest extends AnyFlatSpec {
     val simName = "testDasSigPro"
 
     // TODO: get data by valid
-    SimConfig.workspaceName("testDasSigPro").withFstWave.compile(SignalPro(staticConfig)).doSim { dut =>
+    SimConfig.workspaceName("testDasSigPro").withFstWave.compile(SignalPro()).doSim { dut =>
 
       /** --------
        * initialize parameters
@@ -68,7 +68,7 @@ class SignalProTest extends AnyFlatSpec {
           dut.flowIn.modeChange #= false // deassert after initialization
           dut.flowIn.pulseChange #= (j == dataGrouped.length - 1) // asserted before next pulse
           dut.clockDomain.waitSampling()
-          if(!pokeStart) pokeStart = dut.flowOut.pulseChange.toBoolean
+          if (!pokeStart) pokeStart = dut.flowOut.pulseChange.toBoolean
         }
       }
 
@@ -91,10 +91,10 @@ class SignalProTest extends AnyFlatSpec {
       logger.info(s"size of pulses in ret: ${ret.map(_.length).mkString(" ")}")
       logger.info(s"size of ret: ${goldenPhase.length} * ${goldenPhase.head.length}")
 
-      val pointByPoint = true
+      val draw = 0
 
       // compare point by point
-      if (pointByPoint) {
+      if (draw == 0) {
         //        val position = 10000 + 4
         val position = (19785 / runtimeConfig.gaugeLength).ceil.toInt
         matlabEngine.eval("figure;")
@@ -107,20 +107,22 @@ class SignalProTest extends AnyFlatSpec {
 
         matlabEngine.eval(s"saveas(gcf, 'simWorkspace/$simName/$simName-point-by-point', 'png')")
         logger.info(s"view the figure generated: /home/ltr/IdeaProjects/Chainsaw2/simWorkspace/$simName/$simName-point-by-point.png")
-      } else { // compare pulse by pulse
+      } else if (draw == 1) { // compare pulse by pulse
         val time = 10
         matlab.CompareData(ret.apply(time).take(200), goldenPhase.apply(time).take(200), name = s"compare")
         matlabEngine.eval(s"saveas(gcf, 'simWorkspace/$simName/$simName-pulse-by-pulse', 'png')")
         logger.info(s"view the figure generated: /home/ltr/IdeaProjects/Chainsaw2/simWorkspace/$simName/$simName-pulse-by-pulse.png")
+      } else {
+        matlab.CompareData(ret.flatten, ret.flatten, name = s"compare")
+        matlabEngine.eval(s"saveas(gcf, 'simWorkspace/$simName/$simName-pulse-by-pulse', 'png')")
+        logger.info(s"view the figure generated: /home/ltr/IdeaProjects/Chainsaw2/simWorkspace/$simName/$simName-all.png")
       }
     }
   }
 
-
-  it should "synth for filterpath" in new QuartusFlow(FilterPath(staticConfig)).impl()
-  //  it should "synth for diff" in new QuartusFlow(PhaseDiff(staticConfig, filterPath.cordicConfig.phaseType, phaseDiffType)).impl()
-  it should "synth for unwrap0" in new QuartusFlow(PulseUnwrap(staticConfig)).impl()
-  it should "synth for mean" in new QuartusFlow(PhaseMean(staticConfig)).impl()
-  it should "synth for unwrap1" in new QuartusFlow(FilterPath(staticConfig)).impl()
-  it should "synth for full module" in new QuartusFlow(SignalPro(staticConfig)).impl()
+  it should "synth for filterpath" in new QuartusFlow(FilterPath()).impl()
+  it should "synth for diff" in new QuartusFlow(PhaseDiff()).impl()
+  it should "synth for unwrap0" in new QuartusFlow(PulseUnwrap()).impl()
+  it should "synth for mean" in new QuartusFlow(PhaseMean()).impl()
+  it should "synth for full module" in new QuartusFlow(SignalPro()).impl()
 }

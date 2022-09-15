@@ -9,15 +9,15 @@ import spinal.lib.fsm._
 
 import scala.language.postfixOps
 
-case class PhaseMean(staticConfig: DasStaticConfig)
+case class PhaseMean(implicit staticConfig: DasStaticConfig)
   extends Component {
 
   val constants = staticConfig.genConstants()
 
   import constants._
 
-  val flowIn = in(DasFlowAnother(phaseUnwrapType, subFilterCount))
-  val flowOut = out(DasFlowAnother(phaseUnwrapType, 1))
+  val flowIn = in(DasFlow(phaseUnwrapType, subFilterCount))
+  val flowOut = out(DasFlow(phaseUnwrapType, 1))
 
   val sumMaxExp = phaseUnwrapType().maxExp + log2Up(gaugePointsMax.divideAndCeil(subFilterCount))
   val sumMinExp = phaseUnwrapType().minExp

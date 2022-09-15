@@ -7,14 +7,14 @@ import spinal.lib.fsm._
 
 import scala.language.postfixOps
 
-case class PhaseDiff(staticConfig: DasStaticConfig) extends Component {
+case class PhaseDiff(implicit staticConfig: DasStaticConfig) extends Component {
 
   val constants = staticConfig.genConstants()
 
   import constants._
 
-  val flowIn = in(DasFlowAnother(normalizedPhaseType, subFilterCount))
-  val flowOut = out(DasFlowAnother(phaseDiffType, subFilterCount))
+  val flowIn = in(DasFlow(normalizedPhaseType, subFilterCount))
+  val flowOut = out(DasFlow(phaseDiffType, subFilterCount))
 
   val gaugePointsIn = in UInt (log2Up(gaugePointsMax.divideAndCeil(subFilterCount) + 1) bits)
   val gaugePoints = RegNextWhen(gaugePointsIn, flowIn.modeChange)
