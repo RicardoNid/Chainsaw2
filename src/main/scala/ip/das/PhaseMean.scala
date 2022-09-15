@@ -36,7 +36,7 @@ case class PhaseMean(staticConfig: DasStaticConfig, typeIn: HardType[SFix], type
 
   val pipeline = (data: SFix, _: Int) => data.d(1)
 
-  val sum = partialSums.map(_.d(1)) // delay for adder
+  val sum = partialSums
     .reduceBalancedTree(_ + _, pipeline) // combine all sub channels
   val mean = (sum * gaugeReverse).truncate(typeIn).d(1)
 

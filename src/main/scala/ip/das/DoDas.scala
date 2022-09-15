@@ -99,7 +99,8 @@ object DoDas {
       val unwrappedPulse =
         if (pulseRam.isEmpty) diffPulse
         else pulseRam.zip(diffPulse).map { case (prev, next) => pointwiseUnwrapNormalized(prev, next) } // unwrap, size unchanged
-      val meanPulse = unwrappedPulse.grouped(gaugePoints).toArray.map(slice => slice.sum / slice.length) // mean
+      val meanPulse = unwrappedPulse.grouped(gaugePoints)
+        .toArray.map(slice => slice.sum / slice.length) // mean
       val unwrappedMeanPulse = if (meanRam.isEmpty) meanPulse else meanRam.zip(meanPulse).map { case (prev, next) => pointwiseUnwrapNormalized(prev, next) } // unwrap
 
       pulseRam = unwrappedPulse

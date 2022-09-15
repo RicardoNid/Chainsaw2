@@ -49,8 +49,6 @@ class SignalProTest extends AnyFlatSpec {
 
       val pulses = data.grouped(pulsePoints).toSeq
       val ret = Seq.fill(pulses.length)(ArrayBuffer[Double]())
-      //      val prev = Seq.fill(pulses.length)(ArrayBuffer[Double]())
-      //      val next = Seq.fill(pulses.length)(ArrayBuffer[Double]())
 
       var pokeStart = false
 
@@ -98,7 +96,7 @@ class SignalProTest extends AnyFlatSpec {
       // compare point by point
       if (pointByPoint) {
         //        val position = 10000 + 4
-        val position = 19785 / gaugePoints
+        val position = (19785 / runtimeConfig.gaugeLength).ceil.toInt
         matlabEngine.eval("figure;")
         (0 until 9).foreach { i =>
           matlabEngine.eval(s"subplot(3,3,${i + 1})")
@@ -110,9 +108,8 @@ class SignalProTest extends AnyFlatSpec {
         matlabEngine.eval(s"saveas(gcf, 'simWorkspace/$simName/$simName-point-by-point', 'png')")
         logger.info(s"view the figure generated: /home/ltr/IdeaProjects/Chainsaw2/simWorkspace/$simName/$simName-point-by-point.png")
       } else { // compare pulse by pulse
-        //        matlab.CompareData(ret.head.take(500), goldenPhase.head.take(500), name = s"compare")
-        matlab.CompareData(ret.apply(1).take(200), goldenPhase.apply(1).take(200), name = s"compare")
-        //      matlab.CompareData(prev.head.take(200), next.head.take(200), name = s"compare")
+        val time = 10
+        matlab.CompareData(ret.apply(time).take(200), goldenPhase.apply(time).take(200), name = s"compare")
         matlabEngine.eval(s"saveas(gcf, 'simWorkspace/$simName/$simName-pulse-by-pulse', 'png')")
         logger.info(s"view the figure generated: /home/ltr/IdeaProjects/Chainsaw2/simWorkspace/$simName/$simName-pulse-by-pulse.png")
       }
