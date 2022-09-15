@@ -32,7 +32,7 @@ case class PulsesOut() extends Bundle {
   this.setName("")
 }
 
-case class DasTop(implicit config: DasConfig) extends Component {
+case class DasTop(implicit staticConfig: DasStaticConfig) extends Component {
 
   /** --------
    * I/O
@@ -119,7 +119,7 @@ case class DasTop(implicit config: DasConfig) extends Component {
  */
 object UpdateDasProject {
   def main(args: Array[String]): Unit = {
-    implicit val config: DasConfig = DasConfig()
+    implicit val config = DasStaticConfig()
     SpinalConfig(
       netlistFileName = "xillydemo.v",
       targetDirectory = "/home/ltr/sysudas/project/xillyfinal/verilog/src")

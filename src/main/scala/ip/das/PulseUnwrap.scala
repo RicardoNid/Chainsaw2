@@ -9,14 +9,14 @@ import spinal.lib.fsm.{State, StateEntryPoint, StateMachine}
 
 import scala.language.postfixOps
 
-case class PulseUnwrap(staticConfig: DasStaticConfig, typeFull: HardType[SFix], typeStored: HardType[SFix]) extends Component {
+case class PulseUnwrap(staticConfig: DasStaticConfig) extends Component {
 
   val constants = staticConfig.genConstants()
 
   import constants._
 
-  val flowIn = in(DasFlowAnother(typeFull, subFilterCount))
-  val flowOut = out(DasFlowAnother(typeFull, subFilterCount))
+  val flowIn = in(DasFlowAnother(phaseUnwrapType, subFilterCount))
+  val flowOut = out(DasFlowAnother(phaseUnwrapType, subFilterCount))
 
   val pulsePointsIn = in UInt (log2Up(pulsePointsMax.divideAndCeil(subFilterCount) + 2) bits)
   val pulsePoints = RegNextWhen(pulsePointsIn, flowIn.modeChange)
@@ -27,17 +27,17 @@ case class PulseUnwrap(staticConfig: DasStaticConfig, typeFull: HardType[SFix], 
   writeCounter.increment()
   readCounter.increment()
 
-  val buffer = Mem(Vec(typeStored, subFilterCount), pulsePointsMax.divideAndCeil(subFilterCount))
+  val buffer = Mem(Vec(phaseStoredType, subFilterCount), pulsePointsMax.divideAndCeil(subFilterCount))
   val bufferOut = buffer.readSync(readCounter)
 
-  val unwrapCores = Seq.fill(subFilterCount)(UnwrapConfig(typeStored, typeFull).implH) // unwrap module
-  val unwrapLatency = UnwrapConfig(typeStored, typeFull).latency
+  val unwrapCores = Seq.fill(subFilterCount)(UnwrapConfig(phaseStoredType, phaseUnwrapType).implH) // unwrap module
+  val unwrapLatency = UnwrapConfig(phaseStoredType, phaseUnwrapType).latency
   val unwrapped = bufferOut.zip(flowIn.payload).zip(unwrapCores).map { case ((prev, next), core) => core.asFunc(Seq(prev, next)).head }
 
   val ret = cloneOf(flowOut.payload)
   ret.assignDontCare() // pre-assignment
 
-  buffer.write(writeCounter.value.d(unwrapLatency), Vec(ret.map(_.truncate(typeStored))))
+  buffer.write(writeCounter.value.d(unwrapLatency), Vec(ret.map(_.truncate(phaseStoredType))))
 
   val fsm: StateMachine = new StateMachine { // fsm has to be declared, or else, no state can be seen during simulation
     val first = State()

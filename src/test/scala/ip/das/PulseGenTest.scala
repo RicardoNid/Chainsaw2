@@ -10,7 +10,7 @@ import spinal.lib.fsm._
 
 class PulseGenTest extends AnyFlatSpec {
 
-  implicit val config = DasConfig()
+  implicit val config = DasStaticConfig()
 
   "pulse gen" should "work" in {
     SimConfig.withFstWave.compile(PulseGen()).doSim { dut =>

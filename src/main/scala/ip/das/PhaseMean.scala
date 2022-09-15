@@ -9,15 +9,19 @@ import spinal.lib.fsm._
 
 import scala.language.postfixOps
 
-case class PhaseMean(staticConfig: DasStaticConfig, typeIn: HardType[SFix], typeSum: HardType[SFix])
+case class PhaseMean(staticConfig: DasStaticConfig)
   extends Component {
 
   val constants = staticConfig.genConstants()
 
   import constants._
 
-  val flowIn = in(DasFlowAnother(typeIn, subFilterCount))
-  val flowOut = out(DasFlowAnother(typeIn, 1))
+  val flowIn = in(DasFlowAnother(phaseUnwrapType, subFilterCount))
+  val flowOut = out(DasFlowAnother(phaseUnwrapType, 1))
+
+  val sumMaxExp = phaseUnwrapType().maxExp + log2Up(gaugePointsMax.divideAndCeil(subFilterCount))
+  val sumMinExp = phaseUnwrapType().minExp
+  val typeSum = HardType(SFix(sumMaxExp exp, sumMinExp exp))
 
   val gaugePointsIn = in UInt (log2Up(gaugePointsMax.divideAndCeil(subFilterCount) + 1) bits)
   val gaugeReverseIn = in SFix(0 exp, -17 exp)
@@ -38,7 +42,7 @@ case class PhaseMean(staticConfig: DasStaticConfig, typeIn: HardType[SFix], type
 
   val sum = partialSums
     .reduceBalancedTree(_ + _, pipeline) // combine all sub channels
-  val mean = (sum * gaugeReverse).truncate(typeIn).d(1)
+  val mean = (sum * gaugeReverse).truncate(phaseUnwrapType).d(1)
 
   val latency = 3 // 1 for sub channel summing, 1 for summing up all sub channels, 1 for multiplication
 

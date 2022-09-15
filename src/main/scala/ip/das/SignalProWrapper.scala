@@ -6,7 +6,8 @@ import spinal.lib._
 
 import scala.language.postfixOps
 
-case class SignalProWrapper(implicit config: DasConfig) extends Component {
+case class SignalProWrapper(implicit staticConfig: DasStaticConfig)
+  extends Component {
 
   val clkIn, rstn = in Bool() // 62.5MHz
   val clkOut = out Bool() // 125MHz
@@ -76,6 +77,8 @@ case class SignalProWrapper(implicit config: DasConfig) extends Component {
     controlRegs.foreach(_.allowPruning())
 
     // initialization
+    //    val initConfig = DasRuntimeConfig(10, 10.4, 5e6, 31)
+    //    val initRegValues = initConfig.genRegValues(staticConfig = )
     mode.init(0) // raw mode
     gain.init(0) // minimum gain
     pulsePeriod0.init(50000 >> 256) // minimum gain
@@ -109,6 +112,7 @@ case class SignalProWrapper(implicit config: DasConfig) extends Component {
 
     val selfTestCore = DasSelfTest()
 
+
     val pulseGen = PulseGen()
     pulseGen.pulsePeriodIn := pulsePeriodFull.resized
 
@@ -140,7 +144,7 @@ case class SignalProWrapper(implicit config: DasConfig) extends Component {
 
     /** --------
      * fix signal names for SignalTap
-     -------- */
+     * -------- */
     clkOut.setName("clkOut")
     pulsePointsFull.setName("pulsePointsFull")
     gaugePoints.setName("gaugePoints")

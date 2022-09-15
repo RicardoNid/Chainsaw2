@@ -116,15 +116,11 @@ class SignalProTest extends AnyFlatSpec {
     }
   }
 
-  val phaseDiffType = HardType(SFix(3 exp, -16 exp)) // [-2, 2] for phase difference
-  val phaseUnwrapType = HardType(SFix(4 exp, -16 exp))
-  val phaseStoredType = HardType(SFix(4 exp, -16 exp))
-  val phaseSumType = HardType(SFix(4 + log2Up(gaugePointsMax) exp, -16 exp))
 
   it should "synth for filterpath" in new QuartusFlow(FilterPath(staticConfig)).impl()
   //  it should "synth for diff" in new QuartusFlow(PhaseDiff(staticConfig, filterPath.cordicConfig.phaseType, phaseDiffType)).impl()
-  it should "synth for unwrap0" in new QuartusFlow(PulseUnwrap(staticConfig, phaseUnwrapType, phaseStoredType)).impl()
-  it should "synth for mean" in new QuartusFlow(PhaseMean(staticConfig, phaseUnwrapType, phaseSumType)).impl()
+  it should "synth for unwrap0" in new QuartusFlow(PulseUnwrap(staticConfig)).impl()
+  it should "synth for mean" in new QuartusFlow(PhaseMean(staticConfig)).impl()
   it should "synth for unwrap1" in new QuartusFlow(FilterPath(staticConfig)).impl()
   it should "synth for full module" in new QuartusFlow(SignalPro(staticConfig)).impl()
 }

@@ -36,8 +36,7 @@ case class SignalPro(staticConfig: DasStaticConfig) extends Component {
    -------- */
   val constants = staticConfig.genConstants()
   import constants._
-  val phaseDiffType = HardType(SFix(3 exp, -16 exp)) // [-2, 2] for phase difference
-  val phaseUnwrapType = HardType(SFix(4 exp, -16 exp))
+
   val phaseStoredType = HardType(SFix(4 exp, -16 exp))
   val phaseSumType = HardType(SFix(4 + log2Up(gaugePointsMax) exp, -16 exp))
 
@@ -45,9 +44,9 @@ case class SignalPro(staticConfig: DasStaticConfig) extends Component {
    * sub-modules
    -------- */
   val filterPath = FilterPath(staticConfig)
-  val phaseDiff = PhaseDiff(staticConfig, filterPath.cordicConfig.phaseType, phaseDiffType)
-  val pulseUnwrap = PulseUnwrap(staticConfig, phaseUnwrapType, phaseStoredType)
-  val phaseMean = PhaseMean(staticConfig, phaseUnwrapType, phaseSumType)
+  val phaseDiff = PhaseDiff(staticConfig)
+  val pulseUnwrap = PulseUnwrap(staticConfig)
+  val phaseMean = PhaseMean(staticConfig)
 
   /** --------
    * parameters path

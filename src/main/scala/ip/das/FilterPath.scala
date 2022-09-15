@@ -18,11 +18,14 @@ case class FilterPath(staticConfig: DasStaticConfig) extends Component {
 
   import constants._
 
-  // hardtypes
-  val adcDataType = HardType(SFix(0 exp, -13 exp))
-  val firOutDataType = HardType(SFix(4 exp, -13 exp))
+  // I/O
+  val flowIn = in(DasFlowAnother(adcDataType, subFilterCount))
+  val flowOut = out(DasFlowAnother(normalizedPhaseType, subFilterCount))
+
+  assert(~(flowIn.modeChange && ~flowIn.pulseChange)) // pulseChange must be asserted when modeChange is asserted
+
   val cordicIteration = 10
-  val cordicFraction = 16
+  val cordicFraction = 14
 
   // submodule configs
   val realFirConfig = UpFirDnConfig(1, subFilterCount, realCoeffGroups(5e6), adcDataType, firOutDataType)
@@ -31,12 +34,6 @@ case class FilterPath(staticConfig: DasStaticConfig) extends Component {
 
   assert(realFirConfig.latency == imagFirConfig.latency)
   val latency = realFirConfig.latency + cordicConfig.latency + 1 // 1 for multiplication
-
-  // I/O
-  val flowIn = in(DasFlowAnother(adcDataType, subFilterCount))
-  val flowOut = out(DasFlowAnother(cordicConfig.phaseType, subFilterCount))
-
-  assert(~(flowIn.modeChange && ~flowIn.pulseChange)) // pulseChange must be asserted when modeChange is asserted
 
   // filter path
   val realFirRets = realFirConfig.implH.asFunc(flowIn.payload)
@@ -55,7 +52,7 @@ case class FilterPath(staticConfig: DasStaticConfig) extends Component {
   val phases = both.map(_.last)
 
   val normalizedPhases = phases.map(_ * SFConstant(1 / Pi, HardType(SFix(0 exp, -17 exp))))
-    .map(_.truncate(cordicConfig.phaseType).d(1))
+    .map(_.truncate(normalizedPhaseType).d(1))
 
     flowOut := flowIn.pipeWith(Vec(normalizedPhases), latency)
 }

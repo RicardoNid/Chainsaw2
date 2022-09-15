@@ -3,12 +3,16 @@ package ip.das
 
 import matlab.{MComplex, MatlabFeval}
 
-case class DasConstants(
+import spinal.core.{HardType, SFix, IntToBuilder}
+import scala.language.postfixOps
+
+case class DasConstants( // parameters for hardware generation
                          pulseWidth: Int,
                          imagCoeffGroups: Map[Double, Array[Double]],
                          realCoeffGroups: Map[Double, Array[Double]],
                          subFilterCount: Int,
                          pulsePointsMax: Int,
+                         pulsePeriodMax: Int,
                          gaugePointsMax: Int,
                          spatialPointsMax: Int
                        ) {
@@ -19,6 +23,13 @@ case class DasConstants(
       s"\n\tgauge points max -> $gaugePointsMax" +
       s"\n\tspatial points max -> $spatialPointsMax"
   )
+
+  val adcDataType = HardType(SFix(0 exp, -13 exp))
+  val firOutDataType = HardType(SFix(4 exp, -11 exp))
+  val normalizedPhaseType = HardType(SFix(0 exp, -15 exp))
+  val phaseDiffType = HardType(SFix(1 exp, -15 exp))
+  val phaseUnwrapType = HardType(SFix(4 exp, -15 exp))
+  val phaseStoredType = HardType(SFix(4 exp, -8 exp))
 }
 
 case class DasCost(
@@ -79,15 +90,17 @@ case class DasStaticConfig(
       ret.padTo(paddedLength, new MComplex(0.0, 0.0))
     }
 
-    def pulseFreqMin = c / ((probeLengthRange._2 + 0.1) * 1e3 * 2)
+    def pulseFreqMin: Double = c / ((probeLengthRange._2 + 0.1) * 1e3 * 2)
 
-    def pulsePointsMax = (samplingFreq / pulseFreqMin).ceil.toInt
+    def pulsePointsMax: Int = (samplingFreq / pulseFreqMin).ceil.toInt
 
-    def gaugePointsMin = (gaugeLengthRange._1 * 2 / c * samplingFreq).ceil.toInt
+    def pulsePeriodMax: Int = (pulsePointsMax * sigProFreq / samplingFreq).ceil.toInt
 
-    def gaugePointsMax = (gaugeLengthRange._2 * 2 / c * samplingFreq).ceil.toInt
+    def gaugePointsMin: Int = (gaugeLengthRange._1 * 2 / c * samplingFreq).ceil.toInt
 
-    def spatialPointsMax = (pulsePointsMax / gaugePointsMin).ceil.toInt
+    def gaugePointsMax: Int = (gaugeLengthRange._2 * 2 / c * samplingFreq).ceil.toInt
+
+    def spatialPointsMax: Int = (pulsePointsMax / gaugePointsMin).ceil.toInt
 
     def imagCoeffGroups = Map(bandWidthChoices.zip(combinedCoeffGroups.map(_.map(_.imag))): _*)
 
@@ -105,6 +118,7 @@ case class DasStaticConfig(
       realCoeffGroups = realCoeffGroups,
       subFilterCount = subFilterCount,
       pulsePointsMax = pulsePointsMax,
+      pulsePeriodMax = pulsePeriodMax,
       gaugePointsMax = gaugePointsMax,
       spatialPointsMax = spatialPointsMax
     )

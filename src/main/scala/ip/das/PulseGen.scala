@@ -11,17 +11,18 @@ import scala.language.postfixOps
 /** dynamic pulse generator
  *
  */
-case class PulseGen(implicit config: DasConfig) extends Component {
+case class PulseGen(implicit staticConfig: DasStaticConfig) extends Component {
 
-  import config._
+  val constants = staticConfig.genConstants()
+  import constants._
 
-  val pulsePeriodIn = in UInt(log2Up(pulsePeriodMax) bits)
+  val pulsePeriodIn = in UInt(log2Up(pulsePointsMax) bits)
 
   val pulseChange = out Bool()
   val pulseOut = out Bool()
 
   // can always update itself as the counter is freerun
-  val pulsePeriod = RegNextWhen(pulsePeriodIn, pulseChange, init = U(pulsePeriodMax))
+  val pulsePeriod = RegNextWhen(pulsePeriodIn, pulseChange, init = U(pulsePointsMax))
 
   // free run dynamic counter for pulse generation
   val pulseCounter = DynamicCounter(pulsePeriod)

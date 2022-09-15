@@ -2,22 +2,19 @@ package org.datenlord
 package ip.das
 
 import spinal.core._
-import spinal.lib.fsm._
-import spinal.core._
 import spinal.core.sim._
-import spinal.lib._
 import spinal.lib.fsm._
 
 import scala.language.postfixOps
 
-case class PhaseDiff(staticConfig: DasStaticConfig, typeIn: HardType[SFix], typeOut: HardType[SFix]) extends Component {
+case class PhaseDiff(staticConfig: DasStaticConfig) extends Component {
 
   val constants = staticConfig.genConstants()
 
   import constants._
 
-  val flowIn = in(DasFlowAnother(typeIn, subFilterCount))
-  val flowOut = out(DasFlowAnother(typeOut, subFilterCount))
+  val flowIn = in(DasFlowAnother(normalizedPhaseType, subFilterCount))
+  val flowOut = out(DasFlowAnother(phaseDiffType, subFilterCount))
 
   val gaugePointsIn = in UInt (log2Up(gaugePointsMax.divideAndCeil(subFilterCount) + 1) bits)
   val gaugePoints = RegNextWhen(gaugePointsIn, flowIn.modeChange)
@@ -27,7 +24,7 @@ case class PhaseDiff(staticConfig: DasStaticConfig, typeIn: HardType[SFix], type
   writeCounter.increment()
   readCounter.increment()
 
-  val buffer = Mem(Vec(typeIn, subFilterCount), gaugePointsMax.divideAndCeil(subFilterCount))
+  val buffer = Mem(Vec(normalizedPhaseType, subFilterCount), gaugePointsMax.divideAndCeil(subFilterCount))
   buffer.write(writeCounter, flowIn.payload)
   val bufferOut = buffer.readSync(readCounter)
   flowIn.payload.simPublic()
