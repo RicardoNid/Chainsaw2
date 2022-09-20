@@ -11,7 +11,7 @@ import spinal.core.sim._
 import spinal.lib.{Delay, com => _, _}
 
 import scala.collection.mutable.ArrayBuffer
-import scala.math.{BigDecimal, BigInt}
+import scala.math.{BigDecimal, BigInt, round}
 import scala.reflect.{ClassTag, classTag}
 import scala.sys.process.Process
 import scala.util.Random
@@ -19,7 +19,10 @@ import com.mathworks.engine._
 
 package object datenlord {
 
+  // adjustable parameters
+
   val logger = LoggerFactory.getLogger("Chainsaw logger")
+  var verbose = 1
 
   type ChainsawFlow[T <: Data] = Flow[Fragment[Vec[T]]]
 
@@ -31,6 +34,10 @@ package object datenlord {
 
     def d(cycle: Int) = ChainsawFlow(flow.fragment.d(cycle), flow.valid.d(cycle), flow.last.d(cycle))
 
+  }
+
+  def RtlGen[T<:Component](gen: => T, name:String = "temp") = {
+    SpinalConfig(netlistFileName = s"$name.v").generateVerilog(gen)
   }
 
   def VivadoImpl[T <: Component](gen: => T, name: String = "temp", target: XilinxDevice = defaultDevice, xdcPath: String = null) = {
@@ -47,10 +54,14 @@ package object datenlord {
     report
   }
 
+  implicit class BoolUtil(data: Bool) {
+    def validAfter(cycle: Int) = Delay(data, cycle, init = False)
+
+    def setAfter(cond: Bool, cycle: Int) = when(cond.d(cycle))(data.set())
+  }
+
   implicit class DataUtil[T <: Data](data: T) {
     def d(cycle: Int): T = Delay(data, cycle)
-
-    def validAfter(cycle: Int) = Delay(data, cycle, init = False).asInstanceOf[Bool]
 
     def split(splitPoints: Seq[Int]): Seq[Bits] = {
       var current = data.asBits
@@ -119,9 +130,14 @@ package object datenlord {
       BigInt(bi.toString(2).slice(from, until), 2)
     }
 
-    def getLow(n: Int) = {
+    def takeLow(n: Int) = {
       require(bi >= BigInt(0), s"$bi")
       bi.split(n)._2
+    }
+
+    def takeHigh(n: Int) = {
+      require(bi >= BigInt(0), s"$bi")
+      bi.split(bi.bitLength - n)._1
     }
 
     /** Get words from low to high, the highest word can be incomplete
@@ -294,8 +310,8 @@ package object datenlord {
 
   object SynthTest extends Tag("datenlord.tags.Synth")
 
-  var binaryAddLimit = 95
-  var ternaryAddLimit = 94
+  var binaryAddLimit = 96
+  var ternaryAddLimit = 96
 
   lazy val matlabEngine = MatlabEngine.startMatlab()
 
@@ -322,5 +338,58 @@ package object datenlord {
       tmp
     }
   }
+
+  implicit class IntUtil(int: Int) {
+    def divideAndCeil(base: Int) = (int + base - 1) / base
+
+    def nextMultiple(base: Int) = divideAndCeil(base) * base
+  }
+
+
+  sealed trait OperatorType
+
+  trait AdderType extends OperatorType
+
+  object TernaryAdder extends AdderType
+
+  object BinaryAdder extends AdderType
+
+  object BinarySubtractor extends AdderType
+
+  object Compressor extends AdderType
+
+  trait MultiplierType extends OperatorType
+
+  object FullMultiplier extends MultiplierType
+
+  object SquareMultiplier extends MultiplierType
+
+  object MsbMultiplier extends MultiplierType
+
+  object LsbMultiplier extends MultiplierType
+
+  object Kara extends MultiplierType
+
+  trait VarType extends OperatorType
+
+  object Input extends VarType
+
+  object Output extends VarType
+
+  object Var extends VarType
+
+  object Custom extends OperatorType
+
+  object Multiplexer extends OperatorType
+
+  object And extends OperatorType
+
+  object Shift extends OperatorType
+
+  object Split extends OperatorType
+
+  object Merge extends OperatorType
+
+  object Resize extends OperatorType
 
 }

@@ -2,6 +2,7 @@ package org.datenlord
 package dsp
 
 import breeze.numerics._
+import breeze.numerics.constants.Pi
 import spinal.core._
 import spinal.lib._
 
@@ -24,6 +25,9 @@ import dsp.RotationMode._
 case class CordicConfig(algebraicMode: AlgebraicMode, rotationMode: RotationMode,
                         iteration: Int, fraction: Int)
   extends TransformBase {
+
+  val amplitudeType = HardType(SFix(1 exp, -fraction exp)) // [-1,1]
+  val phaseType = HardType(SFix(2 exp, -fraction exp)) // [-pi, pi]
 
   /** --------
    * calculating coefficients
@@ -97,9 +101,6 @@ case class Cordic(config: CordicConfig)
 
   implicit val refMode: AlgebraicMode = algebraicMode
 
-  val amplitudeType = HardType(SFix(1 exp, -fraction exp)) // [-1,1]
-  val phaseType = HardType(SFix(2 exp, -fraction exp)) // [-pi, pi]
-
   val dataIn = slave Flow Fragment(Vec(amplitudeType(), amplitudeType(), phaseType()))
   val dataOut = master Flow Fragment(Vec(amplitudeType(), amplitudeType(), phaseType()))
 
@@ -115,7 +116,36 @@ case class Cordic(config: CordicConfig)
     case VECTORING => group(1).asBits.msb // Y < 0
   }
 
-  val ret = Seq.iterate((dataIn.fragment, 0), iteration + 1) {
+  val Seq(x, y, z) = dataIn.fragment
+  val determinant = (y.raw.msb ## x.raw.msb).asUInt
+
+  // TODO: pipeline for this stage
+  // TODO: for circular mode only?
+  val Seq(xPrime, yPrime, zPrime) = Seq(x, y, z).map(_.clone())
+  switch(determinant) {
+    is(U(0)) { // first quadrant
+      xPrime := x
+      yPrime := y
+      zPrime := z
+    }
+    is(U(1)) { // second quadrant
+      xPrime := y
+      yPrime := -x
+      zPrime := z + SFConstant(Pi / 2, phaseType)
+    }
+    is(U(2)) { // fourth quadrant
+      xPrime := x
+      yPrime := y
+      zPrime := z
+    }
+    is(U(3)) { // third quadrant
+      xPrime := -y
+      yPrime := x
+      zPrime := z - SFConstant(Pi / 2, phaseType)
+    }
+  }
+
+  val ret = Seq.iterate((Seq(xPrime, yPrime, zPrime) , 0), iteration + 1) {
     case (Seq(x, y, z), i) =>
       val nextStageType = getAmplitudeType(i)
       assert(1.0 / getScaleComplement(i + 1) < nextStageType().maxValue)
@@ -154,7 +184,7 @@ object Cordic {
   def phaseZero(fraction: Int) = SFConstant(0, 2 exp, -fraction exp)
 
   def getAbsAndPhase(real: SFix, imag: SFix, iteration: Int, fraction: Int) = {
-    val op = CordicConfig(CIRCULAR, VECTORING, iteration, fraction).implH.asNode
+    val op = CordicConfig(CIRCULAR, VECTORING, iteration, fraction).implH.asFunc
     val ret = op(Seq(real, imag, phaseZero(fraction)))
     (ret.head, ret.last) // (abs, phase)
   }

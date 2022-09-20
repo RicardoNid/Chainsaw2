@@ -1,8 +1,6 @@
 package org.datenlord
 package arithmetic
 
-import dfg.ArithInfo
-
 import spinal.core.{out, _}
 import spinal.lib._
 
@@ -18,7 +16,7 @@ case class BitHeapCompressorConfig(infos: Seq[ArithInfo]) extends TransformBase 
 
   override def impl(dataIn: Seq[Any]) = {
     val bigInts = dataIn.asInstanceOf[Seq[BigInt]]
-    val ret = bigInts.zip(infos).map { case (int, info) => (int << info.shift) * (if (info.sign) 1 else -1) }.sum
+    val ret = bigInts.zip(infos).map { case (int, info) => (int << info.weight) * (if (info.sign) 1 else -1) }.sum
     Seq(ret)
   }
 

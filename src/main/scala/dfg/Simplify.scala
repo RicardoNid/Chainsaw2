@@ -1,8 +1,6 @@
 package org.datenlord
 package dfg
 
-import dfg.OpType._
-
 import spinal.core.{Data, assert}
 
 import scala.collection.JavaConversions._
@@ -10,9 +8,9 @@ import scala.collection.JavaConversions._
 object Simplify {
   /** simplify the graph bt removing redundant vertices and edges
    */
-  def apply[ THard <: Data](dag: Dag[ THard]) = {
+  def apply[THard <: Data](dag: Dag[THard]) = {
 
-    implicit val refDag: Dag[ THard] = dag
+    implicit val refDag: Dag[THard] = dag
 
     // find and remove inters which are connectors without actual functionality
     val inters = dag.vertexSet().toSeq

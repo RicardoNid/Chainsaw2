@@ -5,7 +5,6 @@ import spinal.core._
 import spinal.core.sim.{SimConfig, _}
 
 import scala.collection.mutable.ArrayBuffer
-import scala.io.StdIn
 import scala.reflect.ClassTag
 
 object TransformTest {
@@ -42,16 +41,11 @@ object TransformTest {
   def showData[T](input: Seq[T], yours: Seq[T], golden: Seq[T], index: Int) =
     s"\n$index-th pair:\ninput:\n${input.mkString(" ")}\nyours:\n${yours.mkString(" ")}\ngolden:\n${golden.mkString(" ")}"
 
-  def drawData[T: ClassTag](yours: Seq[T], golden: Seq[T], name: String) = {
-    matlabEngine.putVariable("y", yours.toArray)
-    matlabEngine.putVariable("g", golden.toArray)
-    matlabEngine.eval("figure")
-    matlabEngine.eval(s"plot(y, 'b')")
-    matlabEngine.eval("hold on;")
-    matlabEngine.eval(s"plot(g, 'g')")
-    matlabEngine.eval("legend('yours', 'golden')")
-    matlabEngine.eval(s"title('$name')")
-    StdIn.readLine()
+  def drawAndSaveData[T: ClassTag](yours: Seq[T], golden: Seq[T], name: String) = {
+    logger.info(s"generating the figure yours vs golden...")
+    matlab.CompareData(yours, golden, name)
+    matlabEngine.eval(s"saveas(gcf, 'simWorkspace/$name/$name', 'png')")
+    logger.info(s"view the figure generated: /home/ltr/IdeaProjects/Chainsaw2/simWorkspace/$name/$name.png")
   }
 
   /** auto test for a TransformModule
@@ -67,8 +61,8 @@ object TransformTest {
    metric: (Seq[TSoft], Seq[TSoft]) => Boolean = null, name: String = "temp"): Unit = {
     SimConfig.workspaceName(name).withFstWave.compile(transformModule).doSim { dut =>
 
-      import dut.{config, clockDomain, dataIn, dataOut} // key elements of dut
-      import config.{impl, implMode, inputFlow, latency, outputFlow} // key infos in dut config
+      import dut.{clockDomain, config, dataIn, dataOut}
+      import config._ // key infos in dut config
 
       require(data.length % inputFlow.rawDataCount == 0, s"test data incomplete, should be a multiple of ${inputFlow.rawDataCount} while it is ${data.length}")
 
@@ -122,7 +116,7 @@ object TransformTest {
       implMode match {
         case Comb => // get and compare golden & yours slice by slice
           val golden = dataSlices.map(impl).map(_.asInstanceOf[Seq[TSoft]])
-          //          drawData(yours.flatten, golden.flatten, name)
+          //          drawAndSaveData(yours.flatten, golden.flatten, name)
           yours.zip(golden).zipWithIndex.foreach { case ((y, g), i) =>
             val pass = if (metric == null) y == g else metric(y, g)
             assert(pass, showData(dataFlow(i), y, g, i))
@@ -131,10 +125,12 @@ object TransformTest {
         case Infinite => // view all slices as a input vector
           val golden = impl(data).asInstanceOf[Seq[TSoft]]
           val pass = if (metric == null) yours.flatten == golden else metric(yours.flatten, golden)
-          drawData(yours.flatten, golden, name)
+        // TODO: add assertion
+        //          drawAndSaveData(yours.flatten, golden, name)
         //          assert(pass, showData(data, yours.flatten, golden, 0))
       }
-      logger.info("test for transform module passed")
+
+      logger.info(s"test for transform module passed\n${showData(dataFlow.head, yours.head, impl(dataSlices.head), 0)}")
     }
   }
 

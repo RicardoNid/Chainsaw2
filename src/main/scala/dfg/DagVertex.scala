@@ -1,14 +1,13 @@
 package org.datenlord
 package dfg
 
-import dfg.OpType.OpType
 import dfg.Direction._
 import spinal.core.Data
 import scala.collection.JavaConversions._
 
 class DagVertex[THard <: Data](val name: String,
                                val latency: Int,
-                               val opType: OpType,
+                               val opType: OperatorType,
                                val implH: Seq[THard] => Seq[THard] = (data: Seq[THard]) => data
                               ) {
 

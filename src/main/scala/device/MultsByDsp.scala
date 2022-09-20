@@ -5,33 +5,30 @@ import spinal.core._
 import spinal.lib._
 
 import scala.language.postfixOps
-import arithmetic.MultplierMode._
 
 /** Dedicated pipeline for 34 * 52 multipliers
  */
-case class MultiplicationByDspConfig(mode: MultiplierMode)
+case class MultiplicationByDspConfig(mode: MultiplierType)
   extends TransformBase {
 
   val baseWidth = mode match {
-    case FULL => 32
-    case FULL34 => 34
-    case HALFLOW => 34
-    case SQUARE => 34
+    case FullMultiplier => 32
+    case LsbMultiplier => 34
+    case SquareMultiplier => 34
   }
 
   val opWidth = baseWidth / 2
-  val widthOut= mode match {
-    case FULL => baseWidth * 2
-    case HALFLOW => baseWidth
-    case HALFHIGH => baseWidth
-    case SQUARE => baseWidth * 2
+  val widthOut = mode match {
+    case FullMultiplier => baseWidth * 2
+    case LsbMultiplier => baseWidth
+    case SquareMultiplier => baseWidth * 2
   }
 
   override def impl(dataIn: Seq[Any]) = {
     val bigInts = dataIn.asInstanceOf[Seq[BigInt]]
     val prod = bigInts.product
     mode match {
-      case HALFLOW => Seq(prod % (BigInt(1) << baseWidth))
+      case LsbMultiplier => Seq(prod % (BigInt(1) << baseWidth))
       case _ => Seq(prod)
     }
   }
@@ -40,11 +37,10 @@ case class MultiplicationByDspConfig(mode: MultiplierMode)
 
   //  override def latency = 8
   override def latency = mode match {
-    case FULL => 7
+    case FullMultiplier => 7
     // FIXME: remove the option "FULL34"
-    case FULL34 => 7
-    case HALFLOW => 6
-    case SQUARE => 5
+    case LsbMultiplier => 6
+    case SquareMultiplier => 5
   }
 
   override def implH = MultiplicationByDsp(this)
@@ -63,7 +59,7 @@ case class MultiplicationByDsp(config: MultiplicationByDspConfig) extends Transf
   val Seq(c, d) = y.subdivideIn(2 slices).reverse // yHigh, yLow
 
   val ret = mode match {
-    case FULL =>
+    case FullMultiplier =>
       // 0-1
       val cPlusD = (c +^ d).d(1)
       // 0-2
@@ -83,7 +79,7 @@ case class MultiplicationByDsp(config: MultiplicationByDspConfig) extends Transf
       val (high, mid, low) = (dsp0.d(4), adbc, dsp1.d(4))
       val ret = ((high @@ low) + (mid << opWidth)).d(1)
       ret
-    case HALFLOW =>
+    case LsbMultiplier =>
       // 0-2
       val dsp0 = Dsp48.ab(b, c)
       val dsp0Low = dsp0.takeLow(opWidth).asUInt
@@ -99,7 +95,7 @@ case class MultiplicationByDsp(config: MultiplicationByDspConfig) extends Transf
       dsp2.addAttribute("use_dsp", "yes")
 
       ret
-    case SQUARE =>
+    case SquareMultiplier =>
       // 0-2
       val dsp0 = Dsp48.ab(a, a)
       val dsp1 = Dsp48.ab(b, b)
@@ -122,9 +118,9 @@ case class MultiplicationByDsp(config: MultiplicationByDspConfig) extends Transf
   }
 
   val defName = mode match {
-    case FULL => "FullMult32"
-    case HALFLOW => "LowMult34"
-    case SQUARE => "SquareMult34"
+    case FullMultiplier => "FullMult32"
+    case LsbMultiplier => "LowMult34"
+    case SquareMultiplier => "SquareMult34"
   }
 
   setDefinitionName(defName)

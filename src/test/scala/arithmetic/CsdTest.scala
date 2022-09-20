@@ -7,9 +7,9 @@ import scala.util.Random
 
 class CsdTest extends AnyFlatSpec {
 
-  val testCount = 1000
+  val testCount = 10000
   val testWidth = 377
-  val testData = (0 until testCount).map(_ => Random.nextBigInt(testWidth))
+  val testData = Seq.fill(testCount)(BigInt(testWidth, Random))
 
   "Csd" should "work correctly" in testData.foreach(Csd.fromBigInt)
 
@@ -17,6 +17,16 @@ class CsdTest extends AnyFlatSpec {
     val weightBefore = testData.map(_.toString(2).count(_ != '0')).sum
     val weightAfter = testData.map(Csd.fromBigInt(_).weight).sum
     logger.info(s"average compression rate = ${weightBefore.toDouble / weightAfter}")
+  }
+
+  it should "work for BLS-377" in {
+
+    val modulusBefore = algos.ZPrizeMSM.baseModulus.toString(2).count(_ != '0')
+    val modulusAfter = Csd.fromBigInt(algos.ZPrizeMSM.baseModulus).weight
+    val mPrimeBefore = algos.ZPrizeMSM.MPrime.toString(2).count(_ != '0')
+    val mPrimeAfter = Csd.fromBigInt(algos.ZPrizeMSM.MPrime).weight
+
+    logger.info(s"modulus: $modulusBefore->$modulusAfter, mprime: $mPrimeBefore->$mPrimeAfter")
   }
 
 }

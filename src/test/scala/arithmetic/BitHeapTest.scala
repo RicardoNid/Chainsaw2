@@ -1,8 +1,6 @@
 package org.datenlord
 package arithmetic
 
-import dfg.ArithInfo
-
 import org.scalatest.flatspec.AnyFlatSpec
 import spinal.core._
 import spinal.lib._
@@ -13,7 +11,8 @@ class BitHeapTest extends AnyFlatSpec {
 
   behavior of "bit heap"
 
-  val smallHeap = BitHeap(ArrayBuffer(1, 3, 5, 4, 2).map(i => ArrayBuffer.fill(i)(1)), 0)
+  val smallHeap =
+    BitHeap(ArrayBuffer(1, 3, 5, 4, 2).map(i => ArrayBuffer.fill(i)(1)), 0)
 
   it should "visualize itself correctly" in {
     //    println(smallHeap)
@@ -21,8 +20,11 @@ class BitHeapTest extends AnyFlatSpec {
   }
 
   case class BitHeapCompressor() extends Component {
-    val dataIn = in Vec(UInt(40 bits), 20)
-    val heap = BitHeap.getHeapFromInfos(Seq.fill(50)(ArithInfo(40, 0, true)), dataIn.map(_.asBools))
+    val dataIn = in Vec (UInt(40 bits), 20)
+    val heap = BitHeap.getHeapFromInfos(
+      Seq.fill(50)(ArithInfo(40, 0, true)),
+      dataIn.map(_.asBools)
+    )
 
     def zero(): Bool = False
 
@@ -32,7 +34,12 @@ class BitHeapTest extends AnyFlatSpec {
     ret.output(zero).map(_.asBits().asUInt).foreach(out(_))
   }
 
-  it should "work correctly on software(fake mode)" in BitHeap.getFakeHeapFromHeights(Seq.fill(20)(20)).compressAll(GPC())
+  it should "work correctly on software(fake mode)" in BitHeap
+    .getFakeHeapFromHeights(Seq.fill(20)(20))
+    .compressAll(GPC())
 
-  it should "work correctly on hardware" in VivadoSynth(BitHeapCompressor(), "bitHeap")
+  it should "work correctly on hardware" in VivadoSynth(
+    BitHeapCompressor(),
+    "bitHeap"
+  )
 }

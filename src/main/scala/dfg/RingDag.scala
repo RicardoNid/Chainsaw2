@@ -31,7 +31,7 @@ class RingDag(name: String = "ring", val golden: Seq[BigInt] => Seq[BigInt])
 
   def breakBundles() = BreakBundles(this)
 
-  def rewritePostAdditionTree() = RewritePostAdditionTree(this)
+  def rewritePostAdditionTree() = RewriteAdditionTree(this)
 
   /** get the graph prepared for hardware implementation
    *
@@ -57,13 +57,19 @@ class RingDag(name: String = "ring", val golden: Seq[BigInt] => Seq[BigInt])
   def toTransform = {
 
     this.validate()
-    this.showCost
+    this.toPng(name)
 
     val graphLatency = this.latency
-    logger.info(s"graph before impl $this")
     logger.info(s"latency before impl $graphLatency")
 
-    def config = new TransformBase {
+    def config = new TransformDfg {
+
+      override val name = "name"
+      // TODO: not this type
+      override val opType = Custom
+      override val widthsIn = inputs.asInstanceOf[Seq[RingVertex]].flatMap(_.widthsIn)
+      override val widthsOut = outputs.asInstanceOf[Seq[RingVertex]].flatMap(_.widthsOut)
+
       override def impl(dataIn: Seq[Any]) = golden.apply(dataIn.asInstanceOf[Seq[BigInt]])
 
       override val size = (inputs.length, outputs.length)
@@ -89,63 +95,48 @@ class RingDag(name: String = "ring", val golden: Seq[BigInt] => Seq[BigInt])
     module(config)
   }
 
-  def toPng(pngName: String = null) = {
+  def asRingOp(dataIns: Seq[RingPort])(implicit dag: RingDag) = {
 
-    import org.jgrapht.ext.JGraphXAdapter
-    import _root_.com.mxgraph.layout._
-    import _root_.com.mxgraph.util.mxCellRenderer
+    this.validate()
+    this.toPng(name)
 
-    val graphAdapter = new JGraphXAdapter[V, E](this)
+    val graphLatency = this.latency
+    logger.info(s"latency before impl $graphLatency")
 
-    val layout = new mxCompactTreeLayout(graphAdapter, false, true)
-    layout.setMoveTree(true)
-    layout.setEdgeRouting(false)
-    layout.setResizeParent(false)
-    layout.setLevelDistance(5)
-    println(inputs.mkString(" "))
+    def config = new TransformDfg {
 
-    val vertexMap = graphAdapter.getVertexToCellMap
-    val edgeMap = graphAdapter.getEdgeToCellMap
+      override val name = "name"
+      // TODO: not this type
+      override val opType = Custom
+      override val widthsIn = inputs.asInstanceOf[Seq[RingVertex]].flatMap(_.widthsIn)
+      override val widthsOut = outputs.asInstanceOf[Seq[RingVertex]].flatMap(_.widthsOut)
 
-    // set styles of vertices/edges
-    def colorVertices(vertices: Seq[V], color: String) = {
-      val targets = vertices.map(vertexMap.get(_)).toArray
-      graphAdapter.setCellStyle(s"fillColor=#$color", targets.asInstanceOf[Array[Object]])
+      override def impl(dataIn: Seq[Any]) = golden.apply(dataIn.asInstanceOf[Seq[BigInt]])
+
+      override val size = (dataIns.length, outputs.length)
+
+      override def latency = graphLatency
+
+      override def implH: TransformModule[UInt, UInt] = module(this)
     }
 
-    def colorEdges(edges: Seq[E], color: String) = {
-      val targets = edges.map(edgeMap.get(_)).toArray
-      graphAdapter.setCellStyle(s"strokeColor=#$color", targets.asInstanceOf[Array[Object]])
-    }
+    def module(theConfig: TransformConfig) =
+      new TransformModule[UInt, UInt] {
+        override val config = theConfig
+        val widthsIn = inputs.asInstanceOf[Seq[RingVertex]].flatMap(_.widthsIn)
+        val widthsOut = outputs.asInstanceOf[Seq[RingVertex]].flatMap(_.widthsOut)
+        override val dataIn = slave Flow Fragment(Vec(widthsIn.map(w => UInt(w bits))))
+        dataIn.fragment.head
+        override val dataOut = master Flow Fragment(Vec(widthsOut.map(w => UInt(w bits))))
+        dataOut.fragment := evaluateH(dataIn.fragment)
+        autoValid()
+        autoLast()
+      }
 
-    // find post-addition tree
-    import OpType._
-    val postTypes = Seq(ADDC, ADD, SUBC, SUB, SHIFT, RESIZE)
-
-    val postVertices = ArrayBuffer[V]()
-    val postEdges = ArrayBuffer[E]()
-
-    var currents: Seq[E] = outputs.flatMap(_.incomingEdges)
-    while (currents.nonEmpty) {
-      val drivingVertices = currents.map(_.source).filter(v => postTypes.contains(v.opType))
-      val drivingEdges = drivingVertices.flatMap(_.incomingEdges)
-      postEdges ++= drivingEdges
-      postVertices ++= drivingVertices
-      currents = drivingEdges
-    }
-
-    colorVertices(postVertices, "CCCC00")
-    colorEdges(postEdges, "CCCC00")
-
-    layout.execute(graphAdapter.getDefaultParent)
-
-    val image = mxCellRenderer.createBufferedImage(graphAdapter, null, 2, Color.WHITE, true, null)
-    val fileName = if (pngName == null) {
-      name
-    } else pngName
-    val imgFile = new File(s"/home/ltr/IdeaProjects/Chainsaw2/src/main/resources/dfgGenerated/$fileName.png")
-    ImageIO.write(image, "PNG", imgFile)
+    config.asRingOp(dataIns)(dag)
   }
+
+  def toPng(pngName: String = "temp") = ToPng(this, pngName)
 }
 
 object RingDag {

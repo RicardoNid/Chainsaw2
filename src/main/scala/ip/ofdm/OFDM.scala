@@ -46,7 +46,7 @@ case class OFDM(config: OFDMConfig) extends TransformModule[Bool, ComplexFix] {
   // sliding input
   val tail = RegNext(Vec(dataIn.fragment.takeRight(convConfig.constraintLength - 1)))
   // convenc
-  val intoConv = (tail ++ dataIn.fragment).sliding(convConfig.inputWidth, convConfig.inputStep).toSeq
+  val intoConv = (tail ++ dataIn.fragment).sliding(convConfig.inputPortWidth, convConfig.inputStep).toSeq
   convCores.zip(intoConv).foreach { case (conv, bools) =>
     conv.dataIn.fragment := bools
     conv.skipControl()

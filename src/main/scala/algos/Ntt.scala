@@ -28,11 +28,11 @@ object Ntt {
     assert(ret.diff(goldenTerms).isEmpty, s"${ret.diff(goldenTerms)}") // 进行对照
   }
 
-//  def main(args: Array[String]): Unit = {
-//    val thePoly1 = Seq(Term(278,245), Term(1,0))
-//    val thePoly2 = Seq(Term(213,399), Term(2,0))
-//    val result = Seq(Term(2,0), Term(2621,132), Term(3116,143), Term(556,246)) // 我们故意将最后一项设为错的
-//    evaluateHUAWEI(thePoly1, thePoly2, result)
-//  }
+  def main(args: Array[String]): Unit = {
+    val thePoly1 = Seq(Term(278,245), Term(1,0))
+    val thePoly2 = Seq(Term(213,399), Term(2,0))
+    val result = Seq(Term(2,0), Term(2621,132), Term(3116,143), Term(556,246)) // 我们故意将最后一项设为错的
+    evaluateHUAWEI(thePoly1, thePoly2, result)
+  }
 }
 
