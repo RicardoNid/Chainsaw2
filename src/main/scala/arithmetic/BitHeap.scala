@@ -151,12 +151,12 @@ case class BitHeap[T](bitHeap: ArrayBuffer[ArrayBuffer[T]], weightLow: Int) {
       if (maximumEff >= bestEff) // skip when ideal efficiency is lower than current best efficiency
         {
           val (exactEff, width) = {
-            if (compressor.isFixed)
+            if (compressor.isFixed) {
               (getExactEfficiency(compressor, -1, columnIndex), -1) // for GPC, get eff
-            else {                                                  // for row compressor, try different widths, get the best one with its width
+            } else {                                                // for row compressor, try different widths, get the best one with its width
               // TODO: avoid trying all widths
-              if (widthMax >= 1)
-                (1 to widthMax).map(w => (getExactEfficiency(compressor, w, columnIndex), w)).maxBy(_._1)
+              if (widthMax >= compressor.widthMin)
+                (compressor.widthMin to widthMax).map(w => (getExactEfficiency(compressor, w, columnIndex), w)).maxBy(_._1)
               else (-1.0, 0) // skip
             }
           }
