@@ -43,7 +43,7 @@ case class SignalPro(implicit staticConfig: DasStaticConfig) extends Component {
   val phaseDiff = PhaseDiff()
   val pulseUnwrap = PulseUnwrap()
   val phaseMean = PhaseMean()
-  val spatialExtractor = SpatialExtractor()
+  val meanUnwrap = MeanUnwrap()
 
   /** --------
    * parameters path
@@ -51,13 +51,15 @@ case class SignalPro(implicit staticConfig: DasStaticConfig) extends Component {
   // parameters input
   val gaugePointsIn = in UInt (log2Up(gaugePointsMax.divideAndCeil(subFilterCount) + 1) bits)
   val pulsePointsIn = in UInt (log2Up(pulsePointsMax.divideAndCeil(subFilterCount) + 2) bits)
-  val positionIn = in UInt (log2Up(spatialPointsMax) bits)
+  val spatialPointsIn = in UInt (log2Up(spatialPointsMax + 2) bits)
+
   val gaugeReverseIn = in SFix(0 exp, -17 exp)
   // allocate parameters
   phaseDiff.gaugePointsIn := gaugePointsIn
   pulseUnwrap.pulsePointsIn := pulsePointsIn
   phaseMean.gaugePointsIn := gaugePointsIn
   phaseMean.gaugeReverseIn := gaugeReverseIn
+  meanUnwrap.spatialPointsIn := spatialPointsIn
 
   /** --------
    * datapath
@@ -67,11 +69,15 @@ case class SignalPro(implicit staticConfig: DasStaticConfig) extends Component {
   phaseDiff.flowIn := filterPath.flowOut
   pulseUnwrap.flowIn := phaseDiff.flowOut
   phaseMean.flowIn := pulseUnwrap.flowOut
-  spatialExtractor.flowIn := phaseMean.flowOut
+  meanUnwrap.flowIn := phaseMean.flowOut
 
-  val flowOut = out cloneOf phaseMean.flowOut
-  flowOut := phaseMean.flowOut
+  val flowOut = out cloneOf meanUnwrap.flowOut
+  flowOut := meanUnwrap.flowOut
 
+  //  val spatialExtractor = SpatialExtractor()
+  //  val positionIn = in UInt (log2Up(spatialPointsMax) bits)
+  //  spatialExtractor.positionIn := positionIn
+  //  spatialExtractor.flowIn := phaseMean.flowOut
   //  val flowOut = out cloneOf spatialExtractor.flowOut
   //  flowOut := spatialExtractor.flowOut
 }

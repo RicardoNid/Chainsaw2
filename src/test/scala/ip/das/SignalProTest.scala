@@ -5,52 +5,71 @@ import intel.QuartusFlow
 
 import org.scalatest.flatspec.AnyFlatSpec
 import spinal.core.sim._
-import spinal.core._
 
 import scala.collection.mutable.ArrayBuffer
+import scala.util.Random
 
 class SignalProTest extends AnyFlatSpec {
 
-  implicit val staticConfig = DasStaticConfig()
-  val runtimeConfig = DasRuntimeConfig(10.4, 24.9, 5e6, 31)
+  val test200 = false
+
+  implicit val staticConfig: DasStaticConfig = DasStaticConfig(
+    samplingFreq = if (test200) 200e6 else 250e6,
+    sigProFreq = if (test200) 100e6 else 125e6
+  )
+  val runtimeConfig = DasRuntimeConfig(
+    gaugeLength = if (test200) 11 else 10.4,
+    probeLength = 24.9,
+    bandWidth = 5e6,
+    gain = 31,
+    probePosition = 19785)
+
   val constants = staticConfig.genConstants()
   val regValues = runtimeConfig.genRegValues(staticConfig)
 
   import constants._
   import regValues._
 
-  "DAS signal processing" should "work" in {
+  val testPulses = 80
+  val testType = 0
 
-    matlabEngine.eval("load('/home/ltr/sysudas/code/matlab/dataFromOscil/100ns_4k_1.mat');")
-    //    matlabEngine.eval("dataIn = Channel_1.Data(1:2500000);") // 40 pulses
-    matlabEngine.eval("dataIn = Channel_1.Data(1:1250000);") // 20 pulses
-    matlabEngine.eval("dataIn = double(dataIn);")
-    matlabEngine.eval("dataIn = dataIn ./ max(abs(dataIn));") // normalization
-    val data = matlabEngine.getVariable[Array[Double]]("dataIn")
+  val data = testType match {
+    case 0 => // valid data from oscil
+      matlabEngine.eval("load('/home/ltr/sysudas/code/matlab/dataFromOscil/100ns_4k_1.mat');")
+      matlabEngine.eval(s"dataIn = Channel_1.Data(1:${62500 * testPulses});") // 250MHz -> 62500
+      matlabEngine.eval("dataIn = double(dataIn);")
+      if (test200) matlabEngine.eval("dataIn = resample(dataIn, 4, 5);")
+      matlabEngine.eval("dataIn = dataIn ./ max(abs(dataIn));") // normalization
+      matlabEngine.getVariable[Array[Double]]("dataIn")
+  }
 
+  behavior of "DAS signal processing"
+
+  it should "work" in {
+
+    val meshSize = 3
     val simName = "testDasSigPro"
 
-    // TODO: get data by valid
     SimConfig.workspaceName("testDasSigPro").withFstWave.compile(SignalPro()).doSim { dut =>
 
       /** --------
-       * initialize parameters
+       * initialize runtime parameters
        * -------- */
-      dut.clockDomain.forkStimulus(2)
-      dut.clockDomain.waitSampling()
       dut.flowIn.modeChange #= true
       dut.flowIn.pulseChange #= true
       dut.gaugePointsIn #= gaugePoints.divideAndCeil(subFilterCount)
       dut.gaugeReverseIn #= 1.0 / gaugePoints.nextMultiple(subFilterCount)
       dut.pulsePointsIn #= pulsePoints.divideAndCeil(subFilterCount)
-      logger.info(s"ppi = ${pulsePoints.divideAndCeil(subFilterCount)}")
+      dut.spatialPointsIn #= spatialPoints
+      //            dut.positionIn #= position
       dut.flowIn.valid #= false
+      dut.clockDomain.forkStimulus(2)
       dut.clockDomain.waitSampling()
 
       val pulses = data.grouped(pulsePoints).toSeq
       val ret = Seq.fill(pulses.length)(ArrayBuffer[Double]())
 
-      var pokeStart = false
+      var pokeStart = false // pole start after first pulseChange signal
 
       /** --------
        * poke pulses & peek output
@@ -81,7 +100,7 @@ class SignalProTest extends AnyFlatSpec {
         dut.clockDomain.waitSampling()
       }
 
-      val (goldenPhase, goldenIntensity) = DoDas(staticConfig, runtimeConfig, data)
+      val goldenPhase = DoDas(staticConfig, runtimeConfig, data)._1
 
       /** --------
        * show results
@@ -91,38 +110,31 @@ class SignalProTest extends AnyFlatSpec {
       logger.info(s"size of pulses in ret: ${ret.map(_.length).mkString(" ")}")
       logger.info(s"size of ret: ${goldenPhase.length} * ${goldenPhase.head.length}")
 
-      val draw = 0
-
       // compare point by point
-      if (draw == 0) {
-        //        val position = 10000 + 4
-        val position = (19785 / runtimeConfig.gaugeLength).ceil.toInt
-        matlabEngine.eval("figure;")
-        (0 until 9).foreach { i =>
-          matlabEngine.eval(s"subplot(3,3,${i + 1})")
-          val yours = ret.transpose.apply(position + i - 4).toArray
-          val golden = goldenPhase.transpose.apply(position + i - 4).toArray
-          matlab.CompareData(yours, golden, name = s"fig_$i")
-        }
-
-        matlabEngine.eval(s"saveas(gcf, 'simWorkspace/$simName/$simName-point-by-point', 'png')")
-        logger.info(s"view the figure generated: /home/ltr/IdeaProjects/Chainsaw2/simWorkspace/$simName/$simName-point-by-point.png")
-      } else if (draw == 1) { // compare pulse by pulse
-        val time = 10
-        matlab.CompareData(ret.apply(time).take(200), goldenPhase.apply(time).take(200), name = s"compare")
-        matlabEngine.eval(s"saveas(gcf, 'simWorkspace/$simName/$simName-pulse-by-pulse', 'png')")
-        logger.info(s"view the figure generated: /home/ltr/IdeaProjects/Chainsaw2/simWorkspace/$simName/$simName-pulse-by-pulse.png")
-      } else {
-        matlab.CompareData(ret.flatten, ret.flatten, name = s"compare")
-        matlabEngine.eval(s"saveas(gcf, 'simWorkspace/$simName/$simName-pulse-by-pulse', 'png')")
-        logger.info(s"view the figure generated: /home/ltr/IdeaProjects/Chainsaw2/simWorkspace/$simName/$simName-all.png")
+      (0 until meshSize * meshSize).foreach { i =>
+        matlabEngine.eval(s"subplot($meshSize,$meshSize,${i + 1})")
+        val shift = meshSize * meshSize / 2
+        val yours = ret.transpose.apply(position + i - shift).toArray
+        val golden = goldenPhase.transpose.apply(position + i - shift).toArray
+        matlab.CompareData(yours, golden, name = s"fig_$i")
       }
+      matlab.SaveCurrentFigure(s"point-by-point")
+
+      // compare pulse by pulse
+      val time = 20
+      matlab.CompareData(ret.apply(time).take(200), goldenPhase.apply(time).take(200), name = s"compare")
+      matlab.SaveCurrentFigure(s"pulse-by-pulse")
+
+      // when extractor is connected, show the curve at a specific position
+      //      matlab.CompareData(ret.flatten, ret.flatten, name = s"compare")
+      //      matlab.SaveCurrentFigure(s"all")
     }
   }
 
-  it should "synth for filterpath" in new QuartusFlow(FilterPath()).impl()
+  it should "synth for filter path" in new QuartusFlow(FilterPath()).impl()
   it should "synth for diff" in new QuartusFlow(PhaseDiff()).impl()
   it should "synth for unwrap0" in new QuartusFlow(PulseUnwrap()).impl()
   it should "synth for mean" in new QuartusFlow(PhaseMean()).impl()
+  it should "synth for unwrap1" in new QuartusFlow(MeanUnwrap()).impl()
   it should "synth for full module" in new QuartusFlow(SignalPro()).impl()
 }
