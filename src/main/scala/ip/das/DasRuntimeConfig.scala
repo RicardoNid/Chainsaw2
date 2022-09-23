@@ -6,14 +6,16 @@ case class DasRegValues(
                          gaugePoints: Int,
                          spatialPoints: Int,
                          pulsePeriod: Int,
-                         gain: Int
+                         gain: Int,
+                         position: Int
                        )
 
 case class DasRuntimeConfig(
                              gaugeLength: Double,
                              probeLength: Double,
                              bandWidth: Double,
-                             gain: Int
+                             gain: Int, // 31 - real gain
+                             probePosition: Double
                            ) {
   def genRegValues(staticConfig: DasStaticConfig) = {
 
@@ -27,12 +29,15 @@ case class DasRuntimeConfig(
 
     def gaugePoints = (gaugeLength * 2 / c * samplingFreq).ceil.toInt.nextMultiple(subFilterCount)
 
+    def position = (probePosition / gaugeLength).ceil.toInt
+
     DasRegValues(
       pulsePoints = pulsePoints,
       gaugePoints = gaugePoints,
-      spatialPoints = (pulsePoints / gaugePoints).ceil.toInt,
+      spatialPoints = (pulsePoints.toDouble / gaugePoints.toDouble).ceil.toInt,
       pulsePeriod = (sigProFreq / pulseFreq).ceil.toInt,
-      gain = gain
+      gain = gain,
+      position = position
     )
   }
 }

@@ -56,9 +56,3 @@ case class FilterPath(implicit staticConfig: DasStaticConfig) extends Component 
 
     flowOut := flowIn.pipeWith(Vec(normalizedPhases), latency)
 }
-
-object FilterPath {
-  def main(args: Array[String]): Unit = {
-    new QuartusFlow(FilterPath(DasStaticConfig()), "filterpath").impl()
-  }
-}

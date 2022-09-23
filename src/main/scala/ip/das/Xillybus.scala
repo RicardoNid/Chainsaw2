@@ -5,18 +5,41 @@ import spinal.core._
 
 import scala.language.postfixOps
 
+/** black box generator for xillybus IP, configured by a list of devices
+ *
+ * @param devices the device files you define through xillybus IP factory [[http://xillybus.com/custom-ip-factory]]
+ */
+case class Xillybus(devices: Seq[XillybusDevice]) extends BlackBox {
+  val quiesce, bus_clk = out Bool()
+  val user_led = out Bits (4 bits)
+  val pcie = PcieBundle()
+
+  val streamsRead = devices.filter(device => device.direction == "read" && device.deviceType == "fifo")
+  val streamsWrite = devices.filter(device => device.direction == "write" && device.deviceType == "fifo")
+  val memsWrite = devices.filter(device => device.direction == "write" && device.deviceType == "mem")
+
+  val streamReadInterfaces = streamsRead.map(StreamRead)
+  val streamWriteInterfaces = streamsWrite.map(StreamWrite)
+  val memWriteInterfaces = memsWrite.map(MemWrite)
+
+  setDefinitionName("xillybus")
+}
+
 /** --------
  * interfaces of different kinds of devices supported by xillybus
- -------- */
+ * @see [[http://xillybus.com/custom-ip-factory]]
+ * -------- */
 
-case class StreamRead(device: XillybusDevice) extends Bundle {
+case class StreamRead(device: XillybusDevice)
+  extends Bundle {
   val rden, open = out Bool()
   val empty, eof = in Bool()
   val data = in Bits (device.width bits)
   this.setName(s"${device.fullName}")
 }
 
-case class StreamWrite(device: XillybusDevice) extends Bundle {
+case class StreamWrite(device: XillybusDevice)
+  extends Bundle {
   val wren, open = out Bool()
   val full = in Bool()
   val data = out Bits (device.width bits)
@@ -62,7 +85,6 @@ case class MemWrite(device: XillybusDevice) extends Bundle {
 
 // TODO: MemRead
 
-
 /** a xillybus device file
  *
  * @param name       the name you specify through xillybus IP factory [[http://xillybus.com/custom-ip-factory]]
@@ -82,24 +104,4 @@ case class XillybusDevice(name: String, deviceType: String, direction: String, w
   def fullName = s"user_${directionName}_$name"
 
   def winAddress = s"\\\\.\\xillybus_$name"
-}
-
-/** black box generator for xillybus IP, configured by a list of devices
- *
- * @param devices the device files you define through xillybus IP factory [[http://xillybus.com/custom-ip-factory]]
- */
-case class Xillybus(devices: Seq[XillybusDevice]) extends BlackBox {
-  val quiesce, bus_clk = out Bool()
-  val user_led = out Bits (4 bits)
-  val pcie = PcieBundle()
-
-  val streamsRead = devices.filter(device => device.direction == "read" && device.deviceType == "fifo")
-  val streamsWrite = devices.filter(device => device.direction == "write" && device.deviceType == "fifo")
-  val memsWrite = devices.filter(device => device.direction == "write" && device.deviceType == "mem")
-
-  val streamReadInterfaces = streamsRead.map(StreamRead)
-  val streamWriteInterfaces = streamsWrite.map(StreamWrite)
-  val memWriteInterfaces = memsWrite.map(MemWrite)
-
-  setDefinitionName("xillybus")
 }
