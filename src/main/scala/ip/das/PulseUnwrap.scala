@@ -4,7 +4,6 @@ package ip.das
 import dsp.UnwrapConfig
 
 import spinal.core._
-import spinal.lib._
 import spinal.lib.fsm.{State, StateEntryPoint, StateMachine}
 
 import scala.language.postfixOps
@@ -12,7 +11,6 @@ import scala.language.postfixOps
 case class PulseUnwrap(implicit staticConfig: DasStaticConfig) extends Component {
 
   val constants = staticConfig.genConstants()
-
   import constants._
 
   val flowIn = in(DasFlow(phaseUnwrapType, subFilterCount))
@@ -28,11 +26,12 @@ case class PulseUnwrap(implicit staticConfig: DasStaticConfig) extends Component
   readCounter.increment()
 
   val buffer = Mem(Vec(phaseStoredType, subFilterCount), pulsePointsMax.divideAndCeil(subFilterCount))
-  val bufferOut = buffer.readSync(readCounter)
+  val bufferOut = buffer.readSync(readCounter).d(1)
 
   val unwrapCores = Seq.fill(subFilterCount)(UnwrapConfig(phaseStoredType, phaseUnwrapType).implH) // unwrap module
   val unwrapLatency = UnwrapConfig(phaseStoredType, phaseUnwrapType).latency
-  val unwrapped = bufferOut.zip(flowIn.payload).zip(unwrapCores).map { case ((prev, next), core) => core.asFunc(Seq(prev, next)).head }
+  val unwrapped = bufferOut.zip(flowIn.payload).zip(unwrapCores)
+    .map { case ((prev, next), core) => core.asFunc(Seq(prev, next)).head }
 
   val ret = cloneOf(flowOut.payload)
   ret.assignDontCare() // pre-assignment
@@ -46,7 +45,7 @@ case class PulseUnwrap(implicit staticConfig: DasStaticConfig) extends Component
       ret := flowIn.payload.d(unwrapLatency)
       when(flowIn.pulseChange) {
         writeCounter.clear()
-        readCounter.value := U(1, counterWidth bits) // read latency = 1
+        readCounter.value := U(2, counterWidth bits) // read latency = 2
         goto(normal)
       }
     }
@@ -54,12 +53,11 @@ case class PulseUnwrap(implicit staticConfig: DasStaticConfig) extends Component
       ret := Vec(unwrapped)
       when(flowIn.pulseChange) {
         writeCounter.clear()
-        readCounter.value := U(1, counterWidth bits)
+        readCounter.value := U(2, counterWidth bits)
       }
       when(flowIn.modeChange)(goto(first))
     }
   }
 
   flowOut := flowIn.pipeWith(ret, unwrapLatency)
-
 }

@@ -6,18 +6,7 @@ import spinal.lib._
 
 import scala.language.postfixOps
 
-
-/** interface of a MemWrite device when you use it a as control channel which modify a register file for control
- *
- * @param ctrlDevice the MemWrite device configuration
- */
-case class CtrlInterface(ctrlDevice: XillybusDevice) extends Bundle {
-  val ctrlUpdate = Bool()
-  val ctrlAddr = UInt(ctrlDevice.addrWidth bits)
-  val ctrlValue = UInt(ctrlDevice.width bits)
-}
-
-/** wrapper for xillybus that generate FIFOs and RAMs automatically, only expose read/write ports for each channel
+/** wrapper for xillybus that generate FIFOs for each stream channel, and expose the ctrl interface for the memory-map channel
  *
  * @param devices the device files you define through xillybus IP factory [[http://xillybus.com/custom-ip-factory]]
  */
@@ -41,7 +30,7 @@ case class XillybusWrapper(devices: Seq[XillybusDevice]) extends Component {
   // stream channels connections
   xillybus.streamsRead.zip(xillybus.streamReadInterfaces.zip(fifoWriteInterfaces))
     .foreach { case (device, (busSide, userSide)) =>
-      val fifo = DcFifo(device.width)
+      val fifo = AlteraDcFifo(device.width)
       fifo.setDefinitionName(s"fifo${device.width}")
       // xillybus <-> FIFO
       fifo.rdclk := xillybus.bus_clk
@@ -58,7 +47,7 @@ case class XillybusWrapper(devices: Seq[XillybusDevice]) extends Component {
 
   xillybus.streamsWrite.zip(xillybus.streamWriteInterfaces.zip(fifoReadInterfaces))
     .foreach { case (device, (busSide, userSide)) =>
-      val fifo = DcFifo(device.width)
+      val fifo = AlteraDcFifo(device.width)
       fifo.setDefinitionName(s"fifo${device.width}")
       // xillybus <-> FIFO
       fifo.wrclk := xillybus.bus_clk
@@ -79,8 +68,6 @@ case class XillybusWrapper(devices: Seq[XillybusDevice]) extends Component {
   ctrlOut.ctrlAddr := ctrlChannel.addr
   ctrlOut.ctrlValue := ctrlChannel.data
 
-  //  val ctrlValues = CtrlInterface(ctrlDevice) // ctrl related values from xillybus side
-
   def getReadInterfaceByName(name: String) =
     xillybus.streamsWrite.zip(fifoReadInterfaces)
       .find(_._1.name == name).get._2
@@ -88,4 +75,24 @@ case class XillybusWrapper(devices: Seq[XillybusDevice]) extends Component {
   def getWriteInterfaceByName(name: String) =
     xillybus.streamsRead.zip(fifoWriteInterfaces)
       .find(_._1.name == name).get._2
+}
+
+/** pcie-related signals on a board, which are necessary for a xillybus IP
+ *
+ */
+case class PcieBundle() extends Bundle {
+  val perstn, refclk = in Bool()
+  val rx = in Bits (4 bits)
+  val tx = out Bits (4 bits)
+  this.setName("pcie")
+}
+
+/** interface of a MemWrite device when you use it a as control channel which manipulate a register file
+ *
+ * @param ctrlDevice the MemWrite device configuration
+ */
+case class CtrlInterface(ctrlDevice: XillybusDevice) extends Bundle {
+  val ctrlUpdate = Bool()
+  val ctrlAddr = UInt(ctrlDevice.addrWidth bits)
+  val ctrlValue = UInt(ctrlDevice.width bits)
 }

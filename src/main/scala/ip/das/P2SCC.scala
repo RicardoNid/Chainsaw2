@@ -28,7 +28,7 @@ case class P2SCC(width: Int, factor: Int, baseFrequency: HertzNumber = 100 MHz)
   /** --------
    * CDC data transfer by async FIFO
    -------- */
-  val fifo = DcFifo(width * factor)
+  val fifo = AlteraDcFifo(width * factor)
   fifo.setDefinitionName("P2SFIFO")
   fifo.wrclk := clkIn
   fifo.rdclk := clkOut
