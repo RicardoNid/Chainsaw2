@@ -5,16 +5,6 @@ import spinal.core._
 
 import scala.language.postfixOps
 
-/** pcie-related signals on a board, corresponding pin locations are needed
- *
- */
-case class PcieBundle() extends Bundle {
-  val perstn, refclk = in Bool()
-  val rx = in Bits (4 bits)
-  val tx = out Bits (4 bits)
-  this.setName("pcie")
-}
-
 // ADC输出,采用DDR时序,在上升/下降沿的一对7位数据组成一个14位输出
 case class AdcIns() extends Bundle {
   val adc_in_a, adc_in_b = in UInt (7 bits)
@@ -33,6 +23,9 @@ case class PulsesOut() extends Bundle {
 }
 
 case class DasTop(implicit staticConfig: DasStaticConfig) extends Component {
+
+  val constants = staticConfig.genConstants()
+  import constants._
 
   /** --------
    * I/O
@@ -69,7 +62,7 @@ case class DasTop(implicit staticConfig: DasStaticConfig) extends Component {
   vga_b := signalProWrapper.gainOut
 
   // xillybus instantiation
-  val xillybusWrapper = XillybusWrapper(DasXillybusDevices())
+  val xillybusWrapper = XillybusWrapper(xillybusDevices)
   xillybusWrapper.pcie <> pcie
 
   /** --------
@@ -80,19 +73,11 @@ case class DasTop(implicit staticConfig: DasStaticConfig) extends Component {
    * signalAcq -> signalPro
    * -------- */
   signalProWrapper.clkIn := signalAcq.ref_clk_out // 62.5MHz
-  val adcData0 = Vec(signalAcq.DOUTA, signalAcq.DOUTB, signalAcq.DOUTC, signalAcq.DOUTD)
-  val adcData1 = Vec(signalAcq.DOUTBA, signalAcq.DOUTBB, signalAcq.DOUTBC, signalAcq.DOUTBD)
+  val adcData0 = Vec(signalAcq.DOUTD, signalAcq.DOUTC, signalAcq.DOUTB, signalAcq.DOUTA)
+  val adcData1 = Vec(signalAcq.DOUTBD, signalAcq.DOUTBC, signalAcq.DOUTBB, signalAcq.DOUTBA)
 
-  val domain625 = ClockDomain(clock = signalAcq.ref_clk_out, reset = rstn, config = dasClockConfig, frequency = FixedFrequency(62.4 MHz))
-
-  //  signalProWrapper.adcData0 := adcData0
-  //  signalProWrapper.adcData1 := adcData1
-
-  new ClockingArea(domain625) {
-    def getAdcAbs(data: Bits) = Mux(data.msb, data.asUInt - U(8192, 14 bits), U(8192, 14 bits) - data.asUInt).d(1)
-    signalProWrapper.adcData0 := Vec(adcData0.map(getAdcAbs).map(_.asBits))
-    signalProWrapper.adcData1 := Vec(adcData1.map(getAdcAbs).map(_.asBits))
-  }
+  signalProWrapper.adcData0 := adcData0
+  signalProWrapper.adcData1 := adcData1
 
   /** --------
    * signalPro <-> xillybus
@@ -128,7 +113,7 @@ case class DasTop(implicit staticConfig: DasStaticConfig) extends Component {
  */
 object UpdateDasProject {
   def main(args: Array[String]): Unit = {
-    implicit val config = DasStaticConfig()
+    implicit val config: DasStaticConfig = DasStaticConfig()
     SpinalConfig(
       netlistFileName = "xillydemo.v",
       targetDirectory = "/home/ltr/sysudas/project/xillyfinal/verilog/src")
