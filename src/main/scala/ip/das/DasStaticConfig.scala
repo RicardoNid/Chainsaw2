@@ -24,12 +24,22 @@ case class DasConstants( // parameters for hardware generation
       s"\n\tspatial points max -> $spatialPointsMax"
   )
 
+  val xillybusDevices: Seq[XillybusDevice] = {
+    val info0 = XillybusDevice("info_0_8", "fifo", "read", 8) // 1MB/s
+    val info1 = XillybusDevice("info_1_8", "fifo", "read", 8) // 1MB/s
+    val adc0 = XillybusDevice("adc_0_16", "fifo", "read", 16) // 100MB/s
+    val adc1 = XillybusDevice("adc_1_16", "fifo", "read", 16) // 100MB/s
+    val ctrl = XillybusDevice("ctrl_8", "mem", "write", 8, 5) // 0.1MB/s
+    val write = XillybusDevice("write_16", "fifo", "write", 16) // 10MB/s
+    Seq(adc0, adc1, info0, info1, ctrl, write)
+  }
   val adcDataType = HardType(SFix(0 exp, -13 exp))
   val firOutDataType = HardType(SFix(4 exp, -11 exp))
   val normalizedPhaseType = HardType(SFix(0 exp, -15 exp))
   val phaseDiffType = HardType(SFix(1 exp, -15 exp))
   val phaseUnwrapType = HardType(SFix(4 exp, -15 exp))
-  val phaseStoredType = HardType(SFix(4 exp, -8 exp))
+  //  val phaseStoredType = HardType(SFix(4 exp, -8 exp))
+  val phaseStoredType = HardType(SFix(4 exp, -15 exp))
 }
 
 case class DasCost(
@@ -49,8 +59,8 @@ case class DasCost(
 }
 
 case class DasStaticConfig(
-                            samplingFreq: Double = 250e6,
-                            sigProFreq: Double = 125e6,
+                            samplingFreq: Double = 200e6,
+                            sigProFreq: Double = 100e6,
                             aomFreq: Double = 80e6,
                             gaugeLengthRange: (Double, Double) = (5.0, 50.0),
                             probeLengthRange: (Double, Double) = (0.9, 39.9),
