@@ -13,7 +13,7 @@ abstract class Flopoco extends TransformBase {
 
   // params required for all operators, fmax and device family can be globally changed for your project by change xilinx.defaultDevice
   val operatorName: String
-  val frequency = xilinx.defaultDevice.fmax
+  val frequency = xilinx.defaultDevice.fMax
   val family = xilinx.defaultDevice.family
 
   // parameters for specific operator, this field should be implemented by concrete operators
