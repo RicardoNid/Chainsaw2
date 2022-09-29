@@ -114,46 +114,36 @@ case class BitHeap[T](bitHeap: ArrayBuffer[ArrayBuffer[T]], weightLow: Int) {
     //    require(compressors.head.inputBitsCount(-1) == compressors.head.outputBitsCount(-1))
 
     val effBound = if (finalStage) 0.0 else 1.0
-    val columnIndex = heights.indexWhere(_ == heights.max) // find the first(lowest weight) column with maximum height
-
     // when no qualified compressor can be found, the 1 to 1 compressor(no compression) will be chosen
     var bestCompressor = compressors.head
-    var bestEff = 0.0
+    var bestEff        = 0.0
+    val columnIndex    = heights.indexWhere(_ == heights.max) // find the first(lowest weight) column with maximum height
     // number of continuous nonempty columns that 1 to 1 compressor can be applied on
     var bestWidth = bitHeap.drop(columnIndex).takeWhile(_.nonEmpty).length
 
-    if (!finalStage) { // sort by efficiency, high to low, besides the 1 to 1 compressor which appear as head
-      val candidates = compressors.tail.sortBy(_.efficiency(width)).reverse
+    // sort by efficiency, high to low, besides the 1 to 1 compressor which appear as head
+    val candidates = compressors.tail.sortBy(_.efficiency(width)).reverse
 
-      candidates.foreach { compressor => // traverse all available compressors
-        val widthMax = compressor.widthMax min (this.width - columnIndex)
-        val widthMin = compressor.widthMin min widthMax
-        val maximumEff = compressor.efficiency(widthMax)
-        if (maximumEff >= bestEff) // skip when ideal efficiency is lower than current best efficiency
-        {
-          val (exactEff, width) = {
-            if (compressor.isFixed) (getExactEfficiency(compressor, -1, columnIndex), -1) // for GPC, get eff
-            else { // for row compressor, try different widths, get the best one with its width
-              // TODO: avoid trying all widths
-              if (widthMax >= 1) (widthMin to widthMax).map(w => (getExactEfficiency(compressor, w, columnIndex), w)).maxBy(_._1)
-              else (-1.0, 0) // skip
-            }
+    candidates.foreach { compressor => // traverse all available compressors
+      val widthMax = compressor.widthMax min (this.width - columnIndex)
+      val maximumEff = compressor.efficiency(widthMax)
+      if (maximumEff >= bestEff) // skip when ideal efficiency is lower than current best efficiency
+      {
+        val (exactEff, width) = {
+          if (compressor.isFixed) (getExactEfficiency(compressor, -1, columnIndex), -1) // for GPC, get eff
+          else { // for row compressor, try different widths, get the best one with its width
+            // TODO: avoid trying all widths
+            if (widthMax >= 1) (1 to widthMax).map(w => (getExactEfficiency(compressor, w, columnIndex), w)).maxBy(_._1)
+            else (-1.0, 0) // skip
           }
-          if (exactEff >= bestEff && (exactEff >= effBound)) { // update if a better compressor is found
-            bestEff = exactEff
-            bestWidth = width
-            bestCompressor = compressor
-          }
+        }
+        if (exactEff >= bestEff && (exactEff >= effBound)) { // update if a better compressor is found
+          bestEff = exactEff
+          bestWidth = width
+          bestCompressor = compressor
         }
       }
     }
-    else {
-      if (heights.max >= 2) {
-        bestCompressor = Compressor3to2.asInstanceOf[Compressor[T0]]
-        bestWidth = Compressor3to2.widthMax min bestWidth
-      }
-    }
-
 
     //    if (bestCompressor != compressors.head)
     //      logger.info(s"get ${bestCompressor.getClass.getSimpleName} column=$columnIndex width=$bestWidth efficiency=$bestEff")
@@ -232,7 +222,7 @@ case class BitHeap[T](bitHeap: ArrayBuffer[ArrayBuffer[T]], weightLow: Int) {
     var badLatency = 0
     var allCost = 0
     while (current.height > 2 && latency < 100) {
-      val finalStage = current.height <= 3
+      val finalStage = current.height <= 4
       if (finalStage) badLatency += 1
       val (heap, cost) = current.compressOneStage(candidates, pipeline, finalStage)
       current = heap
@@ -243,9 +233,9 @@ case class BitHeap[T](bitHeap: ArrayBuffer[ArrayBuffer[T]], weightLow: Int) {
     logger.info(
       s"\n----efficiency report of bit heap compressor----" +
         s"\n\tcost in total: $allCost, compressed in total: $allCompressed" +
-        s"\n\tefficiency in total: ${allCompressed.toDouble / allCost}"
+        s"\n\tefficiency in total: ${allCompressed.toDouble / allCost}" +
+        s"\n\tideal widthOut: ${maxValue.bitLength}, actual widthOut: ${current.width}"
     )
-    if(current.width < maxValue.bitLength) logger.warn(s"ideal widthOut: ${maxValue.bitLength}, actual widthOut: ${current.width}")
     (current, latency, current.width)
   }
 
