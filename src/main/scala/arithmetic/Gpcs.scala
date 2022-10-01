@@ -6,7 +6,6 @@ package org.datenlord
 package arithmetic
 
 import device._
-
 import org.datenlord.xilinx.{VivadoUtil, VivadoUtilRequirement}
 import spinal.core._
 import spinal.lib._
@@ -14,14 +13,14 @@ import spinal.lib._
 import scala.collection.mutable.ArrayBuffer
 import scala.language.postfixOps
 
-/** list of available compressors
+/** providing a list of available compressors
  *
  * @see [[Compressor4to2]]
  * @see [[Compressor3to1]]
  * @see [[Compressor3to2]]
  * @see [[Compressor6to3]]
  */
-object GPC {
+object Gpcs {
   def apply(): Seq[Compressor[Bool]] = {
     val ret = Seq(Compressor1to1, Compressor4to2, Compressor3to1, Compressor6to3, Compressor3to2)
     ret
@@ -174,6 +173,8 @@ object Compressor3to1 extends Compressor[Bool] {
 
   override val widthMax = 16
 
+  override val widthMin = 1
+
   override def inputFormat(width: Int): Seq[Int] = 5 +: Seq.fill(width - 1)(3)
 
   override def outputFormat(width: Int): Seq[Int] = Seq.fill(width)(1) :+ 2
@@ -201,6 +202,8 @@ object Compressor3to1 extends Compressor[Bool] {
   }
 
   override def utilRequirement(width: Int) = VivadoUtilRequirement(lut = width, carry8 = width.divideAndCeil(8))
+
+  override def fMaxRequirement: HertzNumber = 600 MHz
 }
 
 object Compressor1to1 extends Compressor[Bool] {
@@ -262,6 +265,27 @@ object Compressor6to3 extends Compressor[Bool] {
   }
 
   override def utilRequirement(width: Int) = VivadoUtilRequirement(lut = 3, carry8 = 0)
+
+  override def fMaxRequirement: HertzNumber = 600 MHz
+}
+
+case class Compressor3to2Hard() extends Component {
+  val dataIn = in UInt (3 bits)
+  val dataOut = out UInt (2 bits)
+
+  def lut(x: Bool, y: Bool, z: Bool) = {
+    val core = LUT6_2(BigInt("96969696e8e8e8e8", 16))
+    core.I0 := x
+    core.I1 := y
+    core.I2 := z
+    core.I3 := False
+    core.I4 := False
+    core.I5 := True
+    (core.O5, core.O6) // O5 is carry output, O6 is XOR output
+  }
+
+  val lutOuts = lut(dataIn(0), dataIn(1), dataIn(2))
+  dataOut := (lutOuts._1 ## lutOuts._2).asUInt
 }
 
 /** full adder with carry
@@ -272,7 +296,9 @@ object Compressor3to2 extends Compressor[Bool] {
 
   override val isFixed = true
 
-  override val widthMax = 1
+  override val widthMax = 16
+
+  override val widthMin = 1
 
   override def inputFormat(width: Int) = Seq(3)
 
@@ -283,10 +309,10 @@ object Compressor3to2 extends Compressor[Bool] {
   // TODO: implement this by LUT primitive
   override def impl(bitsIn: BitHeap[Bool], width: Int): BitHeap[Bool] = {
     val dataIns = bitsIn.bitHeap.head.padTo(3, False)
-    val ret     = Compressor3to2Hard()
+    val ret = Compressor3to2Hard()
     ret.dataIn := dataIns.asBits().asUInt
     val bitHeap = ArrayBuffer.fill(2)(ArrayBuffer[Bool]())
-    ret.asBools.zip(bitHeap).foreach { case (bit, column) => column += bit }
+    ret.dataOut.asBools.zip(bitHeap).foreach { case (bit, column) => column += bit }
     BitHeap(bitHeap, bitsIn.weightLow)
   }
 

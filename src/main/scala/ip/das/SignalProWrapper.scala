@@ -128,7 +128,7 @@ case class SignalProWrapper(implicit staticConfig: DasStaticConfig)
     dataOut1.valid := spatialExtractor.flowOut.valid
 
     signalPro.flowIn.index.assignDontCare() // for simulation only
-    signalPro.flowIn.payload.assignDontCare() // pre-assignment
+    //    signalPro.flowIn.payload.assignDontCare() // pre-assignment
     pulsesOut := pulseGen.pulseOut
     //    when(regsOut.mode === 0) { // self-testing mode, counter -> pcie
     //      selfTest.dataOut0 >> dataOut0

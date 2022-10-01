@@ -7,6 +7,7 @@ import breeze.numerics.constants.Pi
 import spinal.core._
 import spinal.lib._
 
+import scala.language.postfixOps
 import scala.util.Random
 
 /** unwrap
@@ -43,10 +44,18 @@ case class Unwrap(config: UnwrapConfig)
   val (n, l1) = next.asBits.splitAt(fractionFull)
   val l1Main = l1.takeHigh(fractionStored)
 
+  val random = CounterFreeRun(13)
+
   // 0 -> 1
-  val mux0 = Mux(l1Main.asUInt > l0.asUInt, m.asSInt - 1, m.asSInt + 1).d(1)
+  val mux0 = SInt(m.getBitsWidth bits)
+  when(l1Main.asUInt > l0.asUInt)(mux0 := m.asSInt - 1)
+    .elsewhen(l1Main.asUInt < l0.asUInt)(mux0 := m.asSInt + 1)
+    .elsewhen(l1Main.asUInt === l0.asUInt && random.value.lsb)(mux0 := m.asSInt - 1)
+    .otherwise(mux0 := m.asSInt + 1)
   // 1 -> 2
   val mux1 = Mux((m.lsb === n.lsb).d(1), m.asSInt.d(1), mux0).d(1)
+  val ret = typeFull()
+  ret.assignFromBits(mux1 ## l1.d(2))
 
   dataOut.fragment.head.assignFromBits(mux1 ## l1.d(2))
 
@@ -68,7 +77,7 @@ object Unwrap {
     val data = Seq.fill(100)(Random.nextDouble() * 3 - 3)
     val golden = MatlabFeval[Array[Double]]("unwrap", 0, data.toArray.map(_ * Pi)).map(_ / Pi)
     val yours = unwrap(data)
-    val diff = yours.zip(golden).map{ case (y, g) => (y-g).abs}
+    val diff = yours.zip(golden).map { case (y, g) => (y - g).abs }
     assert(diff.forall(_ < 1e-2))
   }
 }

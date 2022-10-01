@@ -22,7 +22,7 @@ package object datenlord {
   // adjustable parameters
 
   val logger = LoggerFactory.getLogger("Chainsaw logger")
-  var verbose = 1
+  var verbose = 0
 
   type ChainsawFlow[T <: Data] = Flow[Fragment[Vec[T]]]
 

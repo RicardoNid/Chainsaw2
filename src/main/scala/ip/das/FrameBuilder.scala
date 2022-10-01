@@ -10,7 +10,6 @@ case class FrameBuilder(implicit staticConfig: DasStaticConfig)
   extends Component {
 
   val constants = staticConfig.genConstants()
-
   import constants._
 
   val flowIn = in(DasFlow(phaseUnwrapType, 1))

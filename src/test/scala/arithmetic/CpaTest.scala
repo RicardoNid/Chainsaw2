@@ -43,7 +43,7 @@ class CpaTest extends AnyFlatSpec {
     val config = CpaConfig(width, adderType)
     val dataForSub = Seq.fill(testCount){
       val a = BigInt(width, Random)
-      val b = a / 2
+      val b = BigInt(width, Random)
       Seq(a,b)
     }.flatten
     TransformTest.test(config.implH, dataForSub, name = "testBinary")

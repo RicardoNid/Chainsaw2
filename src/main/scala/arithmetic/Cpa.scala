@@ -13,6 +13,7 @@ import scala.language.postfixOps
  * @param widthIn width of all input operands
  * @param mode    binary / ternary
  * @param sub     number of negative operands, negative operands should appear after positive ones
+ * @example (16, TernaryAdder, 2) means a ternary adder
  */
 case class CpaConfig(widthIn: Int, mode: AdderType, sub: Int = 0)
   extends TransformDfg {
@@ -24,7 +25,7 @@ case class CpaConfig(widthIn: Int, mode: AdderType, sub: Int = 0)
     val data = dataIn.asInstanceOf[Seq[BigInt]]
     val ret = mode match {
       case BinaryAdder => data.sum
-      case BinarySubtractor => data(0) - data(1)
+      case BinarySubtractor => if(data(0) > data(1)) data(0) - data(1) else data(0) - data(1) + (BigInt(1) << widthIn) // wrap around
       case TernaryAdder => sub match {
         case 0 => data.sum
         case 1 => data(0) + data(1) - data(2)
@@ -43,6 +44,7 @@ case class CpaConfig(widthIn: Int, mode: AdderType, sub: Int = 0)
 
   val widthOut = mode match {
     case BinaryAdder => widthIn + 1
+    // when you want the sign of subtraction, set 1 bit more on width, then MSB = 1 means negative
     case BinarySubtractor => widthIn
     case TernaryAdder => sub match {
       case 0 => widthIn + 2

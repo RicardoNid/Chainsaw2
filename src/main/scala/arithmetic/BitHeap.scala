@@ -81,7 +81,6 @@ case class BitHeap[T](bitHeap: ArrayBuffer[ArrayBuffer[T]], weightLow: Int) {
 
   def fakePipeline(any: T): T = 0.asInstanceOf[T]
 
-
   /** get the exact(rather than maximum) efficiency of a compressor applied on current bit heap
    *
    * @param columnIndex column with lowest weight covered by the compressor

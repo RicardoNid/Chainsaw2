@@ -30,13 +30,13 @@ class BitHeapTest extends AnyFlatSpec {
 
     def pipeline(bool: Bool) = bool.d(1)
 
-    val (ret, latency, widthOut) = heap.compressAll(GPC(), pipeline)
+    val (ret, latency, widthOut) = heap.compressAll(Gpcs(), pipeline)
     ret.output(zero).map(_.asBits().asUInt).foreach(out(_))
   }
 
   it should "work correctly on software(fake mode)" in BitHeap
     .getFakeHeapFromHeights(Seq.fill(20)(20))
-    .compressAll(GPC())
+    .compressAll(Gpcs())
 
   it should "work correctly on hardware" in VivadoSynth(
     BitHeapCompressor(),

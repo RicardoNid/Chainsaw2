@@ -138,7 +138,8 @@ case class Bcm(config: BcmConfig)
     }
   }
 
-  val ret = compressorConfig.implH.asFunc(operandsIn).head // using bit heap compressor
+  // FIXME: sometimes the result width is less than widthAll, is that correct?
+  val ret = compressorConfig.implH.asFunc(operandsIn).head.resize(widthAll) // using bit heap compressor
 
   mode match { // take bits of interest according to multiplication mode
     case FullMultiplier => dataOut.fragment.head := ret.resized

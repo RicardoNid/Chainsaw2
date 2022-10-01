@@ -25,10 +25,10 @@ case class BitHeapCompressorConfig(infos: Seq[ArithInfo]) extends TransformBase 
   val infosPositive = infos.filter(_.sign)
   val infosNegative = infos.filterNot(_.sign)
 
-  val bitHeapInfoPositive = BitHeap.getFakeHeapFromInfos(infosPositive).compressAll(GPC())
+  val bitHeapInfoPositive = BitHeap.getFakeHeapFromInfos(infosPositive).compressAll(Gpcs())
   val (_, latencyPositive, widthOutPositive) = bitHeapInfoPositive
 
-  val bitHeapInfoNegative = if (hasNegative) BitHeap.getFakeHeapFromInfos(infosNegative).compressAll(GPC()) else bitHeapInfoPositive
+  val bitHeapInfoNegative = if (hasNegative) BitHeap.getFakeHeapFromInfos(infosNegative).compressAll(Gpcs()) else bitHeapInfoPositive
   val (_, latencyNegative, widthOutNegative) = bitHeapInfoNegative
 
   override def latency = latencyPositive max latencyNegative
@@ -68,7 +68,7 @@ case class BitHeapCompressor(config: BitHeapCompressorConfig)
   if (!hasNegative) {
     val operands = dataIn.fragment.map(_.asBools)
     val bitHeap = BitHeap.getHeapFromInfos(infos, operands)
-    val (ret, _, _) = bitHeap.compressAll(GPC(), pipeline)
+    val (ret, _, _) = bitHeap.compressAll(Gpcs(), pipeline)
     dataOut.fragment := ret.output(zero).map(_.asBits().asUInt)
   } else {
     val operandsPositive = dataIn.fragment.map(_.asBools).zip(infos).filter(_._2.sign).map(_._1)
@@ -77,8 +77,8 @@ case class BitHeapCompressor(config: BitHeapCompressorConfig)
     val bitHeapPositive = BitHeap.getHeapFromInfos(infosPositive, operandsPositive)
     val bitHeapNegative = BitHeap.getHeapFromInfos(infosNegative, operandsNegative)
 
-    val (retPositive, _, _) = bitHeapPositive.compressAll(GPC(), pipeline)
-    val (retNegative, _, _) = bitHeapNegative.compressAll(GPC(), pipeline)
+    val (retPositive, _, _) = bitHeapPositive.compressAll(Gpcs(), pipeline)
+    val (retNegative, _, _) = bitHeapNegative.compressAll(Gpcs(), pipeline)
 
     val compensatePositive = latency - latencyPositive
     val compensateNegative = latency - latencyNegative

@@ -9,11 +9,13 @@ import scala.util.Random
 
 class UnwrapTest extends AnyFlatSpec {
 
-  val testCount = 1000
-  val integralMax = 10
+  Random.setSeed(42)
+
+  val testCount = 100000
+  val integralMax = 10.0
   val randomPhases = Seq.fill(testCount)(Random.nextDouble() * 2 * integralMax - integralMax)
-  val typeStored = HardType(SFix(log2Up(integralMax) exp, -4 exp))
-  val typeFull = HardType(SFix(log2Up(integralMax) exp, -10 exp))
+  val typeStored = HardType(SFix(log2Up(integralMax.ceil.toInt) exp, -4 exp))
+  val typeFull = HardType(SFix(log2Up(integralMax.ceil.toInt) exp, -10 exp))
   val config = UnwrapConfig(typeStored, typeFull)
 
   def metric(epsilon: Double) =

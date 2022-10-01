@@ -10,32 +10,32 @@ import scala.collection.mutable.ArrayBuffer
 import scala.language.postfixOps
 import scala.util.Random
 
-class GPCTest extends AnyFlatSpec {
+class GpcsTest extends AnyFlatSpec {
 
-//  Random.setSeed(42)
+  /** wrapper of a compressor, used by the functional test function
+   */
+  def getModule(compressor: Compressor[Bool], width: Int, pipeline: Bool => Bool = bool => bool) =
+    new Module {
+      val inputShape = compressor.inputFormat(width)
+      val outputShape = compressor.outputFormat(width)
 
-  def getModule(compressor: Compressor[Bool], width: Int, pipeline: Bool => Bool = bool => bool) = new Module {
+      val dataIn = in Bits (inputShape.sum bits)
+      val dataOut = out Bits (outputShape.sum bits)
 
-    val inputShape  = compressor.inputFormat(width)
-    val outputShape = compressor.outputFormat(width)
-
-    val dataIn  = in Bits (inputShape.sum bits)
-    val dataOut = out Bits (outputShape.sum bits)
-
-    val bitHeap = ArrayBuffer.fill(inputShape.length)(ArrayBuffer[Bool]())
-    val bits    = ArrayBuffer(dataIn.asBools.reverse: _*)
-    inputShape.zip(bitHeap).foreach { case (i, container) =>
-      val column = bits.take(i)
-      container ++= column
-      bits --= column
+      val bitHeap = ArrayBuffer.fill(inputShape.length)(ArrayBuffer[Bool]())
+      val bits = ArrayBuffer(dataIn.asBools.reverse: _*)
+      inputShape.zip(bitHeap).foreach { case (i, container) =>
+        val column = bits.take(i)
+        container ++= column
+        bits --= column
+      }
+      val ret = compressor.impl(BitHeap(bitHeap, 0).d(pipeline), width)
+      dataOut := ret.d(pipeline).bitHeap.reverse.flatten.asBits()
     }
-    val ret = compressor.impl(BitHeap(bitHeap, 0).d(pipeline), width)
-    dataOut := ret.d(pipeline).bitHeap.reverse.flatten.asBits()
-  }
 
-  def compressorFuncTest(compressor: Compressor[Bool], width: Int, testCount: Int = 1000): Unit = {
+  def compressorFuncTest(compressor: Compressor[Bool], width: Int = -1, testCount: Int = 1000): Unit = {
 
-    val inputShape  = compressor.inputFormat(width)
+    val inputShape = compressor.inputFormat(width)
     val outputShape = compressor.outputFormat(width)
 
     def getValueByShape(bigInt: BigInt, shape: Seq[Int]) = {
@@ -59,34 +59,29 @@ class GPCTest extends AnyFlatSpec {
           dut.dataIn #= value
           sleep(1)
           val golden = getValueByShape(value, inputShape)
-          val yours  = getValueByShape(dut.dataOut.toBigInt, outputShape)
+          val yours = getValueByShape(dut.dataOut.toBigInt, outputShape)
           assert(yours == golden, s"yours: $yours, golden: $golden")
         }
       }
   }
 
-  def compressorPerfTest(compressor: Compressor[Bool], width: Int): Unit = VivadoSynth(getModule(compressor, width, RegNext(_)), name = s"compressor$width")
-    .require(compressor.utilRequirement(width), compressor.fMaxRequirement)
+  def compressorPerfTest(compressor: Compressor[Bool], width: Int = -1): Unit =
+    VivadoSynth(getModule(compressor, width, RegNext(_)), name = s"compressor$width").require(compressor.utilRequirement(width), compressor.fMaxRequirement)
 
   behavior of "counter42"
 
   it should "work" in (1 to Compressor4to2.widthMax by 4).foreach(compressorFuncTest(Compressor4to2, _))
   it should "synth" in (1 to Compressor4to2.widthMax by 4).foreach(compressorPerfTest(Compressor4to2, _))
 
-  behavior of "counter63"
-
-  it should "work" in (1 to Compressor6to3.widthMax by 4).foreach(compressorFuncTest(Compressor6to3, _))
-  it should "synth" in (1 to Compressor6to3.widthMax by 4).foreach(compressorPerfTest(Compressor6to3, _))
-
   behavior of "counter31"
 
   it should "work" in (1 to Compressor3to1.widthMax by 4).foreach(compressorFuncTest(Compressor3to1, _))
   it should "synth" in (1 to Compressor3to1.widthMax by 4).foreach(compressorPerfTest(Compressor3to1, _))
 
-  behavior of "counter31 another"
+  behavior of "counter63"
 
-  it should "work" in (1 to Compressor3to1NoCarry.widthMax by 4).foreach(compressorFuncTest(Compressor3to1NoCarry, _))
-  ignore should "synth" in (1 to Compressor3to1NoCarry.widthMax by 4).foreach(compressorPerfTest(Compressor3to1NoCarry, _))
+  it should "work" in compressorFuncTest(Compressor6to3)
+  it should "synth" in compressorPerfTest(Compressor6to3)
 
   behavior of "counter32"
 

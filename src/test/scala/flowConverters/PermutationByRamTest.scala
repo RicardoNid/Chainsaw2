@@ -11,7 +11,7 @@ import spinal.lib.fsm._
 
 class PermutationByRamTest extends AnyFlatSpec {
 
-  val dataType = HardType(UInt(4 bits))
+  val dataType = HardType(UInt(8 bits))
 
   "StreamPermutationTest" should "work for a simple case" in {
     val n = 4
@@ -23,9 +23,10 @@ class PermutationByRamTest extends AnyFlatSpec {
 
   "StreamPermutationTest" should "work for all folds" in {
 
-    val n = 12
+    val n = 108
     val data = (0 until n).toList
     val perm = Random.shuffle(data)
+    logger.info(s"your perm = ${perm.mkString(" ")}")
     val config = PermutationByRamConfig(perm, 3, dataType)
 
     /*

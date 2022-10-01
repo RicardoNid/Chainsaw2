@@ -20,9 +20,13 @@ class ModularMultTest extends AnyFlatSpec {
   }
 
   "barrett algo" should "work" in {
-    val bound0 = as.zip(bs).map { case (a, b) => ModularMult.barrett(a, b, moduli, lN) }.max
+
+    val bound0 = as.zip(bs).map { case (a, b) =>
+      ModularMult.barrett(a, b, moduli, lN) }.max
     logger.info(s"no-error passed with bound $bound0")
-    val bound1 = as.zip(bs).map { case (a, b) => ModularMult.barrett(a, b, moduli, lN, msbOnly = true)}.max
+
+    val bound1 = as.zip(bs).map { case (a, b) =>
+      ModularMult.barrett(a, b, moduli, lN, msbOnly = true)}.max
     logger.info(s"error passed with bound: $bound1")
   }
 

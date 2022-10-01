@@ -24,7 +24,7 @@ case class BitHeapCompressorUseInversionConfig(infos: Seq[ArithInfo])
     .map(_ * 1).sum
 
   val (_, csaLatency, widthOut) = BitHeap.getFakeHeapFromInfos(infos)
-    .compressAll(GPC())
+    .compressAll(Gpcs())
   val cpaConfig = CpaConfig(widthOut, TernaryAdder, 1) // final two rows - compensation
   val cpaLatency = cpaConfig.latency
 
@@ -61,7 +61,7 @@ case class BitHeapCompressorUseInversion(config: BitHeapCompressorUseInversionCo
   def zero(): Bool = False
 
   val bitHeap = BitHeap.getHeapFromInfos(infos, operands)
-  val (ret, _, _) = bitHeap.compressAll(GPC(), pipeline)
+  val (ret, _, _) = bitHeap.compressAll(Gpcs(), pipeline)
 
   // two rows from
   val rows = ret.output(zero).map(_.asBits().asUInt)

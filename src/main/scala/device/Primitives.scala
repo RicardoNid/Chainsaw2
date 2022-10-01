@@ -8,11 +8,13 @@ import scala.language.postfixOps
 /** Primitives in unisim library, usePrimitives in Chainsaw package should be set as true for synth, false for sim
  *
  * @see [[https://docs.xilinx.com/r/en-US/ug974-vivado-ultrascale-libraries/Introduction]] for primitive definitions
+ *
  */
 class Unisim extends BlackBox {
-
+  /** add the RTL path of a Unisim primitive, the Unisim source code is under control, this should be explicitly called in every subclass of Unisim
+   *
+   */
   def addPrimitive(name: String) = if (!usePrimitives) addRTLPath(s"$unisimPath/$name.v")
-
 }
 
 /**

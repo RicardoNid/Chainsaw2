@@ -14,13 +14,9 @@ abstract class Compressor[T] {
 
   val widthMax: Int // for delay consideration
 
-  val widthMin: Int
+  val widthMin: Int = 1
 
   require(widthMax >= widthMin, s"The widthMax should be greater than or equal to widMin !")
-
-  /** -------- key definitions
-    * --------
-    */
 
   /** number of bits in input columns, low to high
     */

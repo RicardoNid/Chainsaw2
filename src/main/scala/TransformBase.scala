@@ -1,6 +1,6 @@
 package org.datenlord
 
-import dfg.OpType.MUX
+
 import dfg.{RingDag, RingPort, RingVertex}
 
 import spinal.core.{UInt, Vec}

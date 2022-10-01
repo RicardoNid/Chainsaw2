@@ -43,7 +43,6 @@ case class SignalPro(implicit staticConfig: DasStaticConfig) extends Component {
   val phaseDiff = PhaseDiff()
   val pulseUnwrap = PulseUnwrap()
   val phaseMean = PhaseMean()
-  val meanUnwrap = MeanUnwrap()
 
   /** --------
    * parameters path
@@ -59,7 +58,6 @@ case class SignalPro(implicit staticConfig: DasStaticConfig) extends Component {
   pulseUnwrap.pulsePointsIn := pulsePointsIn
   phaseMean.gaugePointsIn := gaugePointsIn
   phaseMean.gaugeReverseIn := gaugeReverseIn
-  meanUnwrap.spatialPointsIn := spatialPointsIn
 
   /** --------
    * datapath
@@ -69,8 +67,13 @@ case class SignalPro(implicit staticConfig: DasStaticConfig) extends Component {
   phaseDiff.flowIn := filterPath.flowOut
   pulseUnwrap.flowIn := phaseDiff.flowOut
   phaseMean.flowIn := pulseUnwrap.flowOut
-  meanUnwrap.flowIn := phaseMean.flowOut
 
+  //    val flowOut = out cloneOf phaseMean.flowOut
+  //    flowOut := phaseMean.flowOut
+
+  val meanUnwrap = MeanUnwrap()
+  meanUnwrap.spatialPointsIn := spatialPointsIn
+  meanUnwrap.flowIn := phaseMean.flowOut
   val flowOut = out cloneOf meanUnwrap.flowOut
   flowOut := meanUnwrap.flowOut
 

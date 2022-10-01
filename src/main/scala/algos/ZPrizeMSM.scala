@@ -3,6 +3,11 @@ package algos
 
 import cc.redberry.rings.scaladsl._
 
+import scala.io.Source
+
+/** information need for ZPRIZE MSM
+ *
+ */
 object ZPrizeMSM {
 
   val z = BigInt("8508c00000000001", 16)
@@ -21,9 +26,20 @@ object ZPrizeMSM {
   // for Barrett algo
   val MPrime = (BigInt(1) << (2 * baseModulus.bitLength)) / baseModulus
 
+  // the elliptic curve that we use
   val a = asBigInteger(0)
   val b = asBigInteger(1)
   implicit val ec: EcGroup = EcGroup(baseModulus, a, b) // y^2 = x^3 + 1
+
+  // points for simulation
+  val src = Source.fromFile("/home/ltr/IdeaProjects/Chainsaw2/src/main/resources/BLS12377POINTS")
+  val lines = src.getLines().toSeq
+  //  src.close()
+  val points: Seq[EcPointAffine] = lines.map { line =>
+    val Seq(xline, yline) = line.split(" ").toSeq
+    val Seq(x, y) = Seq(xline, yline).map(str => BigInt(str.drop(2), 16))
+    EcPointAffine(x, y)
+  }
 
   val N = 1 << 26
   val W = 253

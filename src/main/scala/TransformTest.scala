@@ -116,7 +116,7 @@ object TransformTest {
       implMode match {
         case Comb => // get and compare golden & yours slice by slice
           val golden = dataSlices.map(impl).map(_.asInstanceOf[Seq[TSoft]])
-          drawAndSaveData(yours.flatten, golden.flatten, name)
+//          drawAndSaveData(yours.flatten, golden.flatten, name)
           yours.zip(golden).zipWithIndex.foreach { case ((y, g), i) =>
             val pass = if (metric == null) y == g else metric(y, g)
             assert(pass, showData(dataFlow(i), y, g, i))

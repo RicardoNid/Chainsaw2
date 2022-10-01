@@ -20,7 +20,8 @@ class EcGroupTest extends AnyFlatSpec {
   val lines = src.getLines().toSeq
   //  src.close()
 
-  val points = lines.map { line =>
+  // get points from file
+  val points: Seq[EcPointAffine] = lines.map { line =>
     val Seq(xline, yline) = line.split(" ").toSeq
     val Seq(x, y) = Seq(xline, yline).map(str => BigInt(str.drop(2), 16))
     EcPointAffine(x, y)

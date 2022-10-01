@@ -40,7 +40,7 @@ class RingDag(name: String = "ring", val golden: Seq[BigInt] => Seq[BigInt])
   override def validate() = {
     makeComb()
     simplify()
-    breakBundles()
+    //    breakBundles()
     rewritePostAdditionTree()
     simplify()
     autoPipeline()

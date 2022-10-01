@@ -4,7 +4,19 @@ import spinal.core._
 import spinal.lib._
 import spinal.lib.fsm._
 
-class pippenger[T <: Data](pType: HardType[T], pInit: => T, N: Int, W: Int, w: Int, latency: Int) extends Component {
+import scala.language.postfixOps
+
+case class PaddInterface() extends Bundle with IMasterSlave {
+  val a, b, s = UInt(377 bits)
+
+  override def asMaster(): Unit = { // the controller is the master
+    out(a, b)
+    in(s)
+  }
+}
+
+class pippenger[T <: Data](pType: HardType[T], pInit: => T, N: Int, W: Int, w: Int, latency: Int)
+  extends Component {
 
   //fifoDepth > latency ?
   require(w > 1)
@@ -16,9 +28,7 @@ class pippenger[T <: Data](pType: HardType[T], pInit: => T, N: Int, W: Int, w: I
     }
 
     val adderPort = Vec(master(new Bundle with IMasterSlave {
-      val a = pType()
-      val b = pType()
-      val s = pType()
+      val a, b, s = pType()
 
       override def asMaster(): Unit = {
         out(a, b)
@@ -402,54 +412,51 @@ object pippenger extends App {
   val Q = K.zip(P).map { case (k, p) => (k * p) % (BigInt(1) << pWidth) }
   val S = Q.reduce((a, b) => (a + b) % (BigInt(1) << pWidth))
 
-  SimConfig.allOptimisation.compile(new pippenger(UInt(pWidth bits), U(0, pWidth bits), N, W, w, latency)).doSimUntilVoid { dut =>
-    dut.clockDomain.forkStimulus(10)
+  SimConfig.allOptimisation
+    .compile(new pippenger(UInt(pWidth bits), U(0, pWidth bits), N, W, w, latency))
+    .doSimUntilVoid { dut =>
+      dut.clockDomain.forkStimulus(10)
 
-    fork {
-      dut.io.inputData.valid #= true
-      for ((k, p) <- K.zip(P)) {
-        dut.io.inputData.k #= k
-        dut.io.inputData.p #= p
-        do {
-          dut.clockDomain.waitSampling()
-        } while (!dut.io.inputData.ready.toBoolean)
-      }
-      dut.io.inputData.valid #= false
-      while (true) {
-        dut.clockDomain.waitSampling()
-      }
-    }
-
-    fork {
-      val queue = Array.fill(2)(Queue.fill(latency - 1)(BigInt(0)))
-
-      while (true) {
-        for (i <- 0 until 2) {
-          queue(i).enqueue((dut.io.adderPort(i).a.toBigInt + dut.io.adderPort(i).b.toBigInt) % (BigInt(1) << pWidth))
-          dut.io.adderPort(i).s #= queue(i).dequeue()
+      fork {
+        dut.io.inputData.valid #= true
+        for ((k, p) <- K.zip(P)) {
+          dut.io.inputData.k #= k
+          dut.io.inputData.p #= p
+          do dut.clockDomain.waitSampling() while (!dut.io.inputData.ready.toBoolean)
         }
-        dut.clockDomain.waitSampling()
+        dut.io.inputData.valid #= false
+
+        while (true) dut.clockDomain.waitSampling()
+      }
+
+      fork {
+        val queue = Array.fill(2)(Queue.fill(latency - 1)(BigInt(0)))
+
+        while (true) {
+          for (i <- 0 until 2) {
+            queue(i).enqueue((dut.io.adderPort(i).a.toBigInt + dut.io.adderPort(i).b.toBigInt) % (BigInt(1) << pWidth))
+            dut.io.adderPort(i).s #= queue(i).dequeue()
+          }
+          dut.clockDomain.waitSampling()
+        }
+      }
+
+      var period = BigInt(0)
+
+      fork {
+        while (true) {
+          dut.clockDomain.waitSampling()
+          period += 1
+        }
+      }
+
+      fork {
+        do {dut.clockDomain.waitSampling()} while (!dut.io.sum.valid.toBoolean)
+        if (dut.io.sum.payload.toBigInt != S) {
+          print(s"发生错误，输出结果为${dut.io.sum.payload.toBigInt}，但正确结果应该是${S}。\n")
+        }
+        print(s"花费${period}个时钟周期。\n")
+        simSuccess()
       }
     }
-
-    var period = BigInt(0)
-
-    fork {
-      while (true) {
-        dut.clockDomain.waitSampling()
-        period += 1
-      }
-    }
-
-    fork {
-      do {
-        dut.clockDomain.waitSampling()
-      } while (!dut.io.sum.valid.toBoolean)
-      if (dut.io.sum.payload.toBigInt != S) {
-        print(s"发生错误，输出结果为${dut.io.sum.payload.toBigInt}，但正确结果应该是${S}。\n")
-      }
-      print(s"花费${period}个时钟周期。\n")
-      simSuccess()
-    }
-  }
 }
