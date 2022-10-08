@@ -1,11 +1,10 @@
 package org.datenlord
 package dfg
 
-import dfg.Direction._
 import spinal.core.Data
 import scala.collection.JavaConversions._
 
-class DagVertex[THard <: Data](val name: String,
+class DagVertex[THard <: Data](var name: String,
                                val latency: Int,
                                val opType: OperatorType,
                                val implH: Seq[THard] => Seq[THard] = (data: Seq[THard]) => data
@@ -45,4 +44,8 @@ class DagVertex[THard <: Data](val name: String,
       .map(e => DagPort(ref.getEdgeTarget(e), e.inOrder, In))
 
   def isIo(implicit ref: Dag[THard]) = ref.inputs.contains(this) || ref.outputs.contains(this)
+
+  override def clone(): DagVertex[THard] = new DagVertex[THard](name, latency, opType, implH)
+
+  def setName(name:String) = this.name = name
 }

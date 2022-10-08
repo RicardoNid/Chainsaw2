@@ -11,4 +11,8 @@ class PAddTest extends AnyFlatSpec {
 
   it should "impl" in VivadoImpl(PAdd().toTransform, "padd")
 
+  it should "impl for karatsuba" in VivadoImpl(Karatsuba377().toTransform)
+
+//  it should "impl for MSB mult" in
+
 }

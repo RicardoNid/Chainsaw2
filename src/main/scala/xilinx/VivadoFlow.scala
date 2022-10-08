@@ -11,6 +11,7 @@ import scala.sys.process._
 import xilinx.VivadoTaskType._
 
 import java.nio.file.Paths
+import scala.io.Source
 
 /** used to generate sources for a Vivado flow and invoke Vivado to run it
   */
@@ -37,7 +38,7 @@ class VivadoFlow[T <: Component](
     // create workspace directory
     Process(s"mkdir -p $workspacePath") !
     // generate sources from dut
-    val spinalReport = SpinalConfig(targetDirectory = workspacePath)
+    val spinalReport = SpinalConfig(targetDirectory = workspacePath, oneFilePerComponent = true)
       .generateVerilog(design.setDefinitionName(topModuleName))
     // generate xdc & tcl file
     FileUtils.write(
@@ -91,9 +92,14 @@ class VivadoFlow[T <: Component](
 
     // read design sources
     // sources from dut
-    dutRtlSources
-      .map(_.replace(workspacePath + "/", ""))
-      .foreach(script += getReadCommand(_))
+    val lstFile = Source.fromFile(workspacePath + "/" + s"$topModuleName.lst")
+    lstFile.getLines().foreach(line => script += s"read_verilog ${line.split("/").last}\n")
+    lstFile.close()
+
+//    dutRtlSources
+//      .map(_.replace(workspacePath + "/", ""))
+//      .foreach(script += getReadCommand(_))
+
     // extra sources
     if (extraRtlSources != null)
       extraRtlSources.foreach(script += getReadCommand(_))
@@ -102,10 +108,10 @@ class VivadoFlow[T <: Component](
     // do flow
     taskType match {
       case SYNTH =>
-        script += s"synth_design -part ${xilinxDevice.part} -top ${topModuleName} -mode out_of_context -no_srlextract \n"
+        script += s"synth_design -part ${xilinxDevice.part} -top ${topModuleName} -mode out_of_context\n"
         script += s"write_checkpoint -force ${topModuleName}_after_synth.dcp\n"
       case IMPL =>
-        script += s"synth_design -part ${xilinxDevice.part} -top ${topModuleName} -mode out_of_context -no_srlextract \n"
+        script += s"synth_design -part ${xilinxDevice.part} -top ${topModuleName} -mode out_of_context\n"
         script += s"write_checkpoint -force ${topModuleName}_after_synth.dcp\n"
         script += "opt_design\n"
         script += "place_design\n"

@@ -4,11 +4,12 @@ package dfg
 /** --------
  * implement all kinds of different vertices
  * -------- */
+
 import device.MultiplicationByDspConfig
-import dfg.Direction._
 
 import org.datenlord.arithmetic.ArithInfo
 import spinal.core._
+
 /** This is for crypto implementation on FPGAs of Xilinx UltraScale family
  *
  * @param opType type of operation
@@ -30,11 +31,14 @@ class RingVertex
   def inPorts: Seq[RingPort] = widthsIn.indices.map(in)
 
   override def toString = s"$name"
+
+  override def clone(): RingVertex = new RingVertex(name, latency, implH, opType, widthsIn, widthsOut)
 }
 
 /** --------
  * base operators which have optimized implementation for Xilinx Ultrascale
  * -------- */
+
 /** binary add/sub with carryIn and carryOut and limited width, which can be used to build pipelined long add/sub, this is not exposed to the user
  */
 object BaseBinaryAddSubVertex {
@@ -75,6 +79,7 @@ object BaseMultVertex {
 }
 
 // TODO: Merge this with mults
+
 /** implementation of karatsuba pattern on DSP slice, with optimization for DSP48E2, this is not exposed to the user
  *
  */
@@ -93,6 +98,7 @@ object BaseKaraVertex {
 /** --------
  * general arithmetic operators which can be substituted by a subgraph consisting of base operators, by expression rewriting
  * -------- */
+
 /** general add/sub with no limit on width, can be rewritten through optimization
  *
  */

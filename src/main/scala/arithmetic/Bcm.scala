@@ -120,31 +120,41 @@ case class Bcm(config: BcmConfig)
   override val dataIn = slave Flow Fragment(Vec(UInt(widthIn bits)))
   override val dataOut = master Flow Fragment(Vec(UInt()))
 
-  val fanOutFactor = 3
-  val data = dataIn.fragment.head
-  // TODO: solve the high fan-out problem in a better way
-
-  /** --------
-   * register duplication for solving high fan-out
-   -------- */
-  val dataBufs = Seq.fill(infos.length.divideAndCeil(10))(data.d(1))
-  dataBufs.foreach(_.addAttribute("dont_touch", "yes"))
-  val operandsIn = infos.zipWithIndex.map { case (info, i) => // get operands by bit heap compressor infos
-    val dataBuf = dataBufs(i / 10)
-    mode match {
-      case FullMultiplier => dataBuf
-      case LsbMultiplier => dataBuf.takeLow(info.width).asUInt
-      case MsbMultiplier => dataBuf.takeHigh(info.width).asUInt
+  if (skipComponentSim) { "golden hardware"
+    val product = dataIn.fragment.head * constant
+    val ret = mode match {
+      case FullMultiplier => product
+      case LsbMultiplier => product.takeLow(widthTake).asUInt
+      case MsbMultiplier => product.takeHigh(widthTake).asUInt
     }
-  }
+    dataOut.fragment.head := ret.d(latency)
+  } else {
+    // TODO: solve the high fan-out problem in a better way
+    val data = dataIn.fragment.head
+    val fanOutFactor = 3
 
-  // FIXME: sometimes the result width is less than widthAll, is that correct?
-  val ret = compressorConfig.implH.asFunc(operandsIn).head.resize(widthAll) // using bit heap compressor
+    /** --------
+     * register duplication for solving high fan-out
+     * -------- */
+    val dataBufs = Seq.fill(infos.length.divideAndCeil(10))(data.d(1))
+    dataBufs.foreach(_.addAttribute("dont_touch", "yes"))
+    val operandsIn = infos.zipWithIndex.map { case (info, i) => // get operands by bit heap compressor infos
+      val dataBuf = dataBufs(i / 10)
+      mode match {
+        case FullMultiplier => dataBuf
+        case LsbMultiplier => dataBuf.takeLow(info.width).asUInt
+        case MsbMultiplier => dataBuf.takeHigh(info.width).asUInt
+      }
+    }
 
-  mode match { // take bits of interest according to multiplication mode
-    case FullMultiplier => dataOut.fragment.head := ret.resized
-    case LsbMultiplier => dataOut.fragment.head := ret(widthTake - 1 downto 0)
-    case MsbMultiplier => dataOut.fragment.head := ret(widthAll - 1 downto widthDrop)
+    // FIXME: sometimes the result width is less than widthAll, is that correct?
+    val ret = compressorConfig.implH.asFunc(operandsIn).head.resize(widthAll) // using bit heap compressor
+
+    mode match { // take bits of interest according to multiplication mode
+      case FullMultiplier => dataOut.fragment.head := ret.resized
+      case LsbMultiplier => dataOut.fragment.head := ret(widthTake - 1 downto 0)
+      case MsbMultiplier => dataOut.fragment.head := ret(widthAll - 1 downto widthDrop)
+    }
   }
 
   autoValid()

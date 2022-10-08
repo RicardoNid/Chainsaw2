@@ -33,13 +33,24 @@ object PAdd {
     val outputs = letters.map(letter => graph.addOutput(letter + "2", k))
     val Seq(x3, y3, z3) = outputs
 
-    val barrett = Barrett377(k, M).asRingOp(_)
+    // basic operators in PAdd
+    val barrettGraph: RingDag = Barrett377(k, M)
+    val barrett: Seq[RingPort] => Seq[RingPort] = barrettGraph.clone().asRingOp(_)
+    val addConfig = CpaConfig(k, BinaryAdder, 0)
+    val subConfig = CpaConfig(k, BinarySubtractor, 0)
+    val redConfig = FineReduction(M, 2)
 
     def multiply(x: RingPort, y: RingPort) = barrett(Seq(x, y)).head
 
-    def add(x: RingPort, y: RingPort) = x
+    def add(x: RingPort, y: RingPort) = {
+      val sum = addConfig.asRingOp(Seq(x, y)).head
+      redConfig.asRingOp(Seq(sum)).head
+    }
 
-    def subtract(x: RingPort, y: RingPort) = x
+    def subtract(x: RingPort, y: RingPort) = {
+      val diff = subConfig.asRingOp(Seq(x, y)).head
+      redConfig.asRingOp(Seq(diff)).head
+    }
 
     implicit class localOps(x: RingPort) {
       def *(y: RingPort) = Barrett377(k, M).asRingOp(Seq(x, y)).head
@@ -48,7 +59,8 @@ object PAdd {
 
       def -(y: RingPort) = x
 
-      def times3 = x
+      // TODO: make it real
+      def times3 = redConfig.asRingOp(Seq(x)).head
     }
 
     val m00 = multiply(x1, x2) // x1x2
@@ -61,6 +73,16 @@ object PAdd {
     val a04 = add(y1, z1) // y1+z1
     val a05 = add(y2, z2) // y2+z2
 
+    m00.setName("m00")
+    m01.setName("m01")
+    m02.setName("m02")
+    a00.setName("a00")
+    a01.setName("a01")
+    a02.setName("a02")
+    a03.setName("a03")
+    a04.setName("a04")
+    a05.setName("a05")
+
     logger.info("stage 0 done")
 
     // stage1
@@ -71,6 +93,13 @@ object PAdd {
     val m11 = multiply(a02, a03) // x1x2 + z1z2 + x1z2 + x2z1
     val m12 = multiply(a04, a05) // y1y2 + z1z2 + y1z2 + y2z1
 
+    a10.setName("a10")
+    a11.setName("a11")
+    a12.setName("a12")
+    m10.setName("m10")
+    m11.setName("m11")
+    m12.setName("m12")
+
     logger.info("stage 1 done")
 
     // stage 2
@@ -79,6 +108,11 @@ object PAdd {
     val s21 = subtract(m11, a11) // x1z2 + x2z1
     val s22 = subtract(m12, a12) // y1z2 + y2z1
 
+    tri20.setName("tri20")
+    s20.setName("s20")
+    s21.setName("s21")
+    s22.setName("s22")
+
     logger.info("stage 2 done")
 
     // stage 3
@@ -86,6 +120,11 @@ object PAdd {
     val a30 = add(m01, tri20) // y1y2 + 3z1z2
     val s30 = subtract(m01, tri20) // y1y2 - 3z1z2
     val tri31 = s21.times3 // 3(x1z2 + x2z1)
+
+    tri30.setName("tri30")
+    a30.setName("a30")
+    s30.setName("s30")
+    tri31.setName("tri31")
 
     logger.info("stage 3 done")
 
@@ -97,6 +136,13 @@ object PAdd {
     val m44 = multiply(a30, s22) // (y1y2 + 3z1z2)(y1z2 + y2z1)
     val m45 = multiply(tri30, s20) // 3x1x2(x1y2 + x2y1)
 
+    m40.setName("m40")
+    m41.setName("m41")
+    m42.setName("m42")
+    m43.setName("m43")
+    m44.setName("m44")
+    m45.setName("m45")
+
     logger.info("stage 4 done")
 
     // stage 5
@@ -104,11 +150,17 @@ object PAdd {
     val a50 = add(m42, m43)
     val a51 = add(m44, m45)
 
+    s50.setName("s50")
+    a50.setName("a50")
+    a51.setName("a51")
+
     logger.info("stage 5 done")
 
     x3 := s50
     y3 := a50
     z3 := a51
+
+    logger.info(s"padd graph: ${graph.toString}")
 
     graph
   }

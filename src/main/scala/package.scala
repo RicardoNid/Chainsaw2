@@ -3,19 +3,21 @@ package org
 import breeze.linalg._
 import breeze.math._
 import cc.redberry.rings.scaladsl._
+import com.mathworks.engine._
 import org.datenlord.xilinx.VivadoTaskType._
 import org.datenlord.xilinx._
+
+import scala.collection.mutable
 import org.slf4j.LoggerFactory
 import spinal.core._
 import spinal.core.sim._
 import spinal.lib.{Delay, com => _, _}
 
 import scala.collection.mutable.ArrayBuffer
-import scala.math.{BigDecimal, BigInt, log, round}
-import scala.reflect.{ClassTag, classTag}
+import scala.math.{BigDecimal, BigInt}
+import scala.reflect.ClassTag
 import scala.sys.process.Process
 import scala.util.Random
-import com.mathworks.engine._
 
 package object datenlord {
 
@@ -23,6 +25,11 @@ package object datenlord {
 
   val logger = LoggerFactory.getLogger("Chainsaw logger")
   var verbose = 0
+
+  var skipComponentSim = false
+
+  // record all distinct Chainsaw Modules
+  var generatorList = mutable.Map[Int, Int]()
 
   type ChainsawFlow[T <: Data] = Flow[Fragment[Vec[T]]]
 
@@ -37,19 +44,32 @@ package object datenlord {
   }
 
   def RtlGen[T <: Component](gen: => T, name: String = "temp") = {
-    val ret = SpinalConfig(netlistFileName = s"$name.v").generateVerilog(gen)
-    logger.info(s"rtl generated:\n${ret.rtlSourcesPaths.mkString("\n")}")
+    val genDir = "/home/ltr/IdeaProjects/Chainsaw2/genWorkspace/"
+    val ret = SpinalConfig(targetDirectory = genDir, oneFilePerComponent = true)
+      .generateVerilog(gen.setDefinitionName(name))
+      .printPrunedIo()
+    logger.info(s"\nrtl generated: \n${ret.rtlSourcesPaths.mkString("\n")}")
+  }
+
+  import zprize._
+
+  def ChainsawGen[T <: Component](gen: ChainsawGenerator) = {
+    val genDir = "/home/ltr/IdeaProjects/Chainsaw2/genWorkspace"
+    val ret = SpinalConfig(targetDirectory = genDir, oneFilePerComponent = true, netlistFileName = gen.moduleName)
+      .generateVerilog(gen.implH)
+      .printPrunedIo()
+    logger.info(s"\nrtl generated: \n${ret.rtlSourcesPaths.mkString("\n")}")
   }
 
   def VivadoImpl[T <: Component](gen: => T, name: String = "temp", target: XilinxDevice = defaultDevice, xdcPath: String = null) = {
-    val report = VivadoFlow(design = gen, taskType = IMPL, topModuleName = name, workspacePath = s"synthWorkspace/$name", xilinxDevice = target, alterXdc = xdcPath).doFlow()
+    val report = VivadoFlow(design = gen, taskType = IMPL, topModuleName = name, workspacePath = s"synthWorkspace/$name/", xilinxDevice = target, alterXdc = xdcPath).doFlow()
     report.printArea()
     report.printFMax()
     report
   }
 
   def VivadoSynth[T <: Component](gen: => T, name: String = "temp", target: XilinxDevice = defaultDevice): VivadoReport = {
-    val report = VivadoFlow(design = gen, taskType = SYNTH, topModuleName = name, workspacePath = s"synthWorkspace/$name", xilinxDevice = target).doFlow()
+    val report = VivadoFlow(design = gen, taskType = SYNTH, topModuleName = name, workspacePath = s"synthWorkspace/$name/", xilinxDevice = target).doFlow()
     report.printArea()
     report.printFMax()
     report
@@ -241,24 +261,22 @@ package object datenlord {
       ret
     }
 
-    import sf._
-
     // for sfix simulation
-    def #=(value: BigDecimal): Unit = { // copied from SF object
-      assert(value <= maxValue, s"Literal $value is too big to be assigned in $this")
-      assert(value >= minValue, s"Literal $value is too small to be assigned in this $this")
+    //    def #=(value: BigDecimal): Unit = { // copied from SF object
+    //      assert(value <= maxValue, s"Literal $value is too big to be assigned in $this")
+    //      assert(value >= minValue, s"Literal $value is too small to be assigned in this $this")
+    //
+    //      val shift = -minExp
+    //      val ret = if (shift >= 0) // ret this is the "binary string" of value at specific precision
+    //        (value * BigDecimal(BigInt(1) << shift)).toBigInt
+    //      else
+    //        (value / BigDecimal(BigInt(1) << -shift)).toBigInt
+    //      setLong(raw, ret.toLong)
+    //    }
 
-      val shift = -minExp
-      val ret = if (shift >= 0) // ret this is the "binary string" of value at specific precision
-        (value * BigDecimal(BigInt(1) << shift)).toBigInt
-      else
-        (value / BigDecimal(BigInt(1) << -shift)).toBigInt
-      setLong(raw, ret.toLong)
-    }
+    //    def #=(value: Double): Unit = #=(BigDecimal(value))
 
-    def #=(value: Double): Unit = #=(BigDecimal(value))
-
-    def toDouble = raw.toBigInt.toDouble / (1 << -minExp)
+    //    def toDouble = raw.toBigInt.toDouble / (1 << -minExp)
 
   }
 
@@ -400,5 +418,11 @@ package object datenlord {
   object Transpose extends SopStructure
 
   object Systolic extends SopStructure
+
+  sealed trait Direction
+
+  object In extends Direction
+
+  object Out extends Direction
 
 }

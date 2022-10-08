@@ -42,7 +42,7 @@ package object xilinx {
     XilinxDevice(UltraScale, "XCU200-FSGD2104-2-E".toLowerCase, 800 MHz)
   val kcu1500 = XilinxDevice(UltraScale, "xcku115-flvb2104-2-e", 800 MHz)
 
-  val defaultDevice = u200
+  val defaultDevice = vu9p
   val defaultDeviceFamily = defaultDevice.family
   val defaultVivadoPath = "/tools/Xilinx/Vivado/2021.1/bin"
 }

@@ -53,6 +53,8 @@ class BitHeapCompressorTest extends AnyFlatSpec {
   it should "work on simple situation with noise" in testForInfos(infosSmallWithNoise)
   ignore should "impl for simple situation with noise" in testForInfos(infosSmallWithNoise)
 
+  skipComponentSim = true
+
   it should "work for situation 0" in testForInfos(infosRegular)
   it should "work for situation 1" in testForInfos(infosFromMult)
   it should "work for situation 2" in testForInfos(infosFromMultWithNoise)

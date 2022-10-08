@@ -16,10 +16,10 @@ object RewriteAdditionTree {
    *
    * a addition tree is a multi-operand addition
    */
-  def apply(ringDag: RingDag): Unit = {
+  def apply(ringDag: RingDag): RingDag = {
 
     implicit val ref: RingDag = ringDag
-    if (ringDag.outputs.length != 1) return // when it is not a tree(has no root), skip this phase
+    if (ringDag.outputs.length != 1) return ringDag // when it is not a tree(has no root), skip this phase
 
     /** --------
      * preparing for tree extraction
@@ -45,7 +45,7 @@ object RewriteAdditionTree {
     val root = ringDag.outputs.head.asInstanceOf[RingVertex] // output vertex is the root of addition tree
 
     // maintaining a list of edges for each step, initialized as incoming edges of the root
-    var currents: Seq[(E, ArithInfo)] = root.incomingEdges.map(e => (e, ArithInfo(0, 0, sign = true)))
+    var currents: Seq[(E, ArithInfo)] = root.incomingEdges.map(e => (e, ArithInfo(0, 0, isPositive = true)))
 
     while (currents.nonEmpty) { // search until no edges can be reached
       // an edge is a leaf when its driver is not part of the tree
@@ -81,7 +81,7 @@ object RewriteAdditionTree {
 
       currents = drivingEdges // update currents for next step
     }
-    val allInfos = operands.map { case (e, info) => ArithInfo(e.sourcePort.asInstanceOf[RingPort].width, info.weight, info.sign) }
+    val allInfos = operands.map { case (e, info) => ArithInfo(e.sourcePort.asInstanceOf[RingPort].width, info.weight, info.isPositive) }
     val allOps = operands.map(_._1.sourcePort.asInstanceOf[RingPort])
 
     val ret = BitHeapCompressorUseInversionConfig(allInfos).asRingOp(allOps).head
@@ -101,5 +101,7 @@ object RewriteAdditionTree {
      * -------- */
     postEdges.foreach(ringDag.removeEdge)
     postVertices.foreach(ringDag.removeVertex)
+
+    ringDag
   }
 }

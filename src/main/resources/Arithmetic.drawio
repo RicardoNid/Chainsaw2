@@ -1,6 +1,6 @@
 <mxfile host="65bd71144e">
     <diagram id="Iu0U1KSC4ujND80mvTKG" name="3-Stage Kara">
-        <mxGraphModel dx="1706" dy="944" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+        <mxGraphModel dx="1658" dy="916" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
             <root>
                 <mxCell id="KRe18eViIGCxSkloIr4Q-0"/>
                 <mxCell id="KRe18eViIGCxSkloIr4Q-1" parent="KRe18eViIGCxSkloIr4Q-0"/>
@@ -8,7 +8,7 @@
         </mxGraphModel>
     </diagram>
     <diagram id="f2-EXeEwkbIQapGrz_3O" name="Kara-Pre">
-        <mxGraphModel dx="2533" dy="944" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+        <mxGraphModel dx="2485" dy="916" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
             <root>
                 <mxCell id="iodwcrWe777_z6v0iQ3t-0"/>
                 <mxCell id="iodwcrWe777_z6v0iQ3t-1" parent="iodwcrWe777_z6v0iQ3t-0"/>
@@ -274,7 +274,7 @@
         </mxGraphModel>
     </diagram>
     <diagram id="aseBqphGKix1oUS9Ny6R" name="Kara-Post">
-        <mxGraphModel dx="1706" dy="944" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+        <mxGraphModel dx="1658" dy="916" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
             <root>
                 <mxCell id="tbDZKZAM7Y5TUhDkYI3e-0"/>
                 <mxCell id="tbDZKZAM7Y5TUhDkYI3e-1" parent="tbDZKZAM7Y5TUhDkYI3e-0"/>

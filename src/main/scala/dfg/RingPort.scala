@@ -1,8 +1,6 @@
 package org.datenlord
 package dfg
 
-import dfg.Direction._
-
 import org.datenlord.arithmetic.CpaConfig
 import spinal.core.UInt
 

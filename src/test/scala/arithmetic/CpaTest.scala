@@ -54,10 +54,19 @@ class CpaTest extends AnyFlatSpec {
     VivadoSynth(config.implH, name = "synthBinary").require(config.utilRequirement, 800 MHz)
   }
 
-  val binaryWidths = Seq(31, 127, 511, 1023)
+  def implBinary(width: Int, adderType: AdderType): Unit = {
+    val config = CpaConfig(width, adderType)
+    VivadoImpl(config.implH, name = "implBinary").require(config.utilRequirement, 800 MHz)
+  }
+
+  val binaryWidths = Seq(127, 511, 1023)
+
+  skipComponentSim = true
 
   it should "work for binary addition x + y" in binaryWidths.foreach(testBinary(_, BinaryAdder))
   it should "work for binary addition x - y" in binaryWidths.foreach(testBinary(_, BinarySubtractor))
   ignore should "synth for binary addition" in binaryWidths.foreach(synthBinary(_, BinaryAdder))
+  // TODO: this won't pass
+  it should "impl for binary addition" in binaryWidths.foreach(implBinary(_, BinaryAdder))
 
 }

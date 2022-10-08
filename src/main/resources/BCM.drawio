@@ -1,6 +1,6 @@
 <mxfile host="65bd71144e" pages="8">
     <diagram id="9GNoBKPK4gr83LMAvc6L" name="BCM problem by MCM">
-        <mxGraphModel dx="1658" dy="839" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="1" shadow="0">
+        <mxGraphModel dx="1658" dy="916" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="1" shadow="0">
             <root>
                 <mxCell id="WFPRSeL9AGjby3IVLslf-0"/>
                 <mxCell id="WFPRSeL9AGjby3IVLslf-1" parent="WFPRSeL9AGjby3IVLslf-0"/>
@@ -272,7 +272,7 @@
         </mxGraphModel>
     </diagram>
     <diagram id="n4Nm-D5KB7MiAJfA_jO0" name="BCMByKara">
-        <mxGraphModel dx="1706" dy="944" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+        <mxGraphModel dx="1658" dy="916" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
             <root>
                 <mxCell id="T6png0W00p4qgziHlm3z-0"/>
                 <mxCell id="T6png0W00p4qgziHlm3z-1" parent="T6png0W00p4qgziHlm3z-0"/>
@@ -280,7 +280,7 @@
         </mxGraphModel>
     </diagram>
     <diagram id="ORzCAqizKnKH12zXVteP" name="Truncation">
-        <mxGraphModel dx="1706" dy="944" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="1" shadow="0">
+        <mxGraphModel dx="1658" dy="916" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="1" shadow="0">
             <root>
                 <mxCell id="esmCNpcpYYlUsXnAQ9Q5-0"/>
                 <mxCell id="esmCNpcpYYlUsXnAQ9Q5-1" parent="esmCNpcpYYlUsXnAQ9Q5-0"/>
@@ -702,7 +702,7 @@
         </mxGraphModel>
     </diagram>
     <diagram name="signed BCM by bit heap" id="VdcVzIb9p3xVkhiAbRG8">
-        <mxGraphModel dx="1658" dy="839" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="1" shadow="0">
+        <mxGraphModel dx="1658" dy="916" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="1" shadow="0">
             <root>
                 <mxCell id="joFnvzJ8CfoPacRir_DF-0"/>
                 <mxCell id="joFnvzJ8CfoPacRir_DF-1" parent="joFnvzJ8CfoPacRir_DF-0"/>
@@ -1130,7 +1130,7 @@
         </mxGraphModel>
     </diagram>
     <diagram id="-hwUgt8tup9sX0An947v" name="csd">
-        <mxGraphModel dx="1706" dy="1131" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="1" shadow="0">
+        <mxGraphModel dx="1658" dy="916" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="1" shadow="0">
             <root>
                 <mxCell id="amPQTWE1epyCZvV-EZzB-0"/>
                 <mxCell id="amPQTWE1epyCZvV-EZzB-1" parent="amPQTWE1epyCZvV-EZzB-0"/>

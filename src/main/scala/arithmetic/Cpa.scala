@@ -25,7 +25,7 @@ case class CpaConfig(widthIn: Int, mode: AdderType, sub: Int = 0)
     val data = dataIn.asInstanceOf[Seq[BigInt]]
     val ret = mode match {
       case BinaryAdder => data.sum
-      case BinarySubtractor => if(data(0) > data(1)) data(0) - data(1) else data(0) - data(1) + (BigInt(1) << widthIn) // wrap around
+      case BinarySubtractor => if (data(0) > data(1)) data(0) - data(1) else data(0) - data(1) + (BigInt(1) << widthIn) // wrap around
       case TernaryAdder => sub match {
         case 0 => data.sum
         case 1 => data(0) + data(1) - data(2)
@@ -78,54 +78,69 @@ case class Cpa(config: CpaConfig) extends TransformModule[UInt, UInt] {
 
   override val dataIn = slave Flow Fragment(Vec(UInt(widthIn bits), inputPortWidth))
   override val dataOut = master Flow Fragment(Vec(UInt(widthOut bits), outputPortWidth))
-  val extendedDataIn = dataIn.fragment.map(_.resize(widthOut))
 
-  val coreWidths = Seq.fill(widthOut)(1).grouped(slice).toSeq.map(_.sum) // width of each segment
-  // get input words
-  val slices = coreWidths.scan(0)(_ + _).prevAndNext { case (prev, next) => (next - 1) downto prev }
-  val dataWords = extendedDataIn.map(whole => slices.map(whole(_))).transpose
-  // prepare output words
-  val sumWords = coreWidths.map(w => UInt(w bits)) //
-
-  val carriesStart = mode match {
-    case BinaryAdder => Seq(False)
-    case BinarySubtractor => Seq(True)
-    case TernaryAdder => sub match {
-      case 0 => Seq(False, False)
-      case 1 => Seq(False, True)
+  if (skipComponentSim) {
+    val data = dataIn.fragment
+    val ret = mode match {
+      case BinaryAdder => data.reduce(_ +^ _)
+      case BinarySubtractor => data(0) - data(1)
+      case TernaryAdder => sub match {
+        case 0 => data.reduce(_ +^ _)
+        case 1 => data(0) + data(1) - data(2)
+      }
     }
+    dataOut.fragment.head := ret.d(latency)
+  } else {
+    val extendedDataIn = dataIn.fragment.map(_.resize(widthOut))
+
+    val coreWidths = Seq.fill(widthOut)(1).grouped(slice).toSeq.map(_.sum) // width of each segment
+    // get input words
+    val slices = coreWidths.scan(0)(_ + _).prevAndNext { case (prev, next) => (next - 1) downto prev }
+    val dataWords = extendedDataIn.map(whole => slices.map(whole(_))).transpose
+    // prepare output words
+    val sumWords = coreWidths.map(w => UInt(w bits)) //
+
+    val carriesStart = mode match {
+      case BinaryAdder => Seq(False)
+      case BinarySubtractor => Seq(True)
+      case TernaryAdder => sub match {
+        case 0 => Seq(False, False)
+        case 1 => Seq(False, True)
+      }
+    }
+
+    Seq.iterate((carriesStart, 0), coreCount + 1) { case (carries, i) =>
+      mode match {
+
+        case BinaryAdder =>
+          val cin = carries.head
+          val Seq(x, y) = dataWords(i).map(_.d(i))
+          val ret = x +^ y + cin.asUInt
+          sumWords(i) := ret.takeLow(x.getBitsWidth).asUInt.d(coreCount - i)
+          (Seq(ret.msb.d(1)), i + 1)
+        case BinarySubtractor =>
+          val cin = carries.head
+          val Seq(x, y) = dataWords(i).map(_.d(i))
+          val ret = x +^ ~y + cin.asUInt
+          sumWords(i) := ret.takeLow(x.getBitsWidth).asUInt.d(coreCount - i)
+          (Seq(ret.msb.d(1)), i + 1)
+        case TernaryAdder =>
+          val Seq(cin0, cin1) = carries // get input
+          val Seq(x, y, z) = dataWords(i).map(_.d(i))
+          val core = Compressor3to1Hard(x.getBitsWidth, sub) // connection
+          core.cIn0 := cin0
+          core.cIn1 := cin1
+          core.x := x
+          core.y := y
+          core.z := z
+          sumWords(i) := core.sumsOut.d(coreCount - i)
+          (Seq(core.cOut0.d(1), core.cOut1.d(1)), i + 1) // pass output
+      }
+    }
+
+    dataOut.fragment.head := sumWords.reverse.reduce(_ @@ _).resize(widthOut)
   }
 
-  Seq.iterate((carriesStart, 0), coreCount + 1) { case (carries, i) =>
-    mode match {
-
-      case BinaryAdder =>
-        val cin = carries.head
-        val Seq(x, y) = dataWords(i).map(_.d(i))
-        val ret = x +^ y + cin.asUInt
-        sumWords(i) := ret.takeLow(x.getBitsWidth).asUInt.d(coreCount - i)
-        (Seq(ret.msb.d(1)), i + 1)
-      case BinarySubtractor =>
-        val cin = carries.head
-        val Seq(x, y) = dataWords(i).map(_.d(i))
-        val ret = x +^ ~y + cin.asUInt
-        sumWords(i) := ret.takeLow(x.getBitsWidth).asUInt.d(coreCount - i)
-        (Seq(ret.msb.d(1)), i + 1)
-      case TernaryAdder =>
-        val Seq(cin0, cin1) = carries // get input
-        val Seq(x, y, z) = dataWords(i).map(_.d(i))
-        val core = Compressor3to1Hard(x.getBitsWidth, sub) // connection
-        core.cIn0 := cin0
-        core.cIn1 := cin1
-        core.x := x
-        core.y := y
-        core.z := z
-        sumWords(i) := core.sumsOut.d(coreCount - i)
-        (Seq(core.cOut0.d(1), core.cOut1.d(1)), i + 1) // pass output
-    }
-  }
-
-  dataOut.fragment.head := sumWords.reverse.reduce(_ @@ _).resize(widthOut)
 
   autoValid()
   autoLast()

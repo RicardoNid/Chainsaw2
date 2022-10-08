@@ -8,17 +8,17 @@ import scala.util.Random
 class FineReductionTest extends AnyFlatSpec {
 
   val testCount = 10000
-  val upperBound = 10
+  val upperBounds = 2 to 10
   val M = algos.ZPrizeMSM.baseModulus
 
-  val config = FineReduction(M, upperBound)
+  def testFineReduction(upperBound: Int) = {
+    val config = FineReduction(M, upperBound)
+    val data = Seq.fill(testCount)(BigInt(config.widthIn, Random)).filter(_ <= upperBound * M)
+    TransformTest.test(config.implH, data)
+  }
 
-  logger.info(s"modulus: $M")
+  "fine reduction module" should "work" in upperBounds.foreach(testFineReduction)
 
-  val data = Seq.fill(testCount)(BigInt(config.widthIn, Random)).filter(_ <= upperBound * M)
-
-  "fine reduction module" should "work" in TransformTest.test(config.implH, data)
-
-  it should "impl" in VivadoImpl(config.implH, "reduction377")
+  it should "impl" in VivadoImpl(FineReduction(M, 10).implH, "reduction377")
 
 }

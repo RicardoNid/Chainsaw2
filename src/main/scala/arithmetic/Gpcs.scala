@@ -136,13 +136,13 @@ object Compressor4to2 extends Compressor[Bool] {
 
   override val widthMax = 32
 
-  override val widthMin: Int = 1
+  override val widthMin: Int = 8
 
   override def inputFormat(width: Int) = Seq.fill(width)(4)
 
   override def outputFormat(width: Int) = 1 +: Seq.fill(width)(2)
 
-  override def cost(width: Int): Int = width
+  override def cost(width: Int): Int = width.nextMultiple(8)
 
   override def impl(bitsIn: BitHeap[Bool], width: Int) = {
     val Seq(w, x, y, z) = bitsIn.bitHeap.map(_.padTo(4, False)).transpose.map(_.asBits().asUInt)
@@ -173,13 +173,13 @@ object Compressor3to1 extends Compressor[Bool] {
 
   override val widthMax = 16
 
-  override val widthMin = 1
+  override val widthMin = 8
 
   override def inputFormat(width: Int): Seq[Int] = 5 +: Seq.fill(width - 1)(3)
 
   override def outputFormat(width: Int): Seq[Int] = Seq.fill(width)(1) :+ 2
 
-  override def cost(width: Int): Int = width
+  override def cost(width: Int): Int = width.nextMultiple(8)
 
   override def impl(bitsIn: BitHeap[Bool], width: Int) = {
 

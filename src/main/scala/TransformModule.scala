@@ -20,6 +20,8 @@ abstract class TransformModule[TIn <: Data, TOut <: Data] extends Component {
     dataIn.last.assignDontCare()
     dataIn.valid.allowPruning()
     dataIn.last.allowPruning()
+    dataOut.last.allowPruning()
+    dataOut.valid.allowPruning()
   }
 
   def autoInputCounter() = {

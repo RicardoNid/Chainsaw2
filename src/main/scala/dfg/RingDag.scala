@@ -31,7 +31,14 @@ class RingDag(name: String = "ring", val golden: Seq[BigInt] => Seq[BigInt])
 
   def breakBundles() = BreakBundles(this)
 
-  def rewritePostAdditionTree() = RewriteAdditionTree(this)
+  def rewritePostAdditionTree(): RingDag = RewriteAdditionTree(this)
+
+  def reconstruct() = {
+    makeComb()
+    simplify()
+    rewritePostAdditionTree()
+    simplify().asInstanceOf[RingDag]
+  }
 
   /** get the graph prepared for hardware implementation
    *
@@ -60,7 +67,11 @@ class RingDag(name: String = "ring", val golden: Seq[BigInt] => Seq[BigInt])
     this.toPng(name)
 
     val graphLatency = this.latency
-    logger.info(s"latency before impl $graphLatency")
+
+    logger.info(
+      s"\n----impl report of $name ----" +
+        s"\n\tlatency = $graphLatency"
+    )
 
     def config = new TransformDfg {
 
@@ -98,14 +109,16 @@ class RingDag(name: String = "ring", val golden: Seq[BigInt] => Seq[BigInt])
   def asRingOp(dataIns: Seq[RingPort])(implicit dag: RingDag) = {
 
     this.validate()
-    this.toPng(name)
+    //    this.toPng(name)
 
     val graphLatency = this.latency
     logger.info(s"latency before impl $graphLatency")
+    val graphName = this.name
+
 
     def config = new TransformDfg {
 
-      override val name = "name"
+      override val name = graphName
       // TODO: not this type
       override val opType = Custom
       override val widthsIn = inputs.asInstanceOf[Seq[RingVertex]].flatMap(_.widthsIn)
@@ -137,6 +150,22 @@ class RingDag(name: String = "ring", val golden: Seq[BigInt] => Seq[BigInt])
   }
 
   def toPng(pngName: String = "temp") = ToPng(this, pngName)
+
+  override def clone: RingDag = {
+    val newGraph = new RingDag(name, golden)
+    val vertexMap = this.vertexSet().map(v => v -> v.clone()).toMap
+    vertexMap.values.foreach(newGraph.addVertex)
+    this.inputs.foreach(v => newGraph.inputs += vertexMap(v))
+    this.outputs.foreach(v => newGraph.outputs += vertexMap(v))
+    this.edgeSet().foreach { e =>
+      val (source, target) = (vertexMap(e.source), vertexMap(e.target))
+      val sourceId = e.outOrder
+      val targetId = e.inOrder
+      newGraph.addEdge(source.out(sourceId), target.in(targetId), e.weight)
+    }
+    newGraph.retimingInfo = this.retimingInfo.map { case (v, i) => vertexMap(v) -> i }
+    newGraph
+  }
 }
 
 object RingDag {

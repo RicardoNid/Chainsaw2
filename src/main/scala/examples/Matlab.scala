@@ -6,7 +6,7 @@ import com.mathworks.engine._
 import scala.io.StdIn
 import scala.util.Random
 
-object UsingMatlab extends App {
+object Matlab extends App {
   // initialize a Matlab engine
   val eng = MatlabEngine.startMatlab()
 

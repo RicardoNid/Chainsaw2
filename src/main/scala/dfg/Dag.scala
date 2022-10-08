@@ -26,22 +26,24 @@ import scala.collection.mutable.ArrayBuffer
 //  }
 //}
 
-object Direction extends Enumeration {
-  val In, Out = Value
-  type Direction = Value
-}
+//object Direction extends Enumeration {
+//  val In, Out = Value
+//  type Direction = Value
+//}
 
-import dfg.Direction._
+//import dfg.Direction._
 
 /** This is for vertices which do no operations, this can be used as input, output or intermediate variables
  *
  */
 object VarVertex {
   def apply[THard <: Data](name: String) =
-    new DagVertex(name, 0, Var,  (data: Seq[THard]) => data)
+    new DagVertex(name, 0, Var, (data: Seq[THard]) => data)
 }
 
-class DagPort[THard <: Data](val vertex: DagVertex[THard], val order: Int, val direction: Direction)
+class DagPort[THard <: Data](val vertex: DagVertex[THard], val order: Int, val direction: Direction) {
+  def setName(name: String) = vertex.setName(name)
+}
 
 object DagPort {
   def apply[THard <: Data](vertex: DagVertex[THard], order: Int, direction: Direction): DagPort[THard] = new DagPort(vertex, order, direction)
@@ -147,14 +149,14 @@ class Dag[THard <: Data](val name: String)
       current = current.targets.head
       path += current
     }
-    logger.info(s"io path ${path.mkString("->")}")
+    if (verbose >= 1) logger.info(s"io path ${path.mkString("->")}")
     path
   }
 
   /** This latency is true only when the graph is homogeneous
    */
   def latency: Int = getIoPath.init.zip(getIoPath.tail)
-    .map { case (s, t) => getEdge(s, t).weight}.sum.toInt
+    .map { case (s, t) => getEdge(s, t).weight }.sum.toInt
 
   def pathToString(path: GraphPath[V, E]) = {
     path.getVertexList.zip(path.getEdgeList)
@@ -186,4 +188,5 @@ class Dag[THard <: Data](val name: String)
   override def toString =
     s"vertices:\n${vertexSet().mkString("\n")}\n" +
       s"edges:\n${edgeSet().map(_.toStringInGraph).mkString("\n")}"
+
 }

@@ -12,18 +12,18 @@ import scala.language.postfixOps
  */
 case class BitHeapCompressorConfig(infos: Seq[ArithInfo]) extends TransformBase {
 
-  val hasNegative = infos.exists(_.sign == false)
+  val hasNegative = infos.exists(_.isPositive == false)
 
   override def impl(dataIn: Seq[Any]) = {
     val bigInts = dataIn.asInstanceOf[Seq[BigInt]]
-    val ret = bigInts.zip(infos).map { case (int, info) => (int << info.weight) * (if (info.sign) 1 else -1) }.sum
+    val ret = bigInts.zip(infos).map { case (int, info) => (int << info.weight) * (if (info.isPositive) 1 else -1) }.sum
     Seq(ret)
   }
 
   override val size = (infos.length, if (hasNegative) 4 else 2)
 
-  val infosPositive = infos.filter(_.sign)
-  val infosNegative = infos.filterNot(_.sign)
+  val infosPositive = infos.filter(_.isPositive)
+  val infosNegative = infos.filterNot(_.isPositive)
 
   val bitHeapInfoPositive = BitHeap.getFakeHeapFromInfos(infosPositive).compressAll(Gpcs())
   val (_, latencyPositive, widthOutPositive) = bitHeapInfoPositive
@@ -71,8 +71,8 @@ case class BitHeapCompressor(config: BitHeapCompressorConfig)
     val (ret, _, _) = bitHeap.compressAll(Gpcs(), pipeline)
     dataOut.fragment := ret.output(zero).map(_.asBits().asUInt)
   } else {
-    val operandsPositive = dataIn.fragment.map(_.asBools).zip(infos).filter(_._2.sign).map(_._1)
-    val operandsNegative = dataIn.fragment.map(_.asBools).zip(infos).filterNot(_._2.sign).map(_._1)
+    val operandsPositive = dataIn.fragment.map(_.asBools).zip(infos).filter(_._2.isPositive).map(_._1)
+    val operandsNegative = dataIn.fragment.map(_.asBools).zip(infos).filterNot(_._2.isPositive).map(_._1)
 
     val bitHeapPositive = BitHeap.getHeapFromInfos(infosPositive, operandsPositive)
     val bitHeapNegative = BitHeap.getHeapFromInfos(infosNegative, operandsNegative)

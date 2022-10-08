@@ -11,7 +11,7 @@ case class BitHeapCompressorUseInversionConfig(infos: Seq[ArithInfo])
 
   override def impl(dataIn: Seq[Any]): Seq[BigInt] = {
     val bigInts = dataIn.asInstanceOf[Seq[BigInt]]
-    val ret = bigInts.zip(infos).map { case (int, info) => (int << info.weight) * (if (info.sign) 1 else -1) }.sum
+    val ret = bigInts.zip(infos).map { case (int, info) => (int << info.weight) * (if (info.isPositive) 1 else -1) }.sum
     Seq(ret)
   }
 
@@ -19,7 +19,7 @@ case class BitHeapCompressorUseInversionConfig(infos: Seq[ArithInfo])
 
   // for negative operands, we use its bitwise inversion instead, and make compensation by the final CPA
   // example: -1010 = 0101 - 1111, compensation = -1111
-  val compensation = infos.filter(_.sign == false) // negative operands
+  val compensation = infos.filter(_.isPositive == false) // negative operands
     .map(info => ((BigInt(1) << info.width) - 1) << info.weight)
     .map(_ * 1).sum
 
@@ -51,22 +51,32 @@ case class BitHeapCompressorUseInversion(config: BitHeapCompressorUseInversionCo
   override val dataIn = slave Flow Fragment(Vec(infos.map(info => UInt(info.width bits))))
   override val dataOut = master Flow Fragment(Vec(UInt(), size._2))
 
-  // build operands through bitwise inversion
-  val operands = dataIn.fragment.zip(infos)
-    .map { case (int, info) => if (info.sign) int else ~int }
-    .map(_.d(1).asBools)
+  if (skipComponentSim) {
+    val operands = dataIn.fragment
+    val pos = operands.zip(infos).filter(_._2.isPositive).map { case (int, info) => int << info.weight }.reduce(_ +^ _)
+    val neg =
+      if (!infos.forall(_.isPositive)) operands.zip(infos).filterNot(_._2.isPositive).map { case (int, info) => int << info.weight }.reduce(_ +^ _)
+      else U(0)
+    val ret = (pos -^ neg).resize(widthOut)
+    dataOut.fragment.head := ret.d(latency)
+  } else {
+    // build operands through bitwise inversion
+    val operands = dataIn.fragment.zip(infos)
+      .map { case (int, info) => if (info.isPositive) int else ~int }
+      .map(_.d(1).asBools)
 
-  def pipeline(data: Bool): Bool = data.d(1)
+    def pipeline(data: Bool): Bool = data.d(1)
 
-  def zero(): Bool = False
+    def zero(): Bool = False
 
-  val bitHeap = BitHeap.getHeapFromInfos(infos, operands)
-  val (ret, _, _) = bitHeap.compressAll(Gpcs(), pipeline)
+    val bitHeap = BitHeap.getHeapFromInfos(infos, operands)
+    val (ret, _, _) = bitHeap.compressAll(Gpcs(), pipeline)
 
-  // two rows from
-  val rows = ret.output(zero).map(_.asBits().asUInt)
+    // two rows from
+    val rows = ret.output(zero).map(_.asBits().asUInt)
 
-  dataOut.fragment.head := cpaConfig.asFunc(Seq(rows.head, rows.last, compensation >> ret.weightLow)).head @@ U(0, ret.weightLow bits)
+    dataOut.fragment.head := cpaConfig.asFunc(Seq(rows.head, rows.last, compensation >> ret.weightLow)).head @@ U(0, ret.weightLow bits)
+  }
 
   autoValid()
   autoLast()
