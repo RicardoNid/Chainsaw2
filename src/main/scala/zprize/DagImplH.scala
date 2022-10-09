@@ -30,21 +30,19 @@ object DagImplH {
         val incomingEdges = target.incomingEdges.sortBy(_.inOrder)
         val drivingSignals = target.sourcePorts.map(signalMap)
         val pipelinedSignals = drivingSignals.zip(incomingEdges).map { case (signal, e) => signal.d(e.weight.toInt) }
-        val core = target.gen.implH
-        core.dataIn.fragment.zip(pipelinedSignals).foreach { case (port, bits) => port := bits }
-        core.skipControl()
-        target.outPorts.zip(core.dataOut.fragment).foreach { case (port, bits) => signalMap(port) = bits }
+        val core = target.gen.getImplH
+        core.dataIn.zip(pipelinedSignals).foreach { case (port, bits) => port := bits }
+        target.outPorts.zip(core.dataOut).foreach { case (port, bits) => signalMap(port) = bits }
       }
     }
 
     new ChainsawModule(dag) {
-      dag.inputs.zip(dataIn.fragment).foreach { case (input, bits) => signalMap += input.out(0) -> bits }
+      dag.inputs.zip(dataIn).foreach { case (input, bits) => signalMap += input.out(0) -> bits }
       while (getNextStage.nonEmpty) {
         if (verbose >= 1) logger.info(s"implH next stage: ${getNextStage.mkString("\n")}")
         getNextStage.foreach(implVertex)
       }
-      dag.outputs.zip(dataOut.fragment).foreach { case (output, port) => port := signalMap(output.out(0)) }
-      autoControl()
+      dag.outputs.zip(dataOut).foreach { case (output, port) => port := signalMap(output.out(0)) }
     }
   }
 

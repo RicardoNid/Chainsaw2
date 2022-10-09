@@ -23,6 +23,7 @@ case class PassThrough(width: Int) extends ChainsawGenerator {
   override val impl = (dataIn: Seq[Any]) => dataIn
   override var inputWidths = Seq(width)
   override var outputWidths = Seq(width)
+  override val frameFormat = frameNoControl
   override val inputType = HardType(Bits())
   override val outputType = HardType(Bits())
   override var latency = 0
@@ -152,7 +153,9 @@ abstract class Dag()
   /** --------
    * methods for implementation
    * -------- */
-  override def implH = DagImplH(this)
+  override def implH: ChainsawModule = DagImplH(this)
+
+  def setVerticesAsNaive(): Unit = vertexSet().foreach(_.gen.setAsNaive)
 
   def assureAcyclic(): Unit = assert(!new alg.cycle.CycleDetector(this).detectCycles())
 
@@ -175,14 +178,15 @@ abstract class Dag()
 
   /** --------
    * methods for readability & visualization
-   -------- */
+   * -------- */
   def pathToString(path: GraphPath[V, E]) = {
     path.getVertexList.zip(path.getEdgeList)
       .map { case (v, e) => s"$v -> ${e.weight} -> " }.mkString("\n") +
       path.getEndVertex.toString
   }
 
-  override def toString =
-    s"vertices:\n${vertexSet().mkString("\n")}\n" +
-      s"edges:\n${edgeSet().map(_.toStringInGraph).mkString("\n")}"
+  def toPng() = ToPng(this)
+
+  s"vertices:\n${vertexSet().mkString("\n")}\n" +
+    s"edges:\n${edgeSet().map(_.toStringInGraph).mkString("\n")}"
 }

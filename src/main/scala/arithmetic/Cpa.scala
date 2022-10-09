@@ -111,7 +111,6 @@ case class Cpa(config: CpaConfig) extends TransformModule[UInt, UInt] {
 
     Seq.iterate((carriesStart, 0), coreCount + 1) { case (carries, i) =>
       mode match {
-
         case BinaryAdder =>
           val cin = carries.head
           val Seq(x, y) = dataWords(i).map(_.d(i))

@@ -6,9 +6,7 @@ import spinal.core._
 import spinal.core.sim._
 import spinal.lib._
 import spinal.lib.fsm._
-import zprize.ChainsawGenerator
-
-case class FrameFormat()
+import zprize.{ChainsawGenerator, FrameFormat}
 
 import scala.language.postfixOps
 
@@ -16,25 +14,34 @@ class ChainsawModule(val gen: ChainsawGenerator) extends Module {
 
   import gen._
 
-  val dataIn = slave Flow Fragment(Vec(inputWidths.map(w => Bits(w bits))))
-  val dataOut = master Flow Fragment(Vec(outputWidths.map(w => Bits(w bits))))
-  setDefinitionName(gen.moduleName)
+  val dataIn = in Vec inputWidths.map(w => Bits(w bits))
+  val dataOut = out Vec outputWidths.map(w => Bits(w bits))
+  setDefinitionName(gen.name)
 
-  // methods for easy control
-  def autoValid(): Unit = dataOut.valid := dataIn.valid.validAfter(latency)
-
-  def autoLast(): Unit = dataOut.last := dataIn.last.validAfter(latency)
-
-  def autoControl(): Unit = {
-    autoValid()
-    autoLast()
-  }
-
-  def skipControl() = {
-    dataIn.valid.assignDontCare()
-    dataIn.last.assignDontCare()
-    dataIn.valid.allowPruning()
-    dataIn.last.allowPruning()
-  }
+  val validIn, lastIn = if (gen.frameFormat.needNoControl) null else in(Bool())
 }
 
+class ChainsawModuleWrapper(val gen: ChainsawGenerator) extends Module {
+
+  import gen._
+
+  val dataIn = slave Flow Fragment(Vec(inputWidths.map(w => Bits(w bits))))
+  val dataOut = master Flow Fragment(Vec(outputWidths.map(w => Bits(w bits))))
+  setDefinitionName(s"${gen.name}_dut")
+
+  val core = gen.getImplH
+  core.dataIn.zip(dataIn.fragment).zip(inputTimes).foreach { case ((corePort, dutPort), i) => corePort := dutPort.d(i) }
+  val outputSpan = outputTimes.max
+  dataOut.fragment.zip(core.dataOut).zip(outputTimes).foreach { case ((dutPort, corePort), i) => dutPort := corePort.d(outputSpan - i) }
+
+  if (!gen.frameFormat.needNoControl) { // when core module need controlIn
+    core.validIn := dataIn.valid
+    core.lastIn := dataIn.last
+  }
+
+  if (frameFormat.needNoControl) { // fully pipelined situation
+    dataOut.last := dataIn.last.validAfter(latency + outputSpan)
+    dataOut.valid := dataIn.valid.validAfter(latency + outputSpan)
+  }
+
+}

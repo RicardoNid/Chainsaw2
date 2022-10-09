@@ -30,6 +30,7 @@ package object datenlord {
 
   // record all distinct Chainsaw Modules
   var generatorList = mutable.Map[Int, Int]()
+  val naiveSet = mutable.Set[String]()
 
   type ChainsawFlow[T <: Data] = Flow[Fragment[Vec[T]]]
 
@@ -44,7 +45,7 @@ package object datenlord {
   }
 
   def RtlGen[T <: Component](gen: => T, name: String = "temp") = {
-    val genDir = "/home/ltr/IdeaProjects/Chainsaw2/genWorkspace/"
+    val genDir = s"/home/ltr/IdeaProjects/Chainsaw2/genWorkspace/$name/"
     val ret = SpinalConfig(targetDirectory = genDir, oneFilePerComponent = true)
       .generateVerilog(gen.setDefinitionName(name))
       .printPrunedIo()
@@ -52,14 +53,6 @@ package object datenlord {
   }
 
   import zprize._
-
-  def ChainsawGen[T <: Component](gen: ChainsawGenerator) = {
-    val genDir = "/home/ltr/IdeaProjects/Chainsaw2/genWorkspace"
-    val ret = SpinalConfig(targetDirectory = genDir, oneFilePerComponent = true, netlistFileName = gen.moduleName)
-      .generateVerilog(gen.implH)
-      .printPrunedIo()
-    logger.info(s"\nrtl generated: \n${ret.rtlSourcesPaths.mkString("\n")}")
-  }
 
   def VivadoImpl[T <: Component](gen: => T, name: String = "temp", target: XilinxDevice = defaultDevice, xdcPath: String = null) = {
     val report = VivadoFlow(design = gen, taskType = IMPL, topModuleName = name, workspacePath = s"synthWorkspace/$name/", xilinxDevice = target, alterXdc = xdcPath).doFlow()

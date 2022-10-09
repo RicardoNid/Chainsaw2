@@ -8,21 +8,22 @@ import spinal.lib.fsm._
 import zprize.ChainsawGenerator
 
 import scala.language.postfixOps
+import scala.util.Random
 
 // a simple ChainsawGenerator
 case class ChainsawAddGen(width: Int) extends ChainsawGenerator {
 
-  override val name = "adder"
+  override val name = s"adder_$width"
   override val impl = (dataIn: Seq[Any]) => Seq(dataIn.asInstanceOf[Seq[BigInt]].sum)
   override var inputWidths = Seq.fill(2)(width)
   override var outputWidths = Seq(width + 1)
+  override val frameFormat = frameNoControl
   override val inputType = HardType(UInt())
   override val outputType = HardType(UInt())
   override var latency = 1
 
   override def implH: ChainsawModule = new ChainsawModule(this) {
-    dataOut.fragment.head := dataIn.fragment.map(_.asUInt).reduce(_ +^ _).d(1).asBits
-    autoControl()
+    dataOut.head := dataIn.map(_.asUInt).reduce(_ +^ _).d(1).asBits
   }
 }
 
@@ -43,6 +44,8 @@ case class CpaGen(width: Int, mode: Int) extends ChainsawGenerator {
     case 1 => Seq.fill(width)(4)
     case 2 => Seq(4 * width)
   }
+
+  override val frameFormat = frameNoControl
 
   override val inputTimes = mode match {
     case 0 => Seq(0)
@@ -96,6 +99,7 @@ object ChainsawExample extends App {
     override val impl = (dataIn: Seq[Any]) => Seq(dataIn.asInstanceOf[Seq[BigInt]].sum)
     override val inputType = HardType(UInt())
     override val outputType = HardType(UInt())
+    override val frameFormat = frameNoControl
     override val inputTimes = Seq.fill(4)(0)
     override val outputTimes = Seq(0)
 
@@ -123,6 +127,7 @@ object ChainsawExample extends App {
     override val impl = (dataIn: Seq[Any]) => Seq(dataIn.asInstanceOf[Seq[BigInt]].sum)
     override val inputType = HardType(UInt())
     override val outputType = HardType(UInt())
+    override val frameFormat = frameNoControl
     override val inputTimes = Seq(0)
     override val outputTimes = Seq(0)
 
@@ -131,12 +136,18 @@ object ChainsawExample extends App {
     val i = InputVertex(40)
     val o = OutputVertex(40)
     // declare submodules
-    val add0 = CpaGen(10, 0).asVertex // aligned -> diff
-    val add1 = CpaGen(10, 1).asVertex // diff -> diff
-    val add2 = CpaGen(10, 2).asVertex // diff -> aligned
+
+    val widths = Seq.fill(4)(10)
+    val add0 = Cpa(BinaryAdder, 0, widths, S2M).asVertex // aligned -> diff
+    val add1 = Cpa(BinaryAdder, 0, widths, M2M).asVertex // diff -> diff
+    val add2 = Cpa(BinaryAdder, 0, widths, M2S).asVertex // diff -> aligned
+
+    //    val s2s = Cpa(BinaryAdder, 0, widths, S2S)
+    //    val add0 = s2s.asVertex // aligned -> diff
+    //    val add1 = s2s.asVertex // diff -> diff
+    //    val add2 = s2s.asVertex // diff -> aligned
 
     add0.in(0) := i
-
     add1.in(0) := add0.out(0)
     add1.in(1) := add0.out(1)
     add1.in(2) := add0.out(2)
@@ -146,7 +157,6 @@ object ChainsawExample extends App {
     add2.in(1) := add1.out(1)
     add2.in(2) := add1.out(2)
     add2.in(3) := add1.out(3)
-
     o := add2.out(0)
 
     updateHardwareData() // this must be invoked explicitly
@@ -170,11 +180,16 @@ object ChainsawExample extends App {
   // println(AdderGraph())
   // println(AdderGraph().autoPipeline().retimingInfo.mkString("\n"))
 
-  RtlGen(AdderGraph().implH)
+  val adderGraph = AdderGraph()
+  RtlGen(adderGraph.implH, "adder")
+  RtlGen(adderGraph.implDut, "adderDut")
 
-  //
-  verbose = 1
-  println(CpaGraph().autoPipeline().retimingInfo.mkString("\n"))
+  //  println(CpaGraph().autoPipeline().retimingInfo.mkString("\n"))
+  CpaGraph().autoPipeline().toPng()
+
+  //  val cpaExample = Cpa(BinaryAdder, 0, Seq.fill(4)(10), M2M)
+  //  RtlGen(cpaExample.implH, "cpa")
+  //  RtlGen(cpaExample.implDut, "cpaDut")
 
   // this example show the way a graph implement itself
 
