@@ -4,13 +4,12 @@ package zprize
 import org.datenlord
 import org.datenlord.xilinx.{VivadoUtil, VivadoUtilRequirement}
 import spinal.core._
-import zprize.FrameFormat
 
 import scala.language.postfixOps
 
 trait ChainsawGenerator {
 
-  val name: String
+  def name: String
 
   /** --------
    * golden model
@@ -21,15 +20,16 @@ trait ChainsawGenerator {
   /** --------
    * size information
    * -------- */
-  var inputWidths: Seq[Int]
-  var outputWidths: Seq[Int]
-  val inputType: HardType[_]
-  val outputType: HardType[_]
+//  var inputWidths: Seq[Int]
+//  var outputWidths: Seq[Int]
+  var inputTypes: Seq[NumericTypeInfo]
+  var outputTypes: Seq[NumericTypeInfo]
 
   /** --------
    * timing information
    * -------- */
-  val frameFormat: FrameFormat
+  var inputFormat: FrameFormat
+  var outputFormat: FrameFormat
   val inputTimes: Seq[Int] = null // when this is null, inputs are aligned
   val outputTimes: Seq[Int] = null
   var latency: Int // defined as the latency from the head of inputs to the head of outputs
@@ -45,13 +45,16 @@ trait ChainsawGenerator {
    * -------- */
   def implH: ChainsawModule // core module, that is, the datapath
 
-  def implFakeH: ChainsawModule = null // naive RTL implementation for simulation & top-down design
+  def implNaiveH: ChainsawModule = null // naive RTL implementation for simulation & top-down design
 
   def setAsNaive(): Unit = naiveSet += this.getClass.getSimpleName
 
   def useNaive: Boolean = naiveSet.contains(this.getClass.getSimpleName)
 
-  def getImplH: ChainsawModule = if (useNaive && implFakeH != null) implFakeH else implH
+  def getImplH: ChainsawModule = {
+    doDrc()
+    if (useNaive && implNaiveH != null) implNaiveH else implH
+  }
 
   def implDut = new ChainsawModuleWrapper(this) // testable module, datapath + protocol
 
@@ -67,27 +70,39 @@ trait ChainsawGenerator {
   def asVertex(implicit ref: Dag) = DagVertex(this)
 
   def doDrc(): Unit = {
-    assert(inputTimes.head == 0)
-    assert(outputTimes.head == 0)
-    assert(inputTimes.length == inputWidths.length)
-    assert(outputTimes.length == outputWidths.length)
-    assert(inputTimes.forall(_ >= 0))
-    assert(outputTimes.forall(_ >= 0))
+    if (inputTimes != null) {
+      assert(inputTimes.head == 0)
+      assert(inputTimes.length == inputWidths.length)
+      assert(inputTimes.forall(_ >= 0))
+    }
+    if (outputTimes != null) {
+      assert(outputTimes.head == 0)
+      assert(outputTimes.length == outputWidths.length)
+      assert(outputTimes.forall(_ >= 0))
+    }
+    assert(latency >= 0, "invalid generator with negative latency, " +
+      "do you forgot to invoke GraphDone at the end of Dag construction?")
   }
+
+  final def inputWidths = inputTypes.map(_.bitWidth)
+
+  final def outputWidths = outputTypes.map(_.bitWidth)
 
   def sizeIn: Int = inputWidths.length
 
   def sizeOut: Int = outputWidths.length
 
-  def frameNoControl: FrameFormat = FrameNoControl(sizeIn, sizeOut)
+  def needNoControl: Boolean = inputFormat.period == 1 && outputFormat.period == 1
 
-  def inputFormat: BasicDataFlow = frameFormat.inputFormat
+  def inputNoControl: FrameFormat = FrameFormat(Seq(0 until sizeIn)).asInstanceOf[FrameFormat]
 
-  def outputFormat: BasicDataFlow = frameFormat.outputFormat
+  def outputNoControl: FrameFormat = FrameFormat(Seq(0 until sizeOut))
 
   // common instantiation steps
-  if (generatorList.contains(hashCode()) && !this.isInstanceOf[PassThrough]) {
-    // TODO: how to print concrete class name?
-    logger.warn(s"an identical generator already instantiated, you'd better reuse the existing generator")
-  } else generatorList(hashCode()) = 0
+  // TODO: how to print concrete class name?
+  if (generatorList.contains(name) && !this.isInstanceOf[IoGenerator]) {
+    logger.warn(s"an identical generator $name already instantiated, you'd better reuse the existing generator")
+    // throw new IllegalArgumentException(s"an identical generator $name already instantiated, you'd better reuse the existing generator")
+  } else if (!generatorList.contains(name)) generatorList(name) = 0
+
 }

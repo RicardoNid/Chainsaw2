@@ -52,9 +52,9 @@ case class PermutationByRamConfig[T <: Data](permutation: Seq[Int], override val
   // get permutation matrices from mapping matrix by brute force algorithm
   // TODO: better algorithm
   def getDecomposition(mapping: DenseMatrix[Int]) = {
-    logger.info(s"decomposing mapping matrix\n${mapping.toString()}")
-    require(mapping.rows == mapping.cols)
     val n = mapping.rows
+    logger.info(s"decomposing mapping $n X $n matrix\n${mapping.toString()}")
+    require(mapping.rows == mapping.cols)
 
     // generate all permutations of length n, implemented as a iterator(delayed)
     def perms(n: Int) = (0 until n).permutations
@@ -69,8 +69,7 @@ case class PermutationByRamConfig[T <: Data](permutation: Seq[Int], override val
     var current = mapping
     val ret = ArrayBuffer[Seq[Int]]()
     // brute force(traversal) algorithm
-    perms(n).foreach { perm =>
-      //      logger.info(s"try sub permutaion")
+    perms(n).zipWithIndex.foreach { case (perm, i) =>
       val permMatrix = perm2Matrix(perm)
       // algorithm 6 line 3-6
       while ((current - permMatrix).forall(_ >= 0)) {

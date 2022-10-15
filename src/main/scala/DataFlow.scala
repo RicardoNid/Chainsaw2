@@ -17,7 +17,7 @@ abstract class DataFlow() {
 
   def isUnique = rawData.length == rawData.distinct.length
 
-  def isCompact = flow.flatten.forall(_ != -1)
+  def isCompact = !flow.flatten.contains(-1)
 
   def getTime(elem: Int) = flow.flatten.indexWhere(_ == elem) / portWidth
 
@@ -76,21 +76,10 @@ abstract class DataFlow() {
   }
 
   def emptyRow = Seq.fill(flow.head.length)(-1)
-  def padTo(period:Int) = BasicDataFlow(flow.padTo(period, emptyRow))
+
+  def padTo(period: Int) = BasicDataFlow(flow.padTo(period, emptyRow))
 }
 
-object DataFlow { // examples
-  def main(args: Array[String]): Unit = {
-    val flow = Seq(Seq(0, 1, -1), Seq(2, 3, -1))
-    val dataflow = BasicDataFlow(flow)
-    dataflow.generateWaveform("example", "x")
-    val rawData = Seq(1, 5, 9, 3).map(BigInt(_))
-    val theFlow = dataflow.fromRawData(rawData, BigInt(0))._1
-    println(theFlow.map(_.mkString(" ")).mkString("\n"))
-    val theRaw = dataflow.toRawData(theFlow)
-    println(theRaw.mkString(" "))
-  }
-}
 
 case class BasicDataFlow(override val flow: Seq[Seq[Int]]) extends DataFlow
 
@@ -118,4 +107,9 @@ object TimeSpaceFlow {
   def main(args: Array[String]): Unit = {
     TimeSpaceFlow(16, 4, 4, 5).generateWaveform(s"timespace", "x")
   }
+}
+
+object DataFlowExample extends App {
+  val dataflow = BasicDataFlow((0 until 4).grouped(2).toSeq :+ Seq(-1,-1))
+  dataflow.generateWaveform("flowExample", "x")
 }

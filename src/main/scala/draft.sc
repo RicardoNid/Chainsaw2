@@ -1,7 +1,3 @@
-
-
-BigInt("1365808793241").toString(2)
-BigInt("1010011001", 2)
-BigInt("1100010001", 2)
-BigInt("0000001000", 2)
-BigInt("0011111000", 2)
+val a =Seq(2,2,2,2)
+a.scan(1)(_*_).indexWhere(_ == 8)
+a.splitAt(3)

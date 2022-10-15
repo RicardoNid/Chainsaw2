@@ -13,7 +13,6 @@ object DagImplH {
     implicit val ref: Dag = dag
 
     // pre-processing
-    dag.autoPipeline()
     dag.doDrc()
 
     val signalMap = mutable.Map[DagPort, Bits]() // vertex with its output ports

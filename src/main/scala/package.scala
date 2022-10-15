@@ -29,7 +29,7 @@ package object datenlord {
   var skipComponentSim = false
 
   // record all distinct Chainsaw Modules
-  var generatorList = mutable.Map[Int, Int]()
+  var generatorList = mutable.Map[String, Int]()
   val naiveSet = mutable.Set[String]()
 
   type ChainsawFlow[T <: Data] = Flow[Fragment[Vec[T]]]
@@ -68,6 +68,12 @@ package object datenlord {
     report
   }
 
+  def ChainsawImpl(gen: => ChainsawGenerator, name: String = "temp", target: XilinxDevice = defaultDevice, xdcPath: String = null) =
+    VivadoImpl(gen.implH, name, target, xdcPath)
+
+  def ChainsawSynth(gen: => ChainsawGenerator, name: String = "temp", target: XilinxDevice = defaultDevice) =
+    VivadoSynth(gen.implH, name, target)
+
   implicit class BoolUtil(data: Bool) {
     def validAfter(cycle: Int) = Delay(data, cycle, init = False)
 
@@ -75,7 +81,7 @@ package object datenlord {
   }
 
   implicit class DataUtil[T <: Data](data: T) {
-    def d(cycle: Int): T = Delay(data, cycle)
+    def d(cycle: Int = 1): T = Delay(data, cycle)
 
     def split(splitPoints: Seq[Int]): Seq[Bits] = {
       var current = data.asBits
@@ -284,6 +290,23 @@ package object datenlord {
 
   implicit class VecUtil[T <: Data](vec: Vec[T]) {
     def :=(that: Seq[T]) = vec.zip(that).foreach { case (port, data) => port := data }
+
+    def vecShiftWrapper(bitsShift: UInt => Bits, that: UInt): Vec[T] = {
+      val ret = cloneOf(vec)
+      val shiftedBits: Bits = bitsShift((that * widthOf(vec.dataType)).resize(log2Up(widthOf(vec.asBits))))
+      ret.assignFromBits(shiftedBits)
+      ret
+    }
+
+    val bits = vec.asBits
+
+    def rotateLeft(that: Int): Vec[T] = vecShiftWrapper(bits.rotateRight, that)
+
+    def rotateLeft(that: UInt): Vec[T] = vecShiftWrapper(bits.rotateRight, that)
+
+    def rotateRight(that: Int): Vec[T] = vecShiftWrapper(bits.rotateLeft, that)
+
+    def rotateRight(that: UInt): Vec[T] = vecShiftWrapper(bits.rotateLeft, that)
   }
 
   def factors(value: Int) = (1 to value).filter(value % _ == 0)

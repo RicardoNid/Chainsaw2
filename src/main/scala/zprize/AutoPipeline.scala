@@ -21,7 +21,6 @@ object AutoPipeline {
 
     // pre
     dag.makeComb()
-    dag.assureAcyclic()
 
     // declare cplex model
     val cplex = new IloCplex()
@@ -94,7 +93,6 @@ object AutoPipeline {
     // retiming by the solution
     dag.retimingInfo = solution
     dag.retiming(solution)
-    dag.updateLatency()
     dag
   }
 }

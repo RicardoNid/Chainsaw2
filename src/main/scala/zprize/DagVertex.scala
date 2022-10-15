@@ -12,20 +12,20 @@ class DagVertex(val gen: ChainsawGenerator)(implicit ref: Dag) {
   ref.addVertex(this)
 
   // TODO: without this, all I/O vertices have the same hashCode, but why?
-  override def hashCode() = super.hashCode()
+  override def hashCode(): Int = super.hashCode()
 
-  override def equals(obj: Any) = this.hashCode() == obj.hashCode()
+  override def equals(obj: Any): Boolean = this.hashCode() == obj.hashCode()
 
-  var vertexName = s"${gen.name}_${generatorList(gen.hashCode())}"
-  generatorList(gen.hashCode()) += 1
+  if (!gen.isInstanceOf[IoGenerator]) generatorList(gen.name) += 1
+  var vertexName = s"${gen.name}_${generatorList(gen.name)}"
 
   // generate DagPorts
-  def in(portOrder: Int) = { // get one port
+  def in(portOrder: Int): DagPort = { // get one port
     assert(portOrder < inputWidths.length)
     DagPort(this, portOrder, In)
   }
 
-  def out(portOrder: Int) = {
+  def out(portOrder: Int): DagPort = {
     assert(portOrder < outputWidths.length)
     DagPort(this, portOrder, Out)
   }
@@ -33,6 +33,13 @@ class DagVertex(val gen: ChainsawGenerator)(implicit ref: Dag) {
   /** --------
    * methods for connections
    * -------- */
+  def :=(inPorts: DagPort*)(implicit ref: Dag): Unit =
+    inPorts.zipWithIndex.foreach { case (port, i) => ref.addEdge(port, this.in(i)) }
+
+  def assignFromVertex(source: DagVertex)(implicit ref: Dag): Unit = {
+    require(this.inCount == source.outCount)
+    this.inPorts.zip(source.outPorts).foreach { case (t, s) => ref.addEdge(s, t) }
+  }
 
   /** --------
    * methods for accessing neighbors
@@ -46,31 +53,31 @@ class DagVertex(val gen: ChainsawGenerator)(implicit ref: Dag) {
 
   def outCount = outputWidths.length
 
-  def inDegree(implicit ref: Dag) = ref.inDegreeOf(this)
+  def inDegree(implicit ref: Dag): Int = ref.inDegreeOf(this)
 
-  def outDegree(implicit ref: Dag) = ref.outDegreeOf(this)
+  def outDegree(implicit ref: Dag): Int = ref.outDegreeOf(this)
 
   // sources and targets
-  def incomingEdges(implicit ref: Dag) =
+  def incomingEdges(implicit ref: Dag): Seq[DagEdge] =
     ref.incomingEdgesOf(this).toSeq
 
-  def sourcePorts(implicit ref: Dag) =
+  def sourcePorts(implicit ref: Dag): Seq[DagPort] =
     this.incomingEdges.sortBy(_.inOrder)
       .map(e => DagPort(ref.getEdgeSource(e), e.outOrder, Out))
 
-  def sources(implicit ref: Dag) =
+  def sources(implicit ref: Dag): Seq[DagVertex] =
     this.incomingEdges.sortBy(_.inOrder)
       .map(ref.getEdgeSource)
 
-  def outgoingEdges(implicit ref: Dag) =
+  def outgoingEdges(implicit ref: Dag): Seq[DagEdge] =
     ref.outgoingEdgesOf(this).toSeq
 
-  def targetPorts(implicit ref: Dag) =
+  def targetPorts(implicit ref: Dag): Seq[DagPort] =
     ref.outgoingEdgesOf(this)
       .toSeq.sortBy(_.outOrder)
       .map(e => DagPort(ref.getEdgeTarget(e), e.inOrder, In))
 
-  def targets(implicit ref: Dag) =
+  def targets(implicit ref: Dag): Seq[DagVertex] =
     this.outgoingEdges.sortBy(_.outOrder)
       .map(ref.getEdgeTarget)
 
@@ -85,7 +92,11 @@ class DagVertex(val gen: ChainsawGenerator)(implicit ref: Dag) {
 
   override def toString = s"$vertexName"
 
-  override def clone(): DagVertex = new DagVertex(gen)
+  def cloneTo(targetGraph: Dag): DagVertex = {
+    val ret = new DagVertex(gen)(targetGraph)
+    ret.setName(vertexName)
+    ret
+  }
 }
 
 object DagVertex {

@@ -40,21 +40,21 @@ case class Cpa(adderType: AdderType, sub: Int, widths: Seq[Int], cpaMode: CpaMod
     case _ => 2
   }
 
-  override var inputWidths = {
+  override var inputTypes = {
     val temp = cpaMode match {
-      case M2M => widths
-      case M2S => widths
-      case S2M => Seq(widths.sum)
-      case S2S => Seq(widths.sum)
+      case M2M => widths.map(UIntInfo(_))
+      case M2S => widths.map(UIntInfo(_))
+      case S2M => Seq(widths.sum).map(UIntInfo(_))
+      case S2S => Seq(widths.sum).map(UIntInfo(_))
     }
     Seq.fill(operandCount)(temp).flatten
   }
 
-  override var outputWidths = cpaMode match {
-    case M2M => widthsWithInc
-    case M2S => Seq(widthsWithInc.sum)
-    case S2M => widthsWithInc
-    case S2S => Seq(widthsWithInc.sum)
+  override var outputTypes = cpaMode match {
+    case M2M => widthsWithInc.map(UIntInfo(_))
+    case M2S => Seq(widthsWithInc.sum).map(UIntInfo(_))
+    case S2M => widthsWithInc.map(UIntInfo(_))
+    case S2S => Seq(widthsWithInc.sum).map(UIntInfo(_))
   }
 
   override val impl = (dataIn: Seq[Any]) => {
@@ -89,7 +89,8 @@ case class Cpa(adderType: AdderType, sub: Int, widths: Seq[Int], cpaMode: CpaMod
     else words
   }
 
-  override val frameFormat = frameNoControl
+  override var inputFormat = inputNoControl
+  override var outputFormat = outputNoControl
 
   override val inputTimes = {
     val temp = cpaMode match {
@@ -115,8 +116,7 @@ case class Cpa(adderType: AdderType, sub: Int, widths: Seq[Int], cpaMode: CpaMod
     case S2S => widths.length
   }
 
-  override val inputType = HardType(UInt())
-  override val outputType = HardType(UInt())
+
 
   override def implH = new ChainsawModule(this) {
 

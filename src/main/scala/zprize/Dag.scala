@@ -1,8 +1,9 @@
 package org.datenlord
 package zprize
 
-import org.datenlord.dfg.Dag
+import org.datenlord.dfg.{Dag, RingDag}
 import org.jgrapht._
+import org.jgrapht.alg.connectivity.ConnectivityInspector
 import org.jgrapht.graph._
 import org.jgrapht.graph.builder._
 import org.jgrapht.traverse._
@@ -18,22 +19,22 @@ import zprize.{ChainsawGenerator, DagPort, DagVertex}
 import scala.collection.mutable.ArrayBuffer
 
 // TODO: appropriate metadata for consistency
-case class PassThrough(width: Int) extends ChainsawGenerator {
-  override val name = "void"
+case class IoGenerator(width: Int, numericType: NumericTypeInfo, direction: Direction) extends ChainsawGenerator {
+  override def name = if (direction == In) "in" else "out"
+
   override val impl = (dataIn: Seq[Any]) => dataIn
-  override var inputWidths = Seq(width)
-  override var outputWidths = Seq(width)
-  override val frameFormat = frameNoControl
-  override val inputType = HardType(Bits())
-  override val outputType = HardType(Bits())
+  override var inputFormat = inputNoControl
+  override var outputFormat = outputNoControl
+  override var inputTypes = Seq(numericType)
+  override var outputTypes = Seq(numericType)
   override var latency = 0
 
   override def implH = null // this shouldn't be called anyway
 }
 
 object InputVertex {
-  def apply(width: Int)(implicit ref: Dag) = {
-    val vertex = DagVertex(PassThrough(width))
+  def apply(width: Int, numericType: NumericTypeInfo)(implicit ref: Dag) = {
+    val vertex = DagVertex(IoGenerator(width, numericType, In))
     vertex.setName(s"i_${ref.inputs.length}")
     ref.addVertex(vertex)
     ref.inputs += vertex
@@ -42,8 +43,8 @@ object InputVertex {
 }
 
 object OutputVertex {
-  def apply(width: Int)(implicit ref: Dag) = {
-    val vertex = DagVertex(PassThrough(width))
+  def apply(width: Int, numericType: NumericTypeInfo)(implicit ref: Dag) = {
+    val vertex = DagVertex(IoGenerator(width, numericType, Out))
     vertex.setName(s"o_${ref.outputs.length}")
     ref.addVertex(vertex)
     ref.outputs += vertex
@@ -112,17 +113,38 @@ abstract class Dag()
    * @param starts inputs of the subgraph will be connected to the starts
    * @return outputs of the subgraph which can be used for further construction
    */
-  def addGraphsAfter(subGraph: Dag, starts: Seq[Port]): Seq[DagPort] = {
-    require(subGraph.inputs.length == starts.length)
+  def addGraphBetween(subGraph: Dag, starts: Seq[Port], ends: Seq[Port]) = {
+    // check
+    require(subGraph.inputs.length == starts.length, s"${subGraph.inputs.length} != ${starts.length}")
     require(starts.forall(_.direction == Out))
-    //    require(starts.forall(_.vertex.outDegree == 0))
+    require(subGraph.outputs.length == ends.length, s"${subGraph.outputs.length} != ${ends.length}")
+    require(ends.forall(_.direction == In))
     // add
-    Graphs.addGraph(this, subGraph) // add all vertices and edges of that to this, but the edge weights won't be copied
-    subGraph.edgeSet().foreach(e => setEdgeWeight(e, subGraph.getEdgeWeight(e))) // copy the edge weights
+    val verticesMap = subGraph.vertexSet()
+      .filterNot(_.isIo(subGraph))
+      .toSeq.map(v => v -> v.cloneTo(this)).toMap
+    subGraph.edgeSet()
+      .filterNot(e => e.source(subGraph).isIo(subGraph) || e.target(subGraph).isIo(subGraph))
+      .foreach { e =>
+        val oldSourcePort = e.sourcePort(subGraph)
+        val oldTargetPort = e.targetPort(subGraph)
+        val sourcePort = verticesMap(oldSourcePort.vertex).out(oldSourcePort.order)
+        val targetPort = verticesMap(oldTargetPort.vertex).in(oldTargetPort.order)
+        addEdge(sourcePort, targetPort)
+      }
     // link
-    starts.zip(subGraph.inputs).foreach { case (port, in) => addEdge(port, in.in(0)) }
-    // return output ports of source graph, which are part of this graph now
-    subGraph.outputs.map(_.out(0))
+    val startTargets = subGraph.inputs.map { in =>
+      val target = verticesMap(in.targets(subGraph).head)
+      val order = in.targetPorts(subGraph).head.order
+      DagPort(target, order, In)
+    }
+    val endSources = subGraph.outputs.map { out =>
+      val source = verticesMap(out.sources(subGraph).head)
+      val order = out.sourcePorts(subGraph).head.order
+      DagPort(source, order, Out)
+    }
+    starts.zip(startTargets).foreach { case (port, in) => addEdge(port, in) }
+    ends.zip(endSources).foreach { case (port, out) => addEdge(out, port) }
   }
 
   /** --------
@@ -147,7 +169,13 @@ abstract class Dag()
   /** --------
    * methods for rewriting
    * -------- */
-  //  def simplify() = Simplify(this)
+  def flatten(): Dag = { // flatten all vertices which are Dags themselves
+    Flatten(this)
+    logger.info(s"\n----do retiming after flatten----")
+    updateLatency()
+    updateEstimation()
+    this
+  }
 
 
   /** --------
@@ -157,16 +185,26 @@ abstract class Dag()
 
   def setVerticesAsNaive(): Unit = vertexSet().foreach(_.gen.setAsNaive)
 
-  def assureAcyclic(): Unit = assert(!new alg.cycle.CycleDetector(this).detectCycles())
 
-  override var inputWidths = Seq(-1)
-  override var outputWidths = Seq(-1)
+  /** --------
+   * methods for getting metadata
+   -------- */
+  override var inputTypes = Seq(UIntInfo(1))
+  override var outputTypes = Seq(UIntInfo(1))
+  override var inputFormat = inputNoControl
+  override var outputFormat = outputNoControl
   var retimingInfo = Map[V, Int]()
   override var latency = -1 // placeholder which will be overwritten by updateHardwareData
 
-  def updateHardwareData(): Unit = {
-    inputWidths = inputs.map(_.gen.inputWidths.head)
-    outputWidths = outputs.map(_.gen.inputWidths.head)
+  def updateIO(): Unit = {
+    inputTypes = inputs.map(_.gen.inputTypes.head)
+    outputTypes = outputs.map(_.gen.outputTypes.head)
+    // TODO: methods for generating frame format according to vertices and Dag topology
+    inputFormat = inputNoControl
+    outputFormat = outputNoControl
+  }
+
+  def updateEstimation(): Unit = {
     utilEstimation = vertexSet().map(_.gen.utilEstimation).reduce(_ + _)
     fmaxEstimation = {
       val value = vertexSet().map(_.gen.fmaxEstimation.toDouble).min
@@ -174,7 +212,35 @@ abstract class Dag()
     }
   }
 
-  def updateLatency(): Unit = latency = retimingInfo(outputs.head) - retimingInfo(inputs.head)
+  def updateLatency(): Unit = {
+    autoPipeline()
+    latency = retimingInfo(outputs.head) - retimingInfo(inputs.head)
+  }
+
+  def graphDone(): Unit = {
+    updateIO()
+    updateEstimation()
+    updateLatency()
+    doDrc()
+  }
+
+  def assureAcyclic(): Unit = assert(!new alg.cycle.CycleDetector(this).detectCycles(), "dag must be acyclic")
+
+  def assureConnected(): Unit = assert(new ConnectivityInspector(this).isConnected, "dag must be a connected graph")
+
+  override def doDrc(): Unit = {
+    super.doDrc()
+    assureAcyclic()
+    assureConnected()
+    vertexSet().toSeq.diff(inputs).foreach { v =>
+      v.inPorts.foreach(port => assert(edgeSet().exists(e => e.targetPort == port), s"inPort $port has no driver"))
+    } // all inPorts must be driven
+    vertexSet().toSeq.diff(outputs).foreach { v =>
+      v.outPorts.foreach(port => if (!edgeSet().exists(e => e.sourcePort == port)) logger.warn(s"outPort $port is not used"))
+    }
+    val notTimed = retimingInfo.keys.toSeq.diff(vertexSet().toSeq)
+    assert(notTimed.isEmpty, s"vertices ${notTimed.mkString(" ")} have no retiming value")
+  }
 
   /** --------
    * methods for readability & visualization
@@ -185,8 +251,9 @@ abstract class Dag()
       path.getEndVertex.toString
   }
 
-  def toPng() = ToPng(this)
+  def toPng(graphName: String = name) = ToPng(this, graphName)
 
   s"vertices:\n${vertexSet().mkString("\n")}\n" +
     s"edges:\n${edgeSet().map(_.toStringInGraph).mkString("\n")}"
+
 }

@@ -21,8 +21,9 @@ fork := true
 libraryDependencies += "org.scala-lang.modules" %% "scala-xml" % "1.3.0"
 
 // graph theory
-libraryDependencies += "org.jgrapht" % "jgrapht-core" % "1.5.1"
-libraryDependencies += "org.jgrapht" % "jgrapht-ext" % "1.5.1"
+val jGraphTVersion = "1.4.0" // last version compatible with Java 1.8
+libraryDependencies += "org.jgrapht" % "jgrapht-core" % jGraphTVersion
+libraryDependencies += "org.jgrapht" % "jgrapht-ext" % jGraphTVersion
 
 // numeric & matrix (numpy in scala)
 libraryDependencies += "org.scalanlp" %% "breeze" % "1.0"

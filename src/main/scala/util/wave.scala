@@ -36,7 +36,7 @@ case class WaveformGraph(name: String, waves: Seq[Waveform]) {
 
     implicit val format: AnyRef with Formats = Serialization.formats(NoTypeHints)
     val json = write(toJson)
-    val jsonFile = new File(s"./$name.json")
+    val jsonFile = new File(s"./src/main/resources/waveformGenerated/$name.json")
     val pw = new PrintWriter(jsonFile)
     pw.write(json)
     pw.close()

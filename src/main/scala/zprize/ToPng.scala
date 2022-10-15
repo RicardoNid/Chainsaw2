@@ -1,12 +1,11 @@
 package org.datenlord
 package zprize
 
-import spinal.lib._
-
 import java.awt.Color
 import java.io.File
 import javax.imageio.ImageIO
-import scala.collection.mutable.ArrayBuffer
+import scala.collection.JavaConversions._
+import scala.collection.mutable.ArrayBuffer // as JGraphT is based on Java
 
 object ToPng {
 
@@ -73,22 +72,26 @@ object ToPng {
     // customization, according to the pipeline information
     // TODO: better layout algo
 
-    val timeMax = dag.retimingInfo.values.max
-    val initialView = layout.getGraph.getView
+    def doLayoutByRetimingInfo: Unit ={
+      val timeMax = dag.retimingInfo.values.max
+      val initialView = layout.getGraph.getView
 
-    def adjustY(v: V, y: Double) = {
-      val cell = vertexMap.get(v)
-      layout.setVertexLocation(cell, initialView.getState(cell).getX, y)
+      def adjustY(v: V, y: Double) = {
+        val cell = vertexMap.get(v)
+        layout.setVertexLocation(cell, initialView.getState(cell).getX, y)
+      }
+
+      val pipelineGap = 50
+      dag.inputs.zipWithIndex.foreach { case (v, _) => adjustY(v, 0) }
+      dag.outputs.zipWithIndex.foreach { case (v, _) => adjustY(v, (timeMax + 2) * pipelineGap) }
+
+      dag.retimingInfo
+        .filterNot(_._1.isIo)
+        .groupBy(_._2).foreach { case (_, vToInt) => vToInt.foreach { case (v, i) => adjustY(v, (i + 1) * pipelineGap) }
+      }
     }
 
-    val pipelineGap = 50
-    dag.inputs.zipWithIndex.foreach { case (v, _) => adjustY(v, 0) }
-    dag.outputs.zipWithIndex.foreach { case (v, _) => adjustY(v, (timeMax + 2) * pipelineGap) }
-
-    dag.retimingInfo
-      .filterNot(_._1.isIo)
-      .groupBy(_._2).foreach { case (_, vToInt) => vToInt.foreach { case (v, i) => adjustY(v, (i + 1) * pipelineGap) }
-    }
+    doLayoutByRetimingInfo
 
     /** --------
      * png generation
