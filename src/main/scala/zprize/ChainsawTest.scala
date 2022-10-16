@@ -12,7 +12,11 @@ import spinal.lib.fsm._
 import spinal.sim.SimThread
 import matlab._
 
+case class TestReport(passed: Boolean, golden: Seq[Any])
+
 object ChainsawTest {
+
+  type Metric = (Seq[Any], Seq[Any]) => Boolean
 
   /** --------
    * methods for numeric types conversion
@@ -48,6 +52,7 @@ object ChainsawTest {
 
   def defaultMetric(yours: Seq[Any], golden: Seq[Any]): Boolean = yours.equals(golden)
 
+  // TODO: type parameter TIn and TOut are redundant for test, remove them
   /** auto test for a TransformModule
    *
    * @param gen      dut generator
@@ -60,7 +65,8 @@ object ChainsawTest {
                                           golden: Seq[TOut] = null,
                                           metric: (Seq[Any], Seq[Any]) => Boolean = defaultMetric,
                                           draw: (Seq[TOut], Seq[TOut], String) => Unit = null,
-                                          testName: String = "testTemp"): Unit = {
+                                          silentTest: Boolean = false,
+                                          testName: String = "testTemp"): TestReport = {
 
     import gen._
 
@@ -110,10 +116,10 @@ object ChainsawTest {
 
       // init
       def init(): Unit = {
-        clockDomain.forkStimulus(2)
-        dataIn.fragment.foreach(_.randomize())
         dataIn.valid #= false
         dataIn.last #= false
+        clockDomain.forkStimulus(2)
+        dataIn.fragment.foreach(_.randomize())
         clockDomain.waitSampling(9) // flushing
         dataIn.last #= true // refresh the inner state of dut
         clockDomain.waitSampling(1)
@@ -162,7 +168,7 @@ object ChainsawTest {
     /** --------
      * analysis after simulation
      * -------- */
-    val firstTime = validRecord.indexOf(true) - gen.outputFormat.firstValid
+    val firstTime = lastRecord.indexOf(true) + 1
 
     logger.info(s"frames starts at $firstTime, that is," +
       s"simTime ${timeRecord(firstTime)}, ")
@@ -181,17 +187,64 @@ object ChainsawTest {
       if (golden == null) raws.map(impl).map(_.asInstanceOf[Seq[TOut]])
       else golden.grouped(outputFormat.rawDataCount).toSeq
 
-    implMode match {
+    val success = implMode match {
       case Comb => // get and compare golden & yours slice by slice
         // compare yours with the golden frame by frame
         if (draw != null) draw(yours.flatten, goldenInUsed.flatten, testName)
-        yours.zip(goldenInUsed).zipWithIndex.foreach { case ((y, g), i) =>
-          assert(metric(y, g), showAllData(raws(i), y, g, i))
+        val remained = yours.zip(goldenInUsed).zipWithIndex.dropWhile { case ((y, g), _) => metric(y, g) }
+        if (remained.nonEmpty && !silentTest) {
+          val ((y, g), i) = remained.head
+          logger.info(
+            s"\n----error frame report----" +
+              s"\n${showAllData(raws(i), y, g, i)}"
+          )
         }
+        remained.isEmpty
       case StateMachine => ???
       case Infinite => ???
     }
 
-    logger.info(s"test for generator ${gen.name} passed\n${showAllData(raws.head, yours.head, goldenInUsed.head, 0)}")
+
+    if (!silentTest) {
+      if (success) logger.info(s"test for generator ${gen.name} passed\n${showAllData(raws.head, yours.head, goldenInUsed.head, 0)}")
+      else logger.error(s"test for generator ${gen.name} failed")
+      assert(success)
+    }
+
+    TestReport(success, goldenInUsed.flatten)
+  }
+
+  def testChain[TIn: ClassTag, TOut: ClassTag](gens: Seq[ChainsawGenerator],
+                                               data: Seq[TIn],
+                                               metrics: Seq[Metric],
+                                               testName: String = "testTemp"
+                                              ): Unit = {
+
+    def testOnce(chain: Seq[ChainsawGenerator], metric: Metric) = {
+      val name = s"${testName}_minus_${gens.length - chain.length}"
+      val report = test[TIn, Any](chain.reduce(_ + _), data, metric = metric, silentTest = true, testName = name)
+      if (report.passed) logger.info(s"test $name passed")
+      else logger.error(s"test $name failed")
+      report
+    }
+
+    val dutChains = gens.inits.toSeq.init
+    var finalGolden = Seq[Any]()
+    val failedChains = dutChains.takeWhile { chain =>
+      val report = testOnce(chain, metrics(chain.length - 1))
+      finalGolden = report.golden
+      !report.passed // keep going when failed
+    }
+    if (failedChains.nonEmpty) {
+      val id = gens.length - failedChains.length - 1
+      val problem = failedChains.last.last
+      logger.warn(s"found problematic generator: the $id-th generator ${problem.name}")
+      logger.info(s"test on problematic generator...")
+      val report = test[Any, Any](problem, finalGolden, metric = metrics(id), silentTest = true, testName = s"test_${problem.name}")
+      if (report.passed) logger.info("test on problematic generator passed, Chainsaw connection problem")
+      else logger.error(s"test on problematic generator failed")
+    }
+
+    assert(failedChains.isEmpty)
   }
 }

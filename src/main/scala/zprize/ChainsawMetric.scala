@@ -15,6 +15,7 @@ object ChainsawMetric {
 
   def ComplexAbs(epsilon: Double) =
     (yours: Seq[Any], golden: Seq[Any]) => {
+      println(s"${yours.length}, ${golden.length}")
       val yourV = new DenseVector(yours.map(_.asInstanceOf[Complex]).toArray)
       val goldenV = new DenseVector(golden.map(_.asInstanceOf[Complex]).toArray)
       val errorV = yourV - goldenV
@@ -35,8 +36,8 @@ object ChainsawMetric {
 
   def DoubleAbs(epsilon: Double) =
     (yours: Seq[Any], golden: Seq[Any]) => {
-      val yourV = new DenseVector(yours.toArray.asInstanceOf[Array[Double]])
-      val goldenV = new DenseVector(golden.toArray.asInstanceOf[Array[Double]])
+      val yourV = new DenseVector(yours.map(_.asInstanceOf[Double]).toArray)
+      val goldenV = new DenseVector(golden.map(_.asInstanceOf[Double]).toArray)
       val errorV = (yourV - goldenV).map(_.abs)
       val pass = errorV.forall(_.abs < epsilon)
       if (!pass) logger.info(s"errorMax = ${max(errorV)}, errorMean = ${mean(errorV)}")

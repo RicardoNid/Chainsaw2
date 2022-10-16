@@ -20,9 +20,9 @@ case class MatIntrlvCore(row: Int, col: Int, width: Int)
   override var inputTypes = Seq.fill(col)(UIntInfo(width))
   override var outputTypes = Seq.fill(row)(UIntInfo(width))
 
-  val period = row max col
-  override var inputFormat = MatrixFormatAddBubble(col, row, period - row)
-  override var outputFormat = MatrixFormatAddBubble(row, col, period - col)
+  val intrlvPeriod = row max col
+  override var inputFormat = MatrixFormatAddBubble(col, row, intrlvPeriod - row)
+  override var outputFormat = MatrixFormatAddBubble(row, col, intrlvPeriod - col)
   override var latency = row + 3
 
   override def implH: ChainsawModule = new ChainsawModule(this) {
@@ -74,10 +74,13 @@ case class MatIntrlvCore(row: Int, col: Int, width: Int)
       if (!isPow2(row)) default(dataInShifted.assignDontCare()) // when default is needed
     }
     // -> RAM latency +row(wait till all inputs are ready)
+    // TODO: use validIn after fixing the behavior of validIn
     rams.zip(dataInShifted).foreach { case (ram, data) =>
       ram.write(
         address = writePointer.asUInt @@ counterIn.value.resize(addrWidth), // using write pointer as the MSB
-        data = data, enable = validIn.validAfter(1))
+        data = data,
+//        enable = validIn.validAfter(1))
+              enable = betweenTime(1, 1 + row))
     }
     // read addrs generation(by rotation)
     val initValues = Vec((0 +: (1 until ramCount).reverse).map(U(_, addrWidth bits)))
@@ -120,7 +123,7 @@ case class MatIntrlv(row: Int, col: Int, width: Int, pF: Int)
   override var inputTypes = Seq.fill(pF)(UIntInfo(width))
   override var outputTypes = Seq.fill(pF)(UIntInfo(width))
 
-  val period = row max col
+  val matIntrlvPeriod = row max col
   override var inputFormat = MatrixFormat(pF, row * col / pF)
   override var outputFormat = MatrixFormat(pF, row * col / pF)
 

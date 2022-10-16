@@ -6,6 +6,11 @@ import scala.annotation.tailrec
 import scala.language.postfixOps
 import scala.reflect.ClassTag
 
+import spinal.core._
+import spinal.core.sim._
+import spinal.lib._
+import spinal.lib.fsm._
+
 package object zprize {
 
   @tailrec
@@ -37,6 +42,9 @@ package object zprize {
   val fullSize = 256 * 4 * 16
   val preambleSize = frameSize / 8
 
+  val cpLenth = 20
+  val txFrameSize = (N2 * 2 + cpLenth) * 16
+
   val intrlvRow = N1 / 2
   val intrlvCol = 4 * 4 * 16
 
@@ -55,7 +63,7 @@ package object zprize {
    * hardware data types
    * -------- */
   val symbolType = ComplexFixInfo(2, 13)
-  val fftType = ComplexFixInfo(2, 15)
+  val fftType = ComplexFixInfo(4, 11)
 
   def buildFrame8of9(total: Int, parallel: Int): FrameFormat = {
     val matrix = (0 until total).grouped(parallel).toSeq ++ Seq.fill(total / 8)(-1).grouped(parallel).toSeq
@@ -71,7 +79,7 @@ package object zprize {
     interpolated.pad(8)
   }
 
-  val realFrameFormat = buildFrame8of9(frameSize / 4, N2 / 2 + 5)
+  val realFrameFormat = buildFrame8of9(txFrameSize, N2 / 2 + 5)
   val txFrameFormat = MatrixFormat(N2 / 2 + 5, 18 * 4)
 
 }

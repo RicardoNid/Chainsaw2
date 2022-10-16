@@ -39,7 +39,7 @@ case class NumericTypeInfo(integral: Int, signed: Boolean = false, fractional: I
 
   def asComplexFix: HardType[ComplexFix] = HardType(ComplexFix(integral exp, -fractional exp))
 
-  def toSFixInfo = NumericTypeInfo(integral, signed, fractional, complex = true)
+  def toSFixInfo = NumericTypeInfo(integral, signed, fractional, complex = false)
 
   def getType =
     if (complex) ComplexFixType

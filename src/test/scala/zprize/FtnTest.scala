@@ -8,11 +8,11 @@ import scala.util.Random
 
 class FtnTest extends AnyFlatSpec {
 
-  symbolFrameFormat.generateWaveform("symbols", "x")
+  //  symbolFrameFormat.generateWaveform("symbols", "x")
 
-  val intrlvS2P = S2P(N1, N1 * 64, 1)
-  val intrlvP2S = P2S(N1 * 64, N1, 1)
-  val frameData = Seq.fill(N1 * 64 * 2)(BigInt(1, Random))
+  val intrlvS2P = S2P(10, 40, 1)
+  val intrlvP2S = P2S(40, 10, 1)
+  val frameData = Seq.fill(40 * 2)(BigInt(1, Random))
 
   "s2p" should "work" in ChainsawTest.test(intrlvS2P, frameData, testName = "testS2P")
 
@@ -35,7 +35,33 @@ class FtnTest extends AnyFlatSpec {
     // draw = ChainsawDraw.scatterPlot,
     testName = "testQammodFtn")
 
-  val fft512_64 = Fft(512, 64, 8, inverse = false, fftType)
+  val ifftData = Seq.fill(2048)(Random.nextComplex())
+
+  val factors = Seq(8, 8, 8)
+  val scales = Seq(2, 2, 1)
+  val ifftCoreGen = CtFft(512, true, fftType, 16, factors, scales, 64)
+
+  "hsifft" should "work" in ChainsawTest.testChain(
+    gens = Seq(HsIfftPre,ifftCoreGen, HsIfftPostWrapped),
+    data = ifftData,
+    metrics = Seq(
+      ChainsawMetric.ComplexAbs(1e-2),
+      ChainsawMetric.ComplexAbs(1e-2),
+      ChainsawMetric.DoubleAbs(1e-2)
+    )
+  )
+
+  val ifftFtnData = Seq.fill(252 * 2 * 8)(Random.nextComplex())
+
+  "ifftftn" should "work" in ChainsawTest.test(IfftFtn,
+    ifftFtnData,
+    metric = ChainsawMetric.DoubleAbs(1e-2))
+
+  "ctfft" should "work" in ChainsawTest.test(CtFft(512, true, symbolType, 16, factors, scales, 64),
+    data = ifftData,
+    metric = ChainsawMetric.FftByMean(1e-2)
+  )
+
 
   behavior of "impls"
 
@@ -43,5 +69,7 @@ class FtnTest extends AnyFlatSpec {
 
   ignore should "impl for convFtn" in ChainsawImpl(ConvFtn, name = "implConvFtn")
 
-  "fft" should "impl" in ChainsawImpl(fft512_64, name = "implFft512_64")
+  val fft512_64 = Fft(512, 64, 8, inverse = false, fftType)
+
+  // "spiral fft" should "impl" in ChainsawImpl(fft512_64, name = "implFft512_64")
 }

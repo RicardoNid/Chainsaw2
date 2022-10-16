@@ -34,6 +34,7 @@ case class FrameFormat(flow: Seq[Seq[Int]]) {
   def getPort(elem: Int) = flow.flatten.indexWhere(_ == elem) % portSize
 
   def validCycles = flow.zipWithIndex.filterNot(_._1.forall(_ == -1)).map(_._2)
+  def bubbleCycles = flow.zipWithIndex.filter(_._1.forall(_ == -1)).map(_._2)
 
   def firstValid = validCycles.head
 
@@ -122,4 +123,9 @@ object MatrixFormatAddBubble {
     val flow = (0 until streamWidth * valid).grouped(streamWidth).toSeq ++ Seq.fill(bubble)(Seq.fill(streamWidth)(-1))
     FrameFormat(flow)
   }
+}
+
+object ShowFrameFormat{
+  val formatA = MatrixFormatAddBubble(4,4,2)
+  val data = 0 until 16
 }

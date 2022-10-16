@@ -36,11 +36,12 @@ package object datenlord {
 
   implicit class ChainsawFlowUtil[T <: Data](flow: ChainsawFlow[T]) {
 
-    def withFragment(fragment: Vec[T]): ChainsawFlow[T] = ChainsawFlow(fragment, flow.valid, flow.last)
+    def withFragment(fragment: Seq[T]): ChainsawFlow[T] = ChainsawFlow(Vec(fragment), flow.valid, flow.last)
 
-    def withFragment(fragment: Seq[T]): ChainsawFlow[T] = withFragment(Vec(fragment))
+    def replaceBy(func: Seq[T] => Seq[T]): ChainsawFlow[T] = withFragment(func(flow.fragment))
 
-    def d(cycle: Int) = ChainsawFlow(flow.fragment.d(cycle), flow.valid.d(cycle), flow.last.d(cycle))
+    // TODO: is this proper?
+    def d(cycle: Int): Flow[Fragment[Vec[T]]] = ChainsawFlow(flow.fragment.d(cycle), flow.valid.d(cycle), flow.last.d(cycle))
 
   }
 
@@ -287,6 +288,7 @@ package object datenlord {
 
     def toComplex = new Complex(cn.real.toDouble, cn.imag.toDouble)
   }
+
 
   implicit class VecUtil[T <: Data](vec: Vec[T]) {
     def :=(that: Seq[T]) = vec.zip(that).foreach { case (port, data) => port := data }

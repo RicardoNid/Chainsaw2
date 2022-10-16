@@ -20,8 +20,8 @@ trait ChainsawGenerator {
   /** --------
    * size information
    * -------- */
-//  var inputWidths: Seq[Int]
-//  var outputWidths: Seq[Int]
+  //  var inputWidths: Seq[Int]
+  //  var outputWidths: Seq[Int]
   var inputTypes: Seq[NumericTypeInfo]
   var outputTypes: Seq[NumericTypeInfo]
 
@@ -70,6 +70,7 @@ trait ChainsawGenerator {
   def asVertex(implicit ref: Dag) = DagVertex(this)
 
   def doDrc(): Unit = {
+    assert(inputFormat.period == outputFormat.period, s"input: ${inputFormat.period}, output: ${outputFormat.period}")
     if (inputTimes != null) {
       assert(inputTimes.head == 0)
       assert(inputTimes.length == inputWidths.length)
@@ -98,11 +99,41 @@ trait ChainsawGenerator {
 
   def outputNoControl: FrameFormat = FrameFormat(Seq(0 until sizeOut))
 
+  def period = {
+    require(inputFormat.period == outputFormat.period)
+    inputFormat.period
+  }
+
   // common instantiation steps
   // TODO: how to print concrete class name?
   if (generatorList.contains(name) && !this.isInstanceOf[IoGenerator]) {
-    logger.warn(s"an identical generator $name already instantiated, you'd better reuse the existing generator")
+    //    logger.warn(s"an identical generator $name already instantiated, you'd better reuse the existing generator")
     // throw new IllegalArgumentException(s"an identical generator $name already instantiated, you'd better reuse the existing generator")
   } else if (!generatorList.contains(name)) generatorList(name) = 0
+
+  // generator algebra
+  def +(that: ChainsawGenerator) = {
+    val old = this
+    new ChainsawGenerator {
+      override def name = old.name + "_" + that.name
+
+      override val impl = (dataIn: Seq[Any]) => that.impl(old.impl(dataIn))
+
+      override var inputTypes = old.inputTypes
+      override var outputTypes = that.outputTypes
+
+      override var inputFormat = old.inputFormat
+      override var outputFormat = that.outputFormat
+      override var latency = old.latency + that.latency
+
+      override def implH: ChainsawModule = new ChainsawModule(this) {
+        val core0 = old.implDut
+        val core1 = that.implDut
+        core0.dataIn := bundleIn
+        core0 >> core1
+        dataOut := core1.dataOut.fragment
+      }
+    }
+  }
 
 }
