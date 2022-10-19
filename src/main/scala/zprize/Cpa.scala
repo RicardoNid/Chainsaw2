@@ -19,7 +19,10 @@ object S2M extends CpaMode
 object S2S extends CpaMode
 
 case class Cpa(adderType: AdderType, widths: Seq[Int], cpaMode: CpaMode, withCarry: Boolean = true) extends ChainsawGenerator {
+
   override def name = s"cpa_${widths.mkString("_")}_${cpaMode.getClass.getSimpleName.init}"
+
+  if(widths.exists(_ > 96)) logger.warn(s"way too long single carrychain: ${widths.max}")
 
   val widthInc = adderType match {
     case BinaryAdder => 1

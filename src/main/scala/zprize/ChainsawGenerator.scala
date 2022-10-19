@@ -109,7 +109,7 @@ trait ChainsawGenerator {
   // TODO: how to print concrete class name?
 
   if (generatorList.contains(name) && !this.isInstanceOf[IoGenerator] && !this.isInstanceOf[Combinational]) {
-    logger.warn(s"an identical generator $name already instantiated, you'd better reuse the existing generator")
+    //    logger.warn(s"an identical generator $name already instantiated, you'd better reuse the existing generator")
     // throw new IllegalArgumentException(s"an identical generator $name already instantiated, you'd better reuse the existing generator")
   } else if (!generatorList.contains(name)) generatorList(name) = 0
 

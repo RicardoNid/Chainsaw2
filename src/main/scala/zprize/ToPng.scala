@@ -72,7 +72,7 @@ object ToPng {
     // customization, according to the pipeline information
     // TODO: better layout algo
 
-    def doLayoutByRetimingInfo: Unit ={
+    def doLayoutByRetimingInfo: Unit = {
       val timeMax = dag.retimingInfo.values.max
       val initialView = layout.getGraph.getView
 
@@ -91,7 +91,7 @@ object ToPng {
       }
     }
 
-    doLayoutByRetimingInfo
+    //    doLayoutByRetimingInfo
 
     /** --------
      * png generation
