@@ -133,7 +133,7 @@ class ChainsawModuleWrapper(val gen: ChainsawGenerator) extends Module {
   // compensation for unaligned inputs/outputs
   val outputSpan = actualOutTimes.max
   core.dataIn.zip(dataIn.fragment).zip(actualInTimes).foreach { case ((corePort, dutPort), i) => corePort := dutPort.d(i) }
-  dataOut.fragment.zip(core.dataOut).zip(actualInTimes).foreach { case ((dutPort, corePort), i) => dutPort := corePort.d(outputSpan - i) }
+  dataOut.fragment.zip(core.dataOut).zip(actualOutTimes).foreach { case ((dutPort, corePort), i) => dutPort := corePort.d(outputSpan - i) }
 
   if (!needNoControl) { // when core module need controlIn
     core.validIn := dataIn.valid

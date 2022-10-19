@@ -17,18 +17,16 @@ class CompressorTreeTest extends AnyFlatSpec {
       OperandInfo(11, 1, positive = true, 3)
     )
     val compressorTree = CompressorTree(operands)
-    compressorTree.setAsNaive()
+        compressorTree.setAsNaive()
     val data = Seq.fill(400)(BigInt(8, Random))
 
     ChainsawTest.test(compressorTree,
       data,
-      metric = ChainsawMetric.ignoreNegative,
+      metric = ChainsawMetric.carrySaveMetric,
       testName = "testCompressorTreeNaive")
 
-    ChainsawImpl(compressorTree, withRequirement = true)
+    //    ChainsawImpl(compressorTree, withRequirement = true)
   }
-
-
 
 
 }

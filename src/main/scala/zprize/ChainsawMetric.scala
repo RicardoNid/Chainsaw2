@@ -44,7 +44,13 @@ object ChainsawMetric {
     }
 
   def ignoreNegative = (yours: Seq[Any], golden: Seq[Any]) => {
-    if(golden.asInstanceOf[Seq[BigInt]].exists(_ < 0)) true else yours.equals(golden)
+    if (golden.asInstanceOf[Seq[BigInt]].exists(_ < 0)) true else yours.equals(golden)
+  }
+
+  def carrySaveMetric = (yours: Seq[Any], golden: Seq[Any]) => {
+    val g = golden.asInstanceOf[Seq[BigInt]].sum
+    val y = yours.asInstanceOf[Seq[BigInt]].sum
+    if (g < 0) true else g == y
   }
 
 
