@@ -33,13 +33,14 @@ class DagVertex(val gen: ChainsawGenerator)(implicit ref: Dag) {
   /** --------
    * methods for connections
    * -------- */
-  def :=(inPorts: DagPort*)(implicit ref: Dag): Unit =
-    inPorts.zipWithIndex.foreach { case (port, i) => ref.addEdge(port, this.in(i)) }
-
-  def assignFromVertex(source: DagVertex)(implicit ref: Dag): Unit = {
-    require(this.inCount == source.outCount)
-    this.inPorts.zip(source.outPorts).foreach { case (t, s) => ref.addEdge(s, t) }
+  def :=(ports: DagPort*)(implicit ref: Dag): Unit = {
+    require(this.inCount == ports.length, "partial connection by := is forbidden as it is dangerous")
+//    require(inputWidths.zip(ports).forall{ case (width, port) => width == port.width},
+//      s"\nwidth mismatch at vertex $vertexName: \nsource:${ports.map(_.width).mkString(" ")}, target: ${inputWidths.mkString(" ")}")
+    ports.zip(inPorts).foreach { case (port, inPort) => ref.addEdge(port, inPort) }
   }
+
+  def assignFromVertex(source: DagVertex)(implicit ref: Dag): Unit = :=(source.outPorts: _*)
 
   /** --------
    * methods for accessing neighbors

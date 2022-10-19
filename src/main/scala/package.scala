@@ -21,6 +21,8 @@ import scala.util.Random
 
 package object datenlord {
 
+  type Metric = (Seq[Any], Seq[Any]) => Boolean
+
   // adjustable parameters
 
   val logger = LoggerFactory.getLogger("Chainsaw logger")
@@ -39,6 +41,8 @@ package object datenlord {
     def withFragment(fragment: Seq[T]): ChainsawFlow[T] = ChainsawFlow(Vec(fragment), flow.valid, flow.last)
 
     def replaceBy(func: Seq[T] => Seq[T]): ChainsawFlow[T] = withFragment(func(flow.fragment))
+
+    def withLast(last: Bool): ChainsawFlow[T] = ChainsawFlow(flow.fragment, flow.valid, last)
 
     // TODO: is this proper?
     def d(cycle: Int): Flow[Fragment[Vec[T]]] = ChainsawFlow(flow.fragment.d(cycle), flow.valid.d(cycle), flow.last.d(cycle))
@@ -69,8 +73,11 @@ package object datenlord {
     report
   }
 
-  def ChainsawImpl(gen: => ChainsawGenerator, name: String = "temp", target: XilinxDevice = defaultDevice, xdcPath: String = null) =
-    VivadoImpl(gen.implH, name, target, xdcPath)
+  def ChainsawImpl(gen: => ChainsawGenerator, name: String = "temp", target: XilinxDevice = defaultDevice, xdcPath: String = null, withRequirement: Boolean = false) = {
+    val report = VivadoImpl(gen.implH, name, target, xdcPath)
+    if (withRequirement) report.require(gen.utilEstimation, gen.fmaxEstimation)
+    report
+  }
 
   def ChainsawSynth(gen: => ChainsawGenerator, name: String = "temp", target: XilinxDevice = defaultDevice) =
     VivadoSynth(gen.implH, name, target)
@@ -385,13 +392,17 @@ package object datenlord {
 
   sealed trait OperatorType
 
-  trait AdderType extends OperatorType
-
-  object TernaryAdder extends AdderType
+  sealed trait AdderType extends OperatorType
 
   object BinaryAdder extends AdderType
 
   object BinarySubtractor extends AdderType
+
+  object TernaryAdder extends AdderType
+
+  object TernarySubtractor1 extends AdderType
+
+  object TernarySubtractor2 extends AdderType
 
   object Compressor extends AdderType
 

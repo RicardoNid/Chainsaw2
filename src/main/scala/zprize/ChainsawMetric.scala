@@ -13,9 +13,8 @@ import breeze.signal._
 
 object ChainsawMetric {
 
-  def ComplexAbs(epsilon: Double) =
+  def complexAbs(epsilon: Double) =
     (yours: Seq[Any], golden: Seq[Any]) => {
-      println(s"${yours.length}, ${golden.length}")
       val yourV = new DenseVector(yours.map(_.asInstanceOf[Complex]).toArray)
       val goldenV = new DenseVector(golden.map(_.asInstanceOf[Complex]).toArray)
       val errorV = yourV - goldenV
@@ -24,7 +23,7 @@ object ChainsawMetric {
       pass
     }
 
-  def FftByMean(epsilon: Double) =
+  def fftByMean(epsilon: Double) =
     (yours: Seq[Any], golden: Seq[Any]) => {
       val yourV = new DenseVector(yours.tail.map(_.asInstanceOf[Complex]).toArray) // leave DC part alone
       val goldenV = new DenseVector(golden.tail.map(_.asInstanceOf[Complex]).toArray)
@@ -34,7 +33,7 @@ object ChainsawMetric {
       pass
     }
 
-  def DoubleAbs(epsilon: Double) =
+  def doubleAbs(epsilon: Double) =
     (yours: Seq[Any], golden: Seq[Any]) => {
       val yourV = new DenseVector(yours.map(_.asInstanceOf[Double]).toArray)
       val goldenV = new DenseVector(golden.map(_.asInstanceOf[Double]).toArray)
@@ -43,4 +42,10 @@ object ChainsawMetric {
       if (!pass) logger.info(s"errorMax = ${max(errorV)}, errorMean = ${mean(errorV)}")
       pass
     }
+
+  def ignoreNegative = (yours: Seq[Any], golden: Seq[Any]) => {
+    if(golden.asInstanceOf[Seq[BigInt]].exists(_ < 0)) true else yours.equals(golden)
+  }
+
+
 }

@@ -38,6 +38,12 @@ class ChainsawModule(val gen: ChainsawGenerator) extends Module {
     typed
   })
 
+  lazy val uintDataIn: Vec[UInt] = Vec(gen.inputTypes.zip(dataIn).map { case (info, bits) =>
+    val typed = info.asUInt()
+    typed.assignFromBits(bits)
+    typed
+  })
+
   lazy val complexDataOut: Vec[ComplexFix] = Vec(gen.outputTypes.zip(dataOut).map { case (info, bits) =>
     val typed = info.asComplexFix()
     bits := typed.asBits
@@ -50,9 +56,18 @@ class ChainsawModule(val gen: ChainsawGenerator) extends Module {
     typed
   })
 
+  lazy val uintDataOut: Vec[UInt] = Vec(gen.outputTypes.zip(dataOut).map { case (info, bits) =>
+    val typed = info.asUInt()
+    bits := typed.asBits
+    typed
+  })
+
   /** --------
    * inner control logic
    * -------- */
+  val started = if (needNoControl) null else RegInit(False)
+  if (!needNoControl) started.setWhen(lastIn)
+
   val localCounter =
     if (needNoControl) null else {
       val ret = CounterFreeRun(gen.inputFormat.period)
@@ -66,15 +81,6 @@ class ChainsawModule(val gen: ChainsawGenerator) extends Module {
     when(localCounter.willOverflow && ~lastIn)(validFrame.clear())
   }
 
-//  /** drive inner submodule
-//   */
-//  def >->(that: ChainsawModuleWrapper): ChainsawModuleWrapper = {
-//    that.dataIn.fragment := dataIn
-//    that.dataIn.last := lastIn
-//    that.dataIn.valid := validIn
-//    that
-//  }
-
   /** --------
    * control utils
    * -------- */
@@ -84,7 +90,7 @@ class ChainsawModule(val gen: ChainsawGenerator) extends Module {
     val mark = RegInit(False)
     val aMark = lastIn.validAfter(from)
     val bMark = lastIn.validAfter(until)
-    when(aMark && bMark) {} // this may also happedn
+    when(aMark && bMark) {} // this may also happen
       .elsewhen(aMark)(mark.set())
       .elsewhen(bMark)(mark.clear())
     mark
@@ -98,6 +104,14 @@ class ChainsawModule(val gen: ChainsawGenerator) extends Module {
 
   def delayedLast(delay: Int) = lastIn.validAfter(delay)
 
+  /** generate a periodic trigger synced with lastIn
+   * @example this can be used to trigger inner modules running under a smaller period
+   */
+  def periodicTrigger(period:Int): Bool = {
+    val innerCounter = CounterFreeRun(period)
+    when(lastIn)(innerCounter.clear())
+    (innerCounter.willOverflow && started) || lastIn
+  }
 }
 
 // TODO: merge ChainsawModule and its wrapper
@@ -117,12 +131,9 @@ class ChainsawModuleWrapper(val gen: ChainsawGenerator) extends Module {
   val core = gen.getImplH
 
   // compensation for unaligned inputs/outputs
-  val trueInputTimes = if (inputTimes != null) inputTimes else Seq.fill(inputWidths.length)(0)
-  val outputSpan = if (outputTimes != null) outputTimes.max else 0
-  val trueOutputTimes = if (outputTimes != null) outputTimes else Seq.fill(outputWidths.length)(0)
-
-  core.dataIn.zip(dataIn.fragment).zip(trueInputTimes).foreach { case ((corePort, dutPort), i) => corePort := dutPort.d(i) }
-  dataOut.fragment.zip(core.dataOut).zip(trueOutputTimes).foreach { case ((dutPort, corePort), i) => dutPort := corePort.d(outputSpan - i) }
+  val outputSpan = actualOutTimes.max
+  core.dataIn.zip(dataIn.fragment).zip(actualInTimes).foreach { case ((corePort, dutPort), i) => corePort := dutPort.d(i) }
+  dataOut.fragment.zip(core.dataOut).zip(actualInTimes).foreach { case ((dutPort, corePort), i) => dutPort := corePort.d(outputSpan - i) }
 
   if (!needNoControl) { // when core module need controlIn
     core.validIn := dataIn.valid

@@ -36,12 +36,6 @@ object QammodFtn extends ChainsawGenerator {
     s2p.validIn := validIn
 
     core.dataIn := s2p.dataOut
-
-    //    p2s.dataIn := core.dataOut
-    //    p2s.lastIn := lastIn.validAfter(s2pGen.latency + coreGen.latency)
-    //    p2s.validIn := validIn.validAfter(s2pGen.latency + coreGen.latency)
-
-    //    dataOut := p2s.dataOut
     dataOut := core.dataOut
   }
 }

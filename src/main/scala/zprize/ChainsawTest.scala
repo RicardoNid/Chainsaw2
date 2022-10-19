@@ -16,8 +16,6 @@ case class TestReport(passed: Boolean, golden: Seq[Any])
 
 object ChainsawTest {
 
-  type Metric = (Seq[Any], Seq[Any]) => Boolean
-
   /** --------
    * methods for numeric types conversion
    * -------- */
@@ -52,7 +50,8 @@ object ChainsawTest {
 
   def defaultMetric(yours: Seq[Any], golden: Seq[Any]): Boolean = yours.equals(golden)
 
-  // TODO: type parameter TIn and TOut are redundant for test, remove them
+  // TODO: type parameter Any and Any are redundant for test, remove them
+
   /** auto test for a TransformModule
    *
    * @param gen      dut generator
@@ -60,13 +59,13 @@ object ChainsawTest {
    * @param metric   metric for correctness, it is a function that take two vectors, print a report and make a conclusion
    * @param testName name of the test, will be used as the dir name in simWorkspace
    */
-  def test[TIn: ClassTag, TOut: ClassTag](gen: ChainsawGenerator,
-                                          data: Seq[TIn],
-                                          golden: Seq[TOut] = null,
-                                          metric: (Seq[Any], Seq[Any]) => Boolean = defaultMetric,
-                                          draw: (Seq[TOut], Seq[TOut], String) => Unit = null,
-                                          silentTest: Boolean = false,
-                                          testName: String = "testTemp"): TestReport = {
+  def test(gen: ChainsawGenerator,
+           data: Seq[Any],
+           golden: Seq[Any] = null,
+           metric: (Seq[Any], Seq[Any]) => Boolean = defaultMetric,
+           draw: (Seq[Any], Seq[Any], String) => Unit = null,
+           silentTest: Boolean = false,
+           testName: String = "testTemp"): TestReport = {
 
     import gen._
 
@@ -75,6 +74,7 @@ object ChainsawTest {
     )
 
     require(data.length % inputFormat.rawDataCount == 0, s"testing vector length ${data.length} is not a multiple of input frame raw data count ${gen.inputFormat.rawDataCount}")
+    if (golden != null) require(golden.length % outputFormat.rawDataCount == 0, s"golden vector length ${golden.length} is not a multiple of output frame raw data count ${gen.outputFormat.rawDataCount}")
     logger.info(s"testing vector length: ${data.length}, containing ${data.length / gen.inputFormat.rawDataCount} frames")
     val zero = getZero(data.head)
 
@@ -92,11 +92,11 @@ object ChainsawTest {
       + dataFlow.length // peek
       + gen.latency // wait for last valid
       + gen.outputFormat.period
-      + (if (outputTimes != null) outputTimes.max else 0) // wait for latest port
+      + actualOutTimes.max // wait for latest port
       ) * 2
 
     // data container
-    val dataRecord = ArrayBuffer[Seq[TOut]]()
+    val dataRecord = ArrayBuffer[Seq[Any]]()
     val lastRecord = ArrayBuffer[Boolean]()
     val validRecord = ArrayBuffer[Boolean]()
     val timeRecord = ArrayBuffer[Long]()
@@ -144,7 +144,7 @@ object ChainsawTest {
 
       def peek(): SimThread = fork {
         while (true) {
-          dataRecord += peekWhatever(dataOut.fragment, gen.outputTypes).asInstanceOf[Seq[TOut]]
+          dataRecord += peekWhatever(dataOut.fragment, gen.outputTypes).asInstanceOf[Seq[Any]]
           lastRecord += dataOut.last.toBoolean
           validRecord += dataOut.valid.toBoolean
           timeRecord += simTime()
@@ -168,12 +168,15 @@ object ChainsawTest {
     /** --------
      * analysis after simulation
      * -------- */
-    val firstTime = lastRecord.indexOf(true) + 1
+    // TODO： accurate first time
+    // FIXME: double sample problem when latency = 1, this may or may not happen, confusing!
+    val firstTime = if (gen.latency == 1) lastRecord.indexOf(true) + 2 else lastRecord.indexOf(true) + 1
+    //    val firstTime = lastRecord.indexOf(true) + 1
 
     logger.info(s"frames starts at $firstTime, that is," +
       s"simTime ${timeRecord(firstTime)}, ")
 
-    val yours: Seq[Seq[TOut]] = dataRecord.slice(firstTime, firstTime + dataFlow.length) // range of interest
+    val yours: Seq[Seq[Any]] = dataRecord.slice(firstTime, firstTime + dataFlow.length) // range of interest
       .grouped(outputFormat.period).toSeq // frames
       .map(outputFormat.toRawData) // raw data
 
@@ -183,8 +186,8 @@ object ChainsawTest {
         s"\nyours :\n${showData(yours, gen.sizeOut)} " +
         s"\ngolden:\n${showData(golden, gen.sizeOut)}"
 
-    val goldenInUsed: Seq[Seq[TOut]] =
-      if (golden == null) raws.map(impl).map(_.asInstanceOf[Seq[TOut]])
+    val goldenInUsed: Seq[Seq[Any]] =
+      if (golden == null) raws.map(impl)
       else golden.grouped(outputFormat.rawDataCount).toSeq
 
     val success = implMode match {
@@ -206,7 +209,7 @@ object ChainsawTest {
 
 
     if (!silentTest) {
-      if (success) logger.info(s"test for generator ${gen.name} passed\n${showAllData(raws.head, yours.head, goldenInUsed.head, 0)}")
+      if (success) logger.info(s"test for generator ${gen.name} passed\n${showAllData(raws.last, yours.last, goldenInUsed.last, raws.length)}")
       else logger.error(s"test for generator ${gen.name} failed")
       assert(success)
     }
@@ -214,15 +217,15 @@ object ChainsawTest {
     TestReport(success, goldenInUsed.flatten)
   }
 
-  def testChain[TIn: ClassTag, TOut: ClassTag](gens: Seq[ChainsawGenerator],
-                                               data: Seq[TIn],
-                                               metrics: Seq[Metric],
-                                               testName: String = "testTemp"
-                                              ): Unit = {
+  def testChain(gens: Seq[ChainsawGenerator],
+                data: Seq[Any],
+                metrics: Seq[Metric],
+                testName: String = "testTemp"
+               ): Unit = {
 
     def testOnce(chain: Seq[ChainsawGenerator], metric: Metric) = {
       val name = s"${testName}_minus_${gens.length - chain.length}"
-      val report = test[TIn, Any](chain.reduce(_ + _), data, metric = metric, silentTest = true, testName = name)
+      val report = test(chain.reduce(_ + _), data, metric = metric, silentTest = true, testName = name)
       if (report.passed) logger.info(s"test $name passed")
       else logger.error(s"test $name failed")
       report
@@ -240,7 +243,7 @@ object ChainsawTest {
       val problem = failedChains.last.last
       logger.warn(s"found problematic generator: the $id-th generator ${problem.name}")
       logger.info(s"test on problematic generator...")
-      val report = test[Any, Any](problem, finalGolden, metric = metrics(id), silentTest = true, testName = s"test_${problem.name}")
+      val report = test(problem, finalGolden, metric = metrics(id), silentTest = true, testName = s"test_${problem.name}")
       if (report.passed) logger.info("test on problematic generator passed, Chainsaw connection problem")
       else logger.error(s"test on problematic generator failed")
     }

@@ -22,7 +22,7 @@ case class QammodWithAlloc(bitAlloc: Seq[Int], powAlloc: Seq[Double], numericTyp
   require(bitAlloc.forall(availableList.contains(_)))
   require(powAlloc.forall(_ <= 2.0)) // TODO: proper bound?
 
-  override def name = s"qammod_${bitAlloc.hashCode()}_${powAlloc.hashCode()}"
+  override def name = s"qammod_${bitAlloc.hashCode()}_${powAlloc.hashCode()}".replace("-","N")
 
   override val impl = null
 

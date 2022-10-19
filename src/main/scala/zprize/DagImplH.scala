@@ -2,6 +2,7 @@ package org.datenlord
 package zprize
 
 import spinal.core._
+import spire.math.NumberTag
 
 import scala.collection.JavaConversions._
 import scala.collection.mutable // as JGraphT is based on Java
@@ -29,9 +30,17 @@ object DagImplH {
         val incomingEdges = target.incomingEdges.sortBy(_.inOrder)
         val drivingSignals = target.sourcePorts.map(signalMap)
         val pipelinedSignals = drivingSignals.zip(incomingEdges).map { case (signal, e) => signal.d(e.weight.toInt) }
-        val core = target.gen.getImplH
-        core.dataIn.zip(pipelinedSignals).foreach { case (port, bits) => port := bits }
-        target.outPorts.zip(core.dataOut).foreach { case (port, bits) => signalMap(port) = bits }
+        val resizedSignals = pipelinedSignals.zip(target.gen.inputTypes).map{ case (bits, info) => info.resize(bits).get}
+        target.gen match {
+          case combinational: Combinational =>
+            val dataOut = combinational.comb(resizedSignals)
+            target.outPorts.zip(dataOut).foreach { case (port, bits) => signalMap(port) = bits }
+          case _ =>
+            val core = target.gen.getImplH
+            core.setDefinitionName(target.gen.name)
+            core.dataIn.zip(resizedSignals).foreach { case (port, bits) => port := bits }
+            target.outPorts.zip(core.dataOut).foreach { case (port, bits) => signalMap(port) = bits }
+        }
       }
     }
 

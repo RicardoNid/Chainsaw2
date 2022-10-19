@@ -19,22 +19,23 @@ import zprize.{ChainsawGenerator, DagPort, DagVertex}
 import scala.collection.mutable.ArrayBuffer
 
 // TODO: appropriate metadata for consistency
-case class IoGenerator(width: Int, numericType: NumericTypeInfo, direction: Direction) extends ChainsawGenerator {
+case class IoGenerator(numericType: NumericTypeInfo, direction: Direction)
+  extends ChainsawGenerator {
   override def name = if (direction == In) "in" else "out"
 
   override val impl = (dataIn: Seq[Any]) => dataIn
-  override var inputFormat = inputNoControl
-  override var outputFormat = outputNoControl
   override var inputTypes = Seq(numericType)
   override var outputTypes = Seq(numericType)
+  override var inputFormat = inputNoControl
+  override var outputFormat = outputNoControl
   override var latency = 0
 
   override def implH = null // this shouldn't be called anyway
 }
 
 object InputVertex {
-  def apply(width: Int, numericType: NumericTypeInfo)(implicit ref: Dag) = {
-    val vertex = DagVertex(IoGenerator(width, numericType, In))
+  def apply(numericType: NumericTypeInfo)(implicit ref: Dag) = {
+    val vertex = DagVertex(IoGenerator(numericType, In))
     vertex.setName(s"i_${ref.inputs.length}")
     ref.addVertex(vertex)
     ref.inputs += vertex
@@ -43,8 +44,8 @@ object InputVertex {
 }
 
 object OutputVertex {
-  def apply(width: Int, numericType: NumericTypeInfo)(implicit ref: Dag) = {
-    val vertex = DagVertex(IoGenerator(width, numericType, Out))
+  def apply(numericType: NumericTypeInfo)(implicit ref: Dag) = {
+    val vertex = DagVertex(IoGenerator(numericType, Out))
     vertex.setName(s"o_${ref.outputs.length}")
     ref.addVertex(vertex)
     ref.outputs += vertex
@@ -54,11 +55,11 @@ object OutputVertex {
 
 class DagEdge(val inOrder: Int, val outOrder: Int) {
 
-  def source[THard <: Data](implicit ref: Dag): DagVertex = ref.getEdgeSource(this)
+  def source(implicit ref: Dag): DagVertex = ref.getEdgeSource(this)
 
-  def sourcePort[THard <: Data](implicit ref: Dag) = ref.getEdgeSource(this).out(outOrder)
+  def sourcePort(implicit ref: Dag) = ref.getEdgeSource(this).out(outOrder)
 
-  def target[THard <: Data](implicit ref: Dag): DagVertex = ref.getEdgeTarget(this)
+  def target(implicit ref: Dag): DagVertex = ref.getEdgeTarget(this)
 
   def targetPort[THard <: Data](implicit ref: Dag) = ref.getEdgeTarget(this).in(inOrder)
 
@@ -188,7 +189,7 @@ abstract class Dag()
 
   /** --------
    * methods for getting metadata
-   -------- */
+   * -------- */
   override var inputTypes = Seq(UIntInfo(1))
   override var outputTypes = Seq(UIntInfo(1))
   override var inputFormat = inputNoControl

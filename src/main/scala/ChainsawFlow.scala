@@ -4,7 +4,6 @@ import spinal.core._
 import spinal.lib._
 
 object ChainsawFlow {
-
   def apply[T <: Data](fragment: Vec[T], valid: Bool, last: Bool) = {
     val ret = Flow(Fragment(fragment))
     ret.fragment := fragment
@@ -12,5 +11,4 @@ object ChainsawFlow {
     ret.last := last
     ret
   }
-
 }

@@ -15,7 +15,7 @@ class DftTest extends AnyFlatSpec {
   "dft" should "work for all configurations" in Seq.tabulate(2,3)((i, j) =>
     ChainsawTest.test(Dft(sizeList(j), invList(i), dataType, 16),
       data,
-      metric = ChainsawMetric.ComplexAbs(1e-1)))
+      metric = ChainsawMetric.complexAbs(1e-1)))
 
   it should "impl for all configurations" in Seq.tabulate(2,3)((i, j) =>
     VivadoImpl(Dft(sizeList(j), invList(i), dataType, 16).implH))

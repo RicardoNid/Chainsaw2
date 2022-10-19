@@ -12,36 +12,16 @@ import spinal.lib.fsm._
 
 import scala.language.postfixOps
 
-object PadFtn extends ChainsawGenerator {
-  override def name = "PadFtn"
-
-  override val impl = (dataIn: Seq[Any]) => {
-    val data = dataIn.asInstanceOf[Seq[Complex]]
-    val zero = Complex(0, 0)
-    (zero +: data) ++ Seq.fill(256 - N1 - 1)(zero)
-  }
-
-  override var inputTypes = Seq.fill(N1)(fftType)
-  override var outputTypes = Seq.fill(256)(fftType)
-
-  override var inputFormat = inputNoControl
-  override var outputFormat = outputNoControl
-  override var latency = 0
-
-  override def implH: ChainsawModule = new ChainsawModule(this) {
-    def zero: Bits = B(0, fftType.bitWidth bits)
-    dataOut := (zero +: dataIn) ++ Seq.fill(256 - N1 - 1)(zero)
-  }
-}
-
 object HsIfftPre extends ChainsawGenerator {
   override def name = "hsIfftPre"
 
   override val impl = (dataIn: Seq[Any]) => {
+    // FIXME: change the golden
     val both = dataIn.asInstanceOf[Seq[Complex]]
     val (as, bs) = both.splitAt(256)
-    val merged = as.zip(bs).map { case (a, b) => a + b * i }
-    (merged :+ Complex(0, 0)) ++ merged.tail.map(_.conjugate).reverse
+    val symA =  (as :+ Complex(0, 0)) ++ as.tail.map(_.conjugate).reverse
+    val symB =  (bs :+ Complex(0, 0)) ++ bs.tail.map(_.conjugate).reverse
+    symA.zip(symB).map { case (a, b) => a + b * i }
   }
 
   override var inputTypes = Seq.fill(256)(fftType)
@@ -58,14 +38,16 @@ object HsIfftPre extends ChainsawGenerator {
     // preprocessing
     val a = RegNextWhen(complexDataIn, atTime(0))
     val b = complexDataIn
-    val merged = a.zip(b).map { case (prev, next) => (prev + next.multiplyI).d(1) }
+    val symmetricA =  (a :+ zero) ++ a.map(_.conj).reverse
+    val symmetricB =  (b :+ zero) ++ b.map(_.conj).reverse
+    val merged = symmetricA.zip(symmetricB).map { case (prev, next) => (prev + next.multiplyI).d(1) } // latency = 4 + 1 = 5
 
     def zero: ComplexFix = CF(Complex(0, 0), fftType.asSFix)
 
-    val symmetric = (merged :+ zero) ++ merged.map(_.conj).reverse // latency = 4 + 1 = 5
+//    val symmetric = (merged :+ zero) ++ merged.map(_.conj).reverse
     // p2s
     val p2s = p2sGen.implH
-    p2s.dataIn := symmetric.map(_.asBits)
+    p2s.dataIn := merged.map(_.asBits)
     p2s.lastIn := atTime(5 - 1)
     p2s.validIn.assignDontCare()
 
@@ -141,21 +123,25 @@ object IfftFtn extends ChainsawGenerator {
     def doOnce(both: Seq[Complex]) = {
       val (as, bs) = both.splitAt(N1)
 
+      def hs(data: Seq[Complex]) = (data :+ Complex(0, 0)) ++ data.tail.map(_.conjugate).reverse
+
       def pad(data: Seq[Complex]) = {
         val zero = Complex(0, 0)
-        (zero +: data) ++ Seq.fill(256 - N1 - 1)(zero)
+        Seq.fill(2)(zero) ++ data ++ Seq.fill(256 - N1 - 2)(zero)
       }
 
       val (padA, padB) = (pad(as), pad(bs))
-      val merged = padA.zip(padB).map { case (a, b) => a + b * i }
-      val hs = (merged :+ Complex(0, 0)) ++ merged.tail.map(_.conjugate).reverse
+      val (hsA, hsB) = (hs(padA), hs(padB))
+      val merged = hsA.zip(hsB).map { case (a, b) => a + b * i }
+      //      val hs = merged
+      //      val hs = (merged :+ Complex(0, 0)) ++ merged.tail.map(_.conjugate).reverse
 
-      val ret = iFourierTr.dvComplexIFFT(DenseVector(hs.toArray)).toArray.toSeq
+      val ret = iFourierTr.dvComplexIFFT(DenseVector(merged.toArray)).toArray.toSeq
         .map(_ * 512 / (1 << scales.sum))
       val (retA, retB) = (ret.map(_.real), ret.map(_.imag))
 
       def extractAndCp(whole: Seq[Double]) = {
-        val extracted = whole.slice(2, 2 + N2 * 2)
+        val extracted = whole.slice(0, N2 * 2)
         extracted.takeRight(20) ++ extracted
       }
 
@@ -193,19 +179,19 @@ object IfftFtn extends ChainsawGenerator {
     // pad
     def pad(data: Seq[Bits]): Seq[Bits] = {
       def zero: Bits = B(0, fftType.bitWidth bits)
-      (zero +: data) ++ Seq.fill(256 - N1 - 1)(zero)
+      Seq.fill(2)(zero) ++ data ++ Seq.fill(256 - N1 - 2)(zero)
     }
+
     // +CP & extract
-    def extractAndCp(data:Seq[Bits]): Seq[Bits] = {
-      val extracted = data.slice(2, 2 + N2 * 2)
+    def extractAndCp(data: Seq[Bits]): Seq[Bits] = {
+      val extracted = data.slice(0, N2 * 2)
       extracted.takeRight(20) ++ extracted
     }
 
     // connections
-    bundleIn.replaceBy(pad) >> pre.dataIn
+    bundleIn.replaceBy(pad).withLast(periodicTrigger(8)) >> pre.dataIn
     pre >> ifftCore >> s2p >> post
     post.dataOut.replaceBy(extractAndCp) >> p2s.dataIn
-
     dataOut := p2s.dataOut.fragment
   }
 }

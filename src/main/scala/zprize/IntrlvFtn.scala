@@ -1,31 +1,28 @@
-//package org.datenlord
-//package zprize
-//
-//import spinal.core._
-//import spinal.core.sim._
-//import spinal.lib._
-//import spinal.lib.fsm._
-//
-//object IntrlvFtn extends ChainsawGenerator {
-//  override def name = "intrlvFtn"
-//
-//  val coreGen = StridePermutation(intrlvRow, intrlvCol, parallel * 2, 1)
-//
-//  override val impl = coreGen.impl
-//  override var inputTypes = coreGen.inputTypes
-//  override var outputTypes = coreGen.outputTypes
-//
-//  override var inputFormat = codedFrameFormat
-//  override var outputFormat = codedFrameFormat
-//  override var latency = coreGen.latency
-//
-//  override def implH = ???
-//
-//  override def implNaiveH: ChainsawModule = new ChainsawModule(this) {
-//    val core = coreGen.implNaiveH
-//    core.validIn := validIn
-//    core.lastIn := lastIn
-//    core.dataIn := dataIn
-//    dataOut := core.dataOut
-//  }
-//}
+
+package org.datenlord
+package zprize
+
+import spinal.core._
+import spinal.core.sim._
+import spinal.lib._
+import spinal.lib.fsm._
+
+object IntrlvFtn extends ChainsawGenerator {
+  override def name = "intrlvFtn"
+
+  override val impl = null
+  override var inputTypes = Seq.fill(N1)(UIntInfo(1))
+  override var outputTypes = Seq.fill(N1)(UIntInfo(1))
+
+  override var inputFormat = codedFrameFormat
+  override var outputFormat = codedFrameFormat
+  override var latency = 1
+
+  override def implH: ChainsawModule = new ChainsawModule(this) {
+    val rawValue = localCounter.valueNext << 2
+    val shiftValue = Mux(rawValue >= N1, rawValue - N1, rawValue).take(8).asUInt
+    val inBits = dataIn.asBits
+    val ret = inBits.rotateLeft(shiftValue).d(1)
+    dataOut := ret.subdivideIn(1 bits)
+  }
+}

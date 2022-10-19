@@ -20,8 +20,6 @@ trait ChainsawGenerator {
   /** --------
    * size information
    * -------- */
-  //  var inputWidths: Seq[Int]
-  //  var outputWidths: Seq[Int]
   var inputTypes: Seq[NumericTypeInfo]
   var outputTypes: Seq[NumericTypeInfo]
 
@@ -30,8 +28,8 @@ trait ChainsawGenerator {
    * -------- */
   var inputFormat: FrameFormat
   var outputFormat: FrameFormat
-  val inputTimes: Seq[Int] = null // when this is null, inputs are aligned
-  val outputTimes: Seq[Int] = null
+  val inputTimes: Option[Seq[Int]] = None // when this is empty, inputs are aligned
+  val outputTimes: Option[Seq[Int]] = None
   var latency: Int // defined as the latency from the head of inputs to the head of outputs
 
   /** --------
@@ -45,7 +43,7 @@ trait ChainsawGenerator {
    * -------- */
   def implH: ChainsawModule // core module, that is, the datapath
 
-  def implNaiveH: ChainsawModule = null // naive RTL implementation for simulation & top-down design
+  def implNaiveH: Option[ChainsawModule] = None // naive RTL implementation for simulation & top-down design
 
   def setAsNaive(): Unit = naiveSet += this.getClass.getSimpleName
 
@@ -53,7 +51,8 @@ trait ChainsawGenerator {
 
   def getImplH: ChainsawModule = {
     doDrc()
-    if (useNaive && implNaiveH != null) implNaiveH else implH
+    if (useNaive) implNaiveH.getOrElse(implH)
+    else implH
   }
 
   def implDut = new ChainsawModuleWrapper(this) // testable module, datapath + protocol
@@ -71,16 +70,14 @@ trait ChainsawGenerator {
 
   def doDrc(): Unit = {
     assert(inputFormat.period == outputFormat.period, s"input: ${inputFormat.period}, output: ${outputFormat.period}")
-    if (inputTimes != null) {
-      assert(inputTimes.head == 0)
-      assert(inputTimes.length == inputWidths.length)
-      assert(inputTimes.forall(_ >= 0))
-    }
-    if (outputTimes != null) {
-      assert(outputTimes.head == 0)
-      assert(outputTimes.length == outputWidths.length)
-      assert(outputTimes.forall(_ >= 0))
-    }
+
+    assert(actualInTimes.head == 0, s"${actualInTimes.mkString(" ")}")
+    assert(actualInTimes.length == inputWidths.length)
+    assert(actualInTimes.forall(_ >= 0))
+    assert(actualOutTimes.head == 0)
+    assert(actualOutTimes.length == outputWidths.length)
+    assert(actualOutTimes.forall(_ >= 0))
+
     assert(latency >= 0, "invalid generator with negative latency, " +
       "do you forgot to invoke GraphDone at the end of Dag construction?")
   }
@@ -95,9 +92,13 @@ trait ChainsawGenerator {
 
   def needNoControl: Boolean = inputFormat.period == 1 && outputFormat.period == 1
 
-  def inputNoControl: FrameFormat = FrameFormat(Seq(0 until sizeIn)).asInstanceOf[FrameFormat]
+  def inputNoControl: FrameFormat = FrameFormat(Seq(0 until sizeIn))
 
   def outputNoControl: FrameFormat = FrameFormat(Seq(0 until sizeOut))
+
+  def actualInTimes = inputTimes.getOrElse(inputTypes.map(_ => 0))
+
+  def actualOutTimes = outputTimes.getOrElse(outputTypes.map(_ => 0))
 
   def period = {
     require(inputFormat.period == outputFormat.period)
@@ -106,8 +107,9 @@ trait ChainsawGenerator {
 
   // common instantiation steps
   // TODO: how to print concrete class name?
-  if (generatorList.contains(name) && !this.isInstanceOf[IoGenerator]) {
-    //    logger.warn(s"an identical generator $name already instantiated, you'd better reuse the existing generator")
+
+  if (generatorList.contains(name) && !this.isInstanceOf[IoGenerator] && !this.isInstanceOf[Combinational]) {
+    logger.warn(s"an identical generator $name already instantiated, you'd better reuse the existing generator")
     // throw new IllegalArgumentException(s"an identical generator $name already instantiated, you'd better reuse the existing generator")
   } else if (!generatorList.contains(name)) generatorList(name) = 0
 

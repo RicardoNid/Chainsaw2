@@ -22,7 +22,7 @@ class CtFftTest extends AnyFlatSpec {
     val gen = CtFftCore(N, inverse = false, dataType, coeffWidth, factors, scales)
     ChainsawTest.test(gen,
       data,
-      metric = ChainsawMetric.FftByMean(1e-2)
+      metric = ChainsawMetric.fftByMean(1e-2)
     )
   }
 
@@ -34,7 +34,7 @@ class CtFftTest extends AnyFlatSpec {
     val gen = CtFftCore(N, inverse = true, dataType, coeffWidth, factors, scales)
     ChainsawTest.test(gen,
       data,
-      metric = ChainsawMetric.FftByMean(1e-2)
+      metric = ChainsawMetric.fftByMean(1e-2)
     )
   }
 
@@ -56,8 +56,8 @@ class CtFftTest extends AnyFlatSpec {
     val gen1 = CtFft(N, inverse = true, dataType, coeffWidth, factors, scales, pF)
     logger.info(s"latency: ${gen0.latency}")
     logger.info(s"latency: ${gen1.latency}")
-    ChainsawTest.test(gen0, data, metric = ChainsawMetric.FftByMean(1e-2))
-    ChainsawTest.test(gen1, data, metric = ChainsawMetric.FftByMean(1e-2))
+    ChainsawTest.test(gen0, data, metric = ChainsawMetric.fftByMean(1e-2))
+    ChainsawTest.test(gen1, data, metric = ChainsawMetric.fftByMean(1e-2))
   }
 
   it should "impl for FTN" in {

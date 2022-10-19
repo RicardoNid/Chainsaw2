@@ -1,3 +1,17 @@
-val chain = Seq(1,2,3)
+import scala.collection.mutable.ArrayBuffer
 
-chain.inits.toSeq.mkString(" ")
+var a = 3
+
+val list = ArrayBuffer[Int]()
+
+list += a
+
+a = 4
+
+list += a
+
+list
+
+a = 5
+
+list

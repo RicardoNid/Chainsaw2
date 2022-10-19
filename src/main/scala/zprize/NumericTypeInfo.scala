@@ -99,6 +99,16 @@ case class NumericTypeInfo(integral: Int, signed: Boolean = false, fractional: I
     ret.assignFromBits(bits)
     ret
   }
+
+  // TODO
+  def resize(bits: Bits) = {
+    getType match {
+      case UIntType => if (bits.getBitsWidth > bitWidth) None else Some(bits.resize(bitWidth))
+      case SIntType => if (bits.getBitsWidth > bitWidth) None else Some(bits.resize(bitWidth))
+      case SFixType => ???
+      case ComplexFixType => ???
+    }
+  }
 }
 
 object UIntInfo {

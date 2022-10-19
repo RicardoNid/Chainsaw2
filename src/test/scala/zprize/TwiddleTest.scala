@@ -12,7 +12,7 @@ class TwiddleTest extends AnyFlatSpec {
   "twiddle factor multiplier" should "work for all special/common cases" in (0 until 16).foreach { i =>
     ChainsawTest.test(Twiddle(16, i, ComplexFixInfo(2, 13), 16),
       data,
-      metric = ChainsawMetric.ComplexAbs(1e-2)
+      metric = ChainsawMetric.complexAbs(1e-2)
     )
   }
 
