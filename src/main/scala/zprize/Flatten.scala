@@ -1,14 +1,7 @@
 package org.datenlord
 package zprize
 
-
-import ilog.concert.IloNumVar
-import ilog.cplex.IloCplex
-import spinal.core._
-
 import scala.collection.JavaConversions._
-import scala.math.log
-
 
 object Flatten {
   def apply(dag: Dag): Dag = {

@@ -5,9 +5,6 @@ import optimus.optimization._
 import optimus.optimization.enums.SolverLib
 import optimus.optimization.model.MPFloatVar
 
-//import ilog.concert.IloException
-//import ilog.concert.IloNumVar
-//import ilog.cplex.IloCplex
 import collection.JavaConversions._
 import collection.JavaConverters._
 
@@ -50,6 +47,10 @@ object LinearProgramming extends App {
   println(variables.map(v => s"${v.toString()} -> ${v.value}").mkString(" "))
 
   release()
+
+  //import ilog.concert.IloException
+  //import ilog.concert.IloNumVar
+  //import ilog.cplex.IloCplex
 
   // using cplex
   //  val cplex = new IloCplex()

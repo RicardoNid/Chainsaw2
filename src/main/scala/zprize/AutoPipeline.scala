@@ -1,10 +1,6 @@
 package org.datenlord
 package zprize
 
-//import ilog.concert.IloNumVar
-//import ilog.cplex.IloCplex
-
-import ilog.concert.IloNumVar
 import optimus.optimization._
 import optimus.optimization.enums.SolverLib
 import optimus.optimization.model.MPFloatVar
