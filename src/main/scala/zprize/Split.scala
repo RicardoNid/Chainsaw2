@@ -1,7 +1,14 @@
 package org.datenlord
 package zprize
 
-case class Split(width: Int, lowWidth: Int) extends ChainsawGenerator {
+import spinal.core._
+
+case class Split(width: Int, lowWidth: Int) extends Combinational {
+
+  def comb(dataIn: Seq[Bits]): Seq[Bits] = {
+    val (a, b) = dataIn.head.splitAt(lowWidth)
+    Seq(a, b)
+  }
 
   override def name = s"split_${width}_${lowWidth}"
 
@@ -15,10 +22,4 @@ case class Split(width: Int, lowWidth: Int) extends ChainsawGenerator {
 
   override var inputFormat = inputNoControl
   override var outputFormat = outputNoControl
-  override var latency = 0
-
-  override def implH = new ChainsawModule(this) {
-    val (a, b) = dataIn.head.splitAt(lowWidth)
-    dataOut := Seq(a, b)
-  }
 }

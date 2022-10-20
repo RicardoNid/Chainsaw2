@@ -33,6 +33,7 @@ package object datenlord {
   // record all distinct Chainsaw Modules
   var generatorList = mutable.Map[String, Int]()
   val naiveSet = mutable.Set[String]()
+  var implTime = false
 
   type ChainsawFlow[T <: Data] = Flow[Fragment[Vec[T]]]
 
@@ -74,13 +75,20 @@ package object datenlord {
   }
 
   def ChainsawImpl(gen: => ChainsawGenerator, name: String = "temp", target: XilinxDevice = defaultDevice, xdcPath: String = null, withRequirement: Boolean = false) = {
+    implTime = true
     val report = VivadoImpl(gen.implH, name, target, xdcPath)
+    implTime = false
     if (withRequirement) report.require(gen.utilEstimation, gen.fmaxEstimation)
     report
   }
 
-  def ChainsawSynth(gen: => ChainsawGenerator, name: String = "temp", target: XilinxDevice = defaultDevice) =
-    VivadoSynth(gen.implH, name, target)
+  def ChainsawSynth(gen: => ChainsawGenerator, name: String = "temp", target: XilinxDevice = defaultDevice, withRequirement: Boolean = false) = {
+    implTime = true
+    val report = VivadoSynth(gen.implH, name, target)
+    implTime = false
+    if (withRequirement) report.require(gen.utilEstimation, gen.fmaxEstimation)
+    report
+  }
 
   implicit class BoolUtil(data: Bool) {
     def validAfter(cycle: Int) = Delay(data, cycle, init = False)

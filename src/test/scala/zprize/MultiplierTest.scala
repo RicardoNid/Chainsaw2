@@ -21,6 +21,6 @@ class MultiplierTest extends AnyFlatSpec {
   }
 
   it should "met the performance requirement" in
-    ChainsawImpl(mult34, "mult32", withRequirement = true)
+    ChainsawImpl(mult34, "mult34", withRequirement = true)
 
 }

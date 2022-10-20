@@ -230,17 +230,25 @@ abstract class Dag()
   def assureConnected(): Unit = assert(new ConnectivityInspector(this).isConnected, "dag must be a connected graph")
 
   override def doDrc(): Unit = {
+    logger.info(s"\n----drc started...----")
     super.doDrc()
     assureAcyclic()
+    logger.info("acyclic assured!")
     assureConnected()
-    vertexSet().toSeq.diff(inputs).foreach { v =>
-      v.inPorts.foreach(port => assert(edgeSet().exists(e => e.targetPort == port), s"inPort $port has no driver"))
-    } // all inPorts must be driven
+    logger.info("connected assured!")
+    // all inPorts must be driven
+    // skip as this will be found by implH anyway
+    //    vertexSet().toSeq.diff(inputs).foreach { v =>
+    //      v.inPorts.foreach(port => assert(edgeSet().exists(e => e.targetPort == port), s"inPort ${v.inPorts.indexOf(port)} of ${port.vertex.vertexName} has no driver"))
+    //    }
+    //    logger.info("all inports are driven!")
     vertexSet().toSeq.diff(outputs).foreach { v =>
-      v.outPorts.foreach(port => if (!edgeSet().exists(e => e.sourcePort == port)) logger.warn(s"outPort $port is not used"))
+      v.outPorts.foreach(port => if (!edgeSet().exists(e => e.sourcePort == port)) logger.warn(s"outPort of ${v.outPorts.indexOf(port)} ${port.vertex.vertexName} is not used"))
     }
     val notTimed = retimingInfo.keys.toSeq.diff(vertexSet().toSeq)
     assert(notTimed.isEmpty, s"vertices ${notTimed.mkString(" ")} have no retiming value")
+    logger.info("all vertices retimed!")
+    logger.info(s"\n----drc done!----")
   }
 
   /** --------

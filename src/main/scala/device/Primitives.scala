@@ -40,3 +40,7 @@ case class LUT6_2(init: BigInt) extends Unisim {
   addPrimitive("LUT6_2")
 }
 
+case class DSP48E2(init:BigInt) extends Unisim{
+
+  addPrimitive("DSP48E2.v")
+}

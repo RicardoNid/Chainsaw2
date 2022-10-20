@@ -2,6 +2,10 @@ package org.datenlord
 package zprize
 
 import org.datenlord
+import spinal.core._
+import spinal.core.sim._
+import spinal.lib._
+import spinal.lib.fsm._
 import org.datenlord.xilinx.{VivadoUtil, VivadoUtilRequirement}
 import spinal.core._
 
@@ -51,11 +55,19 @@ trait ChainsawGenerator {
 
   def getImplH: ChainsawModule = {
     doDrc()
-    if (useNaive) implNaiveH.getOrElse(implH)
+    if (useNaive && implTime) implPass
+    else if (useNaive) implNaiveH.getOrElse(implH)
     else implH
   }
 
   def implDut = new ChainsawModuleWrapper(this) // testable module, datapath + protocol
+
+  def implPass: ChainsawModule = new ChainsawModule(this) {
+    // TODO: general method that make output variables(rather than constants)
+    dataIn.foreach(_.addAttribute("dont_touch", "yes"))
+    dataOut.foreach(_.assignDontCare())
+    dataOut.foreach(_.addAttribute("dont_touch", "yes"))
+  }
 
   /** --------
    * utils

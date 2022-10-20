@@ -25,7 +25,7 @@ class CompressorTreeTest extends AnyFlatSpec {
 
     ChainsawTest.test(compressorTree,
       data,
-      metric = ChainsawMetric.carrySaveMetric,
+      metric = ChainsawMetric.carrySaveMetric(compressorTree.compensation),
       testName = "testCompressorTreeNaive")
 
     //    ChainsawImpl(compressorTree, withRequirement = true)

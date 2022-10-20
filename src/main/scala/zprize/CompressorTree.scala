@@ -1,11 +1,8 @@
 package org.datenlord
 package zprize
 
-import org.datenlord.arithmetic.CpaConfig
 import spinal.core._
-import spinal.core.sim._
 import spinal.lib._
-import spinal.lib.fsm._
 
 import scala.language.postfixOps
 
@@ -31,30 +28,30 @@ case class CompressorTree(operandInfos: Seq[OperandInfo]) extends ChainsawGenera
     Seq(ret)
   }
 
-  val hasNegative          = operandInfos.exists(_.positive == false)
-  val positiveInfos        = operandInfos.filter(_.positive)
-  val negativeInfos        = operandInfos.filterNot(_.positive)
-  val compensation         = if (hasNegative) negativeInfos.map(info => ((BigInt(1) << info.width) - 1) << info.weight).sum else BigInt(0)
-  val heapIn               = BitHeap.getHeapFromInfos[Int](Seq(operandInfos))
+  val hasNegative = operandInfos.exists(_.positive == false)
+  val positiveInfos = operandInfos.filter(_.positive)
+  val negativeInfos = operandInfos.filterNot(_.positive)
+  val compensation = if (hasNegative) negativeInfos.map(info => ((BigInt(1) << info.width) - 1) << info.weight).sum else BigInt(0)
+  val heapIn = BitHeap.getHeapFromInfos[Int](Seq(operandInfos))
   val (heapOut, solutions) = heapIn.compressAll(Gpcs(), name = s"operands of $name")
-//  val (positiveHeapOut, positiveSolutions) = BitHeap.getHeapFromInfos[Int](Seq(operandInfos.filter(_.positive))).compressAll(Gpcs(), name = s"positive operands of $name")
-//  val (negativeHeapOut, negativeSolutions) = if (hasNegative) BitHeap.getHeapFromInfos[Int](Seq(operandInfos.filterNot(_.positive))).compressAll(Gpcs(), name = s"negative operands of $name") else (positiveHeapOut, positiveSolutions)
-//  val (mergeHeapOut, mergeSolutions)       = if (hasNegative) (positiveHeapOut + negativeHeapOut).compressAll(Gpcs(), name = s"merge operands of $name") else (positiveHeapOut, positiveSolutions)
-//  val (positiveLatency, positiveWidthOut)  = (positiveSolutions.getLatency, if (positiveSolutions.getFinalWidthOut != 0) positiveSolutions.getFinalWidthOut else positiveHeapOut.width)
-//  val (negativeLatency, negativeWidthOut)  = (negativeSolutions.getLatency, if (negativeSolutions.getFinalWidthOut != 0) negativeSolutions.getFinalWidthOut else negativeHeapOut.width)
-//  val (mergeLatency, mergeWidthOut)        = if (hasNegative) (mergeSolutions.getLatency, if (mergeSolutions.getFinalWidthOut != 0) mergeSolutions.getFinalWidthOut else mergeHeapOut.width) else (0, positiveWidthOut)
-//  val cpaConfig  = CpaConfig(heapOut.width max compensation.bitLength, BinarySubtractor)
-//  val cpaLatency = cpaConfig.latency
-  val outWidth   = heapOut.width
+  //  val (positiveHeapOut, positiveSolutions) = BitHeap.getHeapFromInfos[Int](Seq(operandInfos.filter(_.positive))).compressAll(Gpcs(), name = s"positive operands of $name")
+  //  val (negativeHeapOut, negativeSolutions) = if (hasNegative) BitHeap.getHeapFromInfos[Int](Seq(operandInfos.filterNot(_.positive))).compressAll(Gpcs(), name = s"negative operands of $name") else (positiveHeapOut, positiveSolutions)
+  //  val (mergeHeapOut, mergeSolutions)       = if (hasNegative) (positiveHeapOut + negativeHeapOut).compressAll(Gpcs(), name = s"merge operands of $name") else (positiveHeapOut, positiveSolutions)
+  //  val (positiveLatency, positiveWidthOut)  = (positiveSolutions.getLatency, if (positiveSolutions.getFinalWidthOut != 0) positiveSolutions.getFinalWidthOut else positiveHeapOut.width)
+  //  val (negativeLatency, negativeWidthOut)  = (negativeSolutions.getLatency, if (negativeSolutions.getFinalWidthOut != 0) negativeSolutions.getFinalWidthOut else negativeHeapOut.width)
+  //  val (mergeLatency, mergeWidthOut)        = if (hasNegative) (mergeSolutions.getLatency, if (mergeSolutions.getFinalWidthOut != 0) mergeSolutions.getFinalWidthOut else mergeHeapOut.width) else (0, positiveWidthOut)
+  //  val cpaConfig  = CpaConfig(heapOut.width max compensation.bitLength, BinarySubtractor)
+  //  val cpaLatency = cpaConfig.latency
+  val outWidth = heapOut.width
 
-  override var inputTypes  = operandInfos.map(_.width).map(UIntInfo(_))
+  override var inputTypes = operandInfos.map(_.width).map(UIntInfo(_))
   override var outputTypes = Seq.fill(2)(UIntInfo(outWidth))
 
-  override var inputFormat  = inputNoControl
+  override var inputFormat = inputNoControl
   override var outputFormat = outputNoControl
 
   override val inputTimes = Some(operandInfos.map(_.time))
-  override var latency    = operandInfos.map(_.time).min + solutions.getLatency + 1
+  override var latency = operandInfos.map(_.time).min + solutions.getLatency + 1
 
   val implNaiveHPostDelay = latency - actualInTimes.max - 1
 
@@ -62,13 +59,14 @@ case class CompressorTree(operandInfos: Seq[OperandInfo]) extends ChainsawGenera
   fmaxEstimation = 600 MHz
 
   def pipeline(data: Bool): Bool = data.d(1)
-  def zero(): Bool               = False
+
+  def zero(): Bool = False
 
   override def implH = new ChainsawModule(this) {
-    val operands  = uintDataIn.zip(operandInfos).map { case (int, info) => if (info.positive) int else ~int }.map(_.d(1).asBools)
-    val heapIn    = BitHeap.getHeapFromInfos(Seq(operandInfos), Seq(operands))
-    val heapOut   = heapIn.implCompressTree(Gpcs(), solutions, pipeline, s"operands of CompressorTree_${operandInfos.hashCode()}".replace('-', 'N'))
-    val rows      = heapOut.output(zero).map(_.asBits().asUInt)
+    val operands = uintDataIn.zip(operandInfos).map { case (int, info) => if (info.positive) int else ~int }.map(_.d(1).asBools)
+    val heapIn = BitHeap.getHeapFromInfos(Seq(operandInfos), Seq(operands))
+    val heapOut = heapIn.implCompressTree(Gpcs(), solutions, pipeline, s"operands of CompressorTree_${operandInfos.hashCode()}".replace('-', 'N'))
+    val rows = heapOut.output(zero).map(_.asBits().asUInt)
     uintDataOut := Vec(rows.head @@ U(0, heapOut.weightLows.head bits), rows.last @@ U(0, heapOut.weightLows.head bits))
   }
 
@@ -77,9 +75,9 @@ case class CompressorTree(operandInfos: Seq[OperandInfo]) extends ChainsawGenera
       bits.d(actualInTimes.max - info.time) << info.weight
     }
 
-    val positive         = alignedWeightedInput.zip(operandInfos).filter(_._2.positive).map(_._1).reduce(_ +^ _).d(implNaiveHPostDelay)
+    val positive = alignedWeightedInput.zip(operandInfos).filter(_._2.positive).map(_._1).reduce(_ +^ _).d(implNaiveHPostDelay)
     val negativeOperands = alignedWeightedInput.zip(operandInfos).filterNot(_._2.positive).map(_._1)
-    val ret              = if (negativeOperands.nonEmpty) positive - negativeOperands.reduce(_ +^ _).d(implNaiveHPostDelay) else positive
+    val ret = if (negativeOperands.nonEmpty) positive - negativeOperands.reduce(_ +^ _).d(implNaiveHPostDelay) else positive
     uintDataOut.head := ret.resize(outWidth).d(1)
     uintDataOut.last := U(0, outWidth bits)
   })

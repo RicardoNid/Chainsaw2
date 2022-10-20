@@ -466,7 +466,7 @@ case class BitHeap[T](bitHeapConfigInfo: BitHeapConfigInfo[T]*) {
   def compressAll(
       candidates: Seq[Compressor],
       name: String                 = "compressor tree of temp",
-      solutionsPath: String        = solutionsPath,
+      solutionsPath: String        = "./src/main/resources/compressorTreeSolutions",
       useHistorySolutions: Boolean = true
   ): (BitHeap[T], CompressTreeSolution) = {
     if (verbose >= 1) {

@@ -5,16 +5,38 @@ import org.scalatest.flatspec.AnyFlatSpec
 
 import scala.util.Random
 
-class KaratsubaTest extends AnyFlatSpec {
+class pngKaratsubaTest extends AnyFlatSpec {
 
-  val width = 128
+  val width = 256
   val karaGen = Karatsuba(width)
-  karaGen.setVerticesAsNaive()
-  karaGen.updateLatency()
   karaGen.toPng(s"kara$width")
   val data = Seq.fill(100)(BigInt(width, Random))
 
   behavior of "Karatsuba"
 
-  it should "work with vertices as naive" in ChainsawTest.test(karaGen, data)
+  it should "work with vertices as naive" in {
+    karaGen.setVerticesAsNaive()
+    logger.warn(naiveSet.mkString(" "))
+    ChainsawTest.test(karaGen, data)
+    naiveSet.clear()
+  }
+
+  it should "work with compressor as naive" in {
+    naiveSet += "CompressorTree"
+    ChainsawTest.test(karaGen, data)
+    naiveSet.clear()
+  }
+
+  it should "work with concrete vertices" in ChainsawTest.test(karaGen, data)
+
+  it should "synth with compressor as naive" in {
+    naiveSet += "CompressorTree"
+    ChainsawSynth(karaGen)
+    naiveSet.clear()
+  }
+
+  it should "impl with concrete vertices" in {
+    ChainsawImpl(karaGen)
+  }
+
 }

@@ -108,7 +108,7 @@ object ChainsawTest {
 
       logger.info(
         s"\n----Chainsaw test status----" +
-          s"\n\tmodules set as naive: ${naiveSet.mkString(" ")}" +
+          s"\n\tmodules set as naive: \n${naiveSet.mkString("\n\t")}" +
           s"\n\tdata length = ${dataFlow.length} cycles, ${dataFlow.length / gen.inputFormat.period} frames in total"
       )
 

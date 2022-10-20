@@ -71,14 +71,15 @@ object AutoPipeline {
     }
 
     // add feasibility constraints between vertices(modules)
-    dag.edgeSet().toSeq.foreach { e =>
-      val sourceVar = variableMap(e.source)
-      val targetVar = variableMap(e.target)
-      // targetVar + targetRelative - (sourceVar + sourceRelative) >= 0
-      val expr = cplex.scalProd(Array(sourceVar, targetVar), coeffForSub)
-      cplex.addLe(expr, e.targetPort.relativeTime - e.sourcePort.relativeTime)
-      if (verbose >= 1) logger.info(s"${e.source} - ${e.target} <= ${e.targetPort.relativeTime} - ${e.sourcePort.relativeTime}")
-    }
+    dag.edgeSet().toSeq
+      .filter(e => !outs.contains(e.source) && !ins.contains(e.target)) // outs won't be constrained by following vertices
+      .foreach { e =>
+        val sourceVar = variableMap(e.source)
+        val targetVar = variableMap(e.target)
+        val expr = cplex.scalProd(Array(sourceVar, targetVar), coeffForSub) // targetVar + targetRelative - (sourceVar + sourceRelative) >= 0
+        cplex.addLe(expr, e.targetPort.relativeTime - e.sourcePort.relativeTime)
+        if (verbose >= 1) logger.info(s"${e.source} - ${e.target} <= ${e.targetPort.relativeTime} - ${e.sourcePort.relativeTime}")
+      }
 
     // solve the LP problem
     cplex.solve()

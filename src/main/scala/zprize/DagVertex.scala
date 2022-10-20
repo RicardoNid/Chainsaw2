@@ -35,8 +35,8 @@ class DagVertex(val gen: ChainsawGenerator)(implicit ref: Dag) {
    * -------- */
   def :=(ports: DagPort*)(implicit ref: Dag): Unit = {
     require(this.inCount == ports.length, "partial connection by := is forbidden as it is dangerous")
-//    require(inputWidths.zip(ports).forall{ case (width, port) => width == port.width},
-//      s"\nwidth mismatch at vertex $vertexName: \nsource:${ports.map(_.width).mkString(" ")}, target: ${inputWidths.mkString(" ")}")
+    //    require(inputWidths.zip(ports).forall{ case (width, port) => width == port.width},
+    //      s"\nwidth mismatch at vertex $vertexName: \nsource:${ports.map(_.width).mkString(" ")}, target: ${inputWidths.mkString(" ")}")
     ports.zip(inPorts).foreach { case (port, inPort) => ref.addEdge(port, inPort) }
   }
 

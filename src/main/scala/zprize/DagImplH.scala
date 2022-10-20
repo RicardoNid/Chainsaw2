@@ -13,9 +13,6 @@ object DagImplH {
 
     implicit val ref: Dag = dag
 
-    // pre-processing
-    dag.doDrc()
-
     val signalMap = mutable.Map[DagPort, Bits]() // vertex with its output ports
 
     def getImplemented: Seq[DagVertex] = signalMap.keys.map(_.vertex).toSeq.distinct // vertices already implemented

@@ -20,9 +20,9 @@ object S2S extends CpaMode
 
 case class Cpa(adderType: AdderType, widths: Seq[Int], cpaMode: CpaMode, withCarry: Boolean = true) extends ChainsawGenerator {
 
-  override def name = s"cpa_${widths.mkString("_")}_${cpaMode.getClass.getSimpleName.init}"
+  override def name = s"cpa_${widths.mkString("_")}_${cpaMode.getClass.getSimpleName.init}_${adderType.getClass.getSimpleName.init}_${withCarry}"
 
-  if(widths.exists(_ > 96)) logger.warn(s"way too long single carrychain: ${widths.max}")
+  if (widths.exists(_ > 96)) logger.warn(s"way too long single carrychain: ${widths.max}")
 
   val widthInc = adderType match {
     case BinaryAdder => 1
@@ -33,7 +33,7 @@ case class Cpa(adderType: AdderType, widths: Seq[Int], cpaMode: CpaMode, withCar
     case TernarySubtractor2 => 0
   }
 
-  val widthsWithInc = widths.init :+ (if(withCarry) widths.last + widthInc else widths.last)
+  val widthsWithInc = widths.init :+ (if (withCarry) widths.last + widthInc else widths.last)
 
   val operandCount = adderType match {
     case BinaryAdder => 2
@@ -166,4 +166,21 @@ case class Cpa(adderType: AdderType, widths: Seq[Int], cpaMode: CpaMode, withCar
 
     Seq.tabulate(operandCount, inputWidths.length / operandCount)((i, j) => dataIn(i * inputWidths.length / operandCount + j).setName(s"operand_${i}_$j"))
   }
+
+  override def implNaiveH = Some(new ChainsawModule(this) {
+
+    // TODO: full model
+    val ret = adderType match {
+      case datenlord.BinaryAdder => uintDataIn.reduce(_ +^ _)
+      case datenlord.BinarySubtractor => uintDataIn.head - uintDataIn.last
+      case datenlord.TernaryAdder => uintDataIn.reduce(_ +^ _)
+      case datenlord.TernarySubtractor1 => uintDataIn(0) +^ uintDataIn(1) - uintDataIn(2)
+      case datenlord.TernarySubtractor2 => uintDataIn(0) - uintDataIn(1) - uintDataIn(2)
+    }
+
+    cpaMode match {
+      case S2S => uintDataOut.head := ret.d(latency)
+    }
+
+  })
 }
