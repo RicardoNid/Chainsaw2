@@ -9,6 +9,8 @@ class CompressorTreeTest extends AnyFlatSpec {
 
   behavior of "compressor tree"
 
+  Random.setSeed(42)
+
   it should "have a correct naive model" in {
     val operands = Seq( // a testcase including weighted, signed and delayed input
       OperandInfo(10, 1, positive = true, 0),
@@ -16,8 +18,9 @@ class CompressorTreeTest extends AnyFlatSpec {
       OperandInfo(9, 0, positive = false, 2),
       OperandInfo(11, 1, positive = true, 3)
     )
+    verbose = 0
     val compressorTree = CompressorTree(operands)
-        compressorTree.setAsNaive()
+//        compressorTree.setAsNaive()
     val data = Seq.fill(400)(BigInt(8, Random))
 
     ChainsawTest.test(compressorTree,
