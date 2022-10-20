@@ -165,6 +165,7 @@ abstract class Dag()
     setEdgeWeight(e, weight)
   }
 
+  //  def autoPipeline(): Dag = AutoPipeline(this)
   def autoPipeline(): Dag = AutoPipeline(this)
 
   /** --------

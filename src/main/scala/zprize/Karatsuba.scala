@@ -22,6 +22,8 @@ case class Karatsuba(width: Int, constant:Option[BigInt] = None) extends Dag {
     Seq.fill(total - 1)(splitLimit) :+ (width - (total - 1) * splitLimit)
   }
 
+  var compensation = BigInt(0)
+
   /** --------
    * primitives used in Karatusba
    * -------- */
@@ -80,10 +82,12 @@ case class Karatsuba(width: Int, constant:Option[BigInt] = None) extends Dag {
 
   def merge(operands: Seq[DagPort], operandInfos: Seq[OperandInfo]) = {
     val treeGen = CompressorTree(operandInfos)
+    compensation = treeGen.compensation
+    logger.info(s"bits into compressor tree: ${operandInfos.map(_.width).sum}")
     logger.info(s"latency of compressor tree: ${treeGen.latency}")
     val merge = treeGen.asVertex
     merge := (operands: _*)
-    merge.out(0)
+    merge.outPorts
   }
 
   /** --------
@@ -118,8 +122,6 @@ case class Karatsuba(width: Int, constant:Option[BigInt] = None) extends Dag {
       val ret = (high << (splitWidth * 2)) + (cross << splitWidth) + low
       products += ret
       ret
-
-
     }
     else {
       val (aH, aL) = a.split2
@@ -178,8 +180,14 @@ case class Karatsuba(width: Int, constant:Option[BigInt] = None) extends Dag {
 
   redundantVertices.foreach(removeVertex)
 
+  logger.info(s"bits before inflation: ${products.map(_.width).sum}")
   val sortedOperands = operandsAndInfos.sortBy(_._2.time)
-  if (redundantVertices.nonEmpty) o := merge(sortedOperands.map(_._1), sortedOperands.map(_._2)).resize(width * 2)
+
+
+  val carrySaves = merge(sortedOperands.map(_._1), sortedOperands.map(_._2))
+  val ret = carrySaves(0) +^ carrySaves(1)
+  if (redundantVertices.nonEmpty) o := ret.resize(width * 2)
+
 
   /** --------
    * full retiming

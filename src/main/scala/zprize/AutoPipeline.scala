@@ -1,13 +1,16 @@
 package org.datenlord
 package zprize
 
+//import ilog.concert.IloNumVar
+//import ilog.cplex.IloCplex
 
 import ilog.concert.IloNumVar
-import ilog.cplex.IloCplex
-import spinal.core._
+import optimus.optimization._
+import optimus.optimization.enums.SolverLib
+import optimus.optimization.model.MPFloatVar
 
-import scala.collection.JavaConversions._
-import scala.math.log
+import collection.JavaConversions._
+import collection.JavaConverters._
 
 object AutoPipeline {
   /** in-place rewrite method that allocate latencies on edges which: 1. guarantee enough latency spaces for vertices 2. has minimum overall latency for graph, solved by linear programming
@@ -19,55 +22,42 @@ object AutoPipeline {
 
     implicit val refDag: Dag = dag
 
-    // pre
+    // prepare
     dag.makeComb()
 
-    // declare cplex model
-    val cplex = new IloCplex()
+    // declare model
+    implicit val model: MPModel = MPModel(SolverLib.oJSolver)
+
     // declare vertices as variables
-    val vertices = dag.vertexSet().toSeq.toArray
-    val lowerBounds = vertices.map(_ => 0.0)
-    val upperBounds = vertices.map(_ => maximumLatency.toDouble)
-    val variables: Array[IloNumVar] = cplex.numVarArray(vertices.length, lowerBounds, upperBounds)
-    val variableMap = vertices.zip(variables).toMap // vertex -> variable
-    val coeffForSub = Array(1.0, -1.0) // coeff for expression a - b
-
-    def setDiffLe(a: IloNumVar, b: IloNumVar, value: Double) = { // set a - b <= value
-      val expr = cplex.scalProd(Array(a, b), coeffForSub)
-      cplex.addLe(expr, value)
-    }
-
-    def setDiffEq(a: IloNumVar, b: IloNumVar, value: Double) = { // set a - b = value
-      val expr = cplex.scalProd(Array(a, b), coeffForSub)
-      cplex.addEq(expr, value)
-    }
-
-    def setVar(a: IloNumVar, value: Double) = { // set a = value
-      val expr = cplex.scalProd(Array(a), Array(1.0))
-      cplex.addEq(expr, value)
-    }
+    val vertices = dag.vertexSet().toSeq
+    val variableMap: Map[DagVertex, MPFloatVar] = vertices.zipWithIndex.map { case (vertex, i) =>
+      vertex -> MPFloatVar(s"r$i", 0, maximumLatency)
+    }.toMap
 
     // retiming region is between ins and outs
     val ins = sources.getOrElse(dag.inputs)
     val outs = targets.getOrElse(dag.outputs)
 
     // the all-in-one target function
-    setVar(variableMap(dag.inputs.head), 0.0)
-    val coeffs = (outs.map(_ => 1.0) ++ ins.map(_ => -1.0)).toArray
-    val ios = (outs ++ ins).map(variableMap).toArray
-    val expr = cplex.scalProd(ios, coeffs) // \Sigma outs - \Sigma ins
-    cplex.addMinimize(expr)
+    add(variableMap(dag.inputs.head) := 0) // set value 0 for the first input port
+
+    val coeffs = outs.map(_ => 1.0) ++ ins.map(_ => -1.0)
+    val expr = (outs ++ ins).zip(coeffs)
+      .map{ case (v, coeff) => variableMap(v) * coeff}
+      .reduce(_ + _) // \Sigma outs - \Sigma ins
+
+    minimize(expr)
 
     // setting constraints for inputs/outputs
     val inTimes = dag.inputTimes.getOrElse(dag.inputs.map(_ => 0))
     val outTimes = dag.outputTimes.getOrElse(dag.outputs.map(_ => 0))
 
     dag.inputs.zip(inTimes).prevAndNext { case ((vPre, tPre), (vNext, tNext)) =>
-      setDiffEq(variableMap(vPre), variableMap(vNext), tPre - tNext)
+      add(variableMap(vPre) - variableMap(vNext) := tPre - tNext)
     }
 
     dag.outputs.zip(outTimes).prevAndNext { case ((vPre, tPre), (vNext, tNext)) =>
-      setDiffEq(variableMap(vPre), variableMap(vNext), tPre - tNext)
+      add(variableMap(vPre) - variableMap(vNext) := tPre - tNext)
     }
 
     // add feasibility constraints between vertices(modules)
@@ -76,30 +66,28 @@ object AutoPipeline {
       .foreach { e =>
         val sourceVar = variableMap(e.source)
         val targetVar = variableMap(e.target)
-        val expr = cplex.scalProd(Array(sourceVar, targetVar), coeffForSub) // targetVar + targetRelative - (sourceVar + sourceRelative) >= 0
-        cplex.addLe(expr, e.targetPort.relativeTime - e.sourcePort.relativeTime)
+        add(variableMap(e.source) - variableMap(e.target) <:= e.targetPort.relativeTime - e.sourcePort.relativeTime)
         if (verbose >= 1) logger.info(s"${e.source} - ${e.target} <= ${e.targetPort.relativeTime} - ${e.sourcePort.relativeTime}")
       }
 
     // solve the LP problem
-    cplex.solve()
+    start()
 
     // rounding, toInt is equivalent to ceil, which is not appropriate
     import scala.math.round
-    val values = cplex.getValues(variables).map(round).map(_.toInt)
-    val minValue = values.min
-    val solution = vertices.zip(values.map(_ - minValue)).toMap
+    val minValue = variableMap.values.map(_.value.get).min
+    val solution = vertices.map { v =>
+      val variable = variableMap(v)
+      v -> round(variable.value.getOrElse(-1.0) - minValue).toInt
+    }.toMap
     dag.retimingInfo = solution
     logger.info(
       s"\n----retiming report of ${refDag.name}----" +
-        s"\n\tsolution status = ${cplex.getStatus}" +
         s"\n\tsolution latency = ${solution(outs.head) - solution(ins.head)}"
     )
-    cplex.end()
 
-    println(s"coeffs: ${coeffs.mkString(" ")}")
-    println(s"solution: ${ins.map(dag.retimingInfo).mkString(" ")}")
-    println(s"solution: ${outs.map(dag.retimingInfo).mkString(" ")}")
+    release()
+
     dag.retiming(solution)
     dag
   }
