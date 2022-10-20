@@ -1,8 +1,8 @@
 package org.datenlord
 package dfg
-
-import ilog.concert.IloNumVar
-import ilog.cplex.IloCplex
+//
+//import ilog.concert.IloNumVar
+//import ilog.cplex.IloCplex
 import spinal.core._
 
 import scala.collection.JavaConversions._
@@ -15,75 +15,75 @@ object AutoPipeline {
    */
   def apply[THard <: Data](dag: Dag[THard]): Dag[THard] = {
 
-    implicit val refDag: Dag[THard] = dag
-
-    refDag.makeComb()
-    dag.assureAcyclic()
-
-    // TODO: find out why the cost function for minimum register number built by fan out theorem(from VLSI DSP) always failed in cplex(and sometimes failed in optimus)
-    // TODO: will it be better if we use rational number?
-    // declare model
-    val cplex = new IloCplex()
-    // declare variables
-    val vertices = dag.vertexSet().toSeq.toArray
-    val lowerBounds = vertices.map(_ => 0.0)
-    val upperBounds = vertices.map(_ => 500.0)
-
-    val variables: Array[IloNumVar] = cplex.numVarArray(vertices.length, lowerBounds, upperBounds)
-    val variableMap = vertices.zip(variables).toMap
-    // construct cost function for minimum number of registers
-    val coeffForSub = Array(1.0, -1.0)
-    val io = Array(variableMap(dag.outputs.head), variableMap(dag.inputs.head))
-
-    // set linear programming problem: minimize the latency
-    val cost = cplex.scalProd(io, coeffForSub) // shortest overall latency
-    cplex.addMinimize(cost)
-
-    // align inputs
-    dag.inputs.init.zip(dag.inputs.tail).foreach { case (a, b) =>
-      val inputA = variableMap(a)
-      val inputB = variableMap(b)
-      val expr = cplex.scalProd(Array(inputA, inputB), coeffForSub)
-      cplex.addEq(expr, 0)
-    }
-
-    // align outputs
-    dag.outputs.init.zip(dag.outputs.tail).foreach { case (a, b) =>
-      val outputA = variableMap(a)
-      val outputB = variableMap(b)
-      val expr = cplex.scalProd(Array(outputA, outputB), coeffForSub)
-      cplex.addEq(expr, 0)
-    }
-
-
-    logger.info(s"show inputs: ${dag.inputs.mkString(" ")}")
-    logger.info(s"show outputs: ${dag.outputs.mkString(" ")}")
-
-
-    // add feasibility constraints according to vertices latencies
-    dag.edgeSet().toSeq.foreach { e =>
-      val source = variableMap(e.source)
-      val target = variableMap(e.target)
-      val expr = cplex.scalProd(Array(source, target), coeffForSub)
-      cplex.addLe(expr, dag.getEdgeWeight(e) - e.source.latency) //
-    }
-
-    // set linear programming problem and solve it
-    cplex.solve()
-    import scala.math.round
-    val values = cplex.getValues(variables).map(round).map(_.toInt)
-    val minValue = values.min
-    val solution = vertices.zip(values.map(_ - minValue)).toMap
-    logger.info(
-      s"\n----retiming report of ${refDag.name}----" +
-        s"\n\tsolution status = ${cplex.getStatus}" +
-        s"\n\tsolution latency = ${round(cplex.getObjValue())}"
-    )
-    cplex.end()
-
-    // retiming by the solution
-    dag.retimingInfo = solution
-    dag.retiming(solution)
+//    implicit val refDag: Dag[THard] = dag
+//
+//    refDag.makeComb()
+//    dag.assureAcyclic()
+//
+//    // TODO: find out why the cost function for minimum register number built by fan out theorem(from VLSI DSP) always failed in cplex(and sometimes failed in optimus)
+//    // TODO: will it be better if we use rational number?
+//    // declare model
+//    val cplex = new IloCplex()
+//    // declare variables
+//    val vertices = dag.vertexSet().toSeq.toArray
+//    val lowerBounds = vertices.map(_ => 0.0)
+//    val upperBounds = vertices.map(_ => 500.0)
+//
+//    val variables: Array[IloNumVar] = cplex.numVarArray(vertices.length, lowerBounds, upperBounds)
+//    val variableMap = vertices.zip(variables).toMap
+//    // construct cost function for minimum number of registers
+//    val coeffForSub = Array(1.0, -1.0)
+//    val io = Array(variableMap(dag.outputs.head), variableMap(dag.inputs.head))
+//
+//    // set linear programming problem: minimize the latency
+//    val cost = cplex.scalProd(io, coeffForSub) // shortest overall latency
+//    cplex.addMinimize(cost)
+//
+//    // align inputs
+//    dag.inputs.init.zip(dag.inputs.tail).foreach { case (a, b) =>
+//      val inputA = variableMap(a)
+//      val inputB = variableMap(b)
+//      val expr = cplex.scalProd(Array(inputA, inputB), coeffForSub)
+//      cplex.addEq(expr, 0)
+//    }
+//
+//    // align outputs
+//    dag.outputs.init.zip(dag.outputs.tail).foreach { case (a, b) =>
+//      val outputA = variableMap(a)
+//      val outputB = variableMap(b)
+//      val expr = cplex.scalProd(Array(outputA, outputB), coeffForSub)
+//      cplex.addEq(expr, 0)
+//    }
+//
+//
+//    logger.info(s"show inputs: ${dag.inputs.mkString(" ")}")
+//    logger.info(s"show outputs: ${dag.outputs.mkString(" ")}")
+//
+//
+//    // add feasibility constraints according to vertices latencies
+//    dag.edgeSet().toSeq.foreach { e =>
+//      val source = variableMap(e.source)
+//      val target = variableMap(e.target)
+//      val expr = cplex.scalProd(Array(source, target), coeffForSub)
+//      cplex.addLe(expr, dag.getEdgeWeight(e) - e.source.latency) //
+//    }
+//
+//    // set linear programming problem and solve it
+//    cplex.solve()
+//    import scala.math.round
+//    val values = cplex.getValues(variables).map(round).map(_.toInt)
+//    val minValue = values.min
+//    val solution = vertices.zip(values.map(_ - minValue)).toMap
+//    logger.info(
+//      s"\n----retiming report of ${refDag.name}----" +
+//        s"\n\tsolution status = ${cplex.getStatus}" +
+//        s"\n\tsolution latency = ${round(cplex.getObjValue())}"
+//    )
+//    cplex.end()
+//
+//    // retiming by the solution
+//    dag.retimingInfo = solution
+//    dag.retiming(solution)
     dag
   }
 }
