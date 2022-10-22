@@ -48,7 +48,7 @@ class VivadoFlow[T <: Component](
     FileUtils.write(new File(s"$workspacePath/doit.xdc"), buildXdc)
     // run vivado
     doCmd(
-      s"${vivadoConfig.vivadoPath}/vivado -stack 2000 -nojournal -log doit.log -mode batch -source doit.tcl",
+      s"vivado -stack 2000 -nojournal -log doit.log -mode batch -source doit.tcl",
       workspacePath
     )
     // parse log file to get report
@@ -111,7 +111,7 @@ class VivadoFlow[T <: Component](
     // do flow
     taskType match {
       case SYNTH =>
-        script += s"synth_design -part ${xilinxDevice.part} -top ${topModuleName} -mode out_of_context\n"
+        script += s"synth_design -part ${xilinxDevice.part} -top ${topModuleName} -mode out_of_context -retiming \n"
         script += s"write_checkpoint -force ${topModuleName}_after_synth.dcp\n"
       case IMPL =>
         script += s"synth_design -part ${xilinxDevice.part} -top ${topModuleName} -mode out_of_context\n"

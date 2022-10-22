@@ -9,6 +9,8 @@ class MultiplierTest extends AnyFlatSpec {
 
   behavior of "multiplier"
 
+  verbose = 1
+
   val mult34 = Multiplier(Seq(34,34))
 
   it should "work correctly for different widths" in{
@@ -22,5 +24,8 @@ class MultiplierTest extends AnyFlatSpec {
 
   it should "met the performance requirement" in
     ChainsawImpl(mult34, "mult34", withRequirement = true)
+
+  it should "synth for mode 1" in
+    ChainsawSynth(Multiplier(Seq(18,18)), "mult18", withRequirement = true)
 
 }

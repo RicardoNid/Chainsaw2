@@ -56,6 +56,6 @@ object Matlab extends App {
   // generally, because of the type system conflicts(scala-static vs matlab-dynamic), using eval function with literal command may be a better choice
   // literal command work for consistently for Int,Double and Complex, while type system may fail
   eng.eval(s"y = fft(${time.toMatlabLiteral})")
-  println(eng.getVariable("y").asInstanceOf[Seq[Double]])
+  println(eng.getVariable("y").asInstanceOf[Array[Double]])
 
 }

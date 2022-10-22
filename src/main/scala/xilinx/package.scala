@@ -44,5 +44,5 @@ package object xilinx {
 
   val defaultDevice = vu9p
   val defaultDeviceFamily = defaultDevice.family
-  val defaultVivadoPath = "/tools/Xilinx/Vivado/2021.1/bin"
+  val defaultVivadoPath = "vivado"
 }

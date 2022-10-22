@@ -1,7 +1,7 @@
 package org.datenlord
 package zprize
 
-import zprize.{ChainsawGenerator, DagPort}
+import zprize.DagPort
 
 import scala.collection.JavaConversions._ // as JGraphT is based on Java
 

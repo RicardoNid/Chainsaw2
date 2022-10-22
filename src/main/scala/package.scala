@@ -13,6 +13,7 @@ import spinal.core._
 import spinal.core.sim._
 import spinal.lib.{Delay, com => _, _}
 
+import scala.annotation.tailrec
 import scala.collection.mutable.ArrayBuffer
 import scala.math.{BigDecimal, BigInt}
 import scala.reflect.ClassTag
@@ -20,6 +21,15 @@ import scala.sys.process.Process
 import scala.util.Random
 
 package object datenlord {
+
+  @tailrec
+  def gcd(a: Int, b: Int): Int = {
+    val (p, q) = if (a >= b) (a, b) else (b, a)
+    if (q == 0) p
+    else gcd(q, p % q)
+  }
+
+  def mux[T](condition: Boolean, whenTrue: T, whenFalse: T) = if(condition) whenTrue else whenFalse
 
   type Metric = (Seq[Any], Seq[Any]) => Boolean
 

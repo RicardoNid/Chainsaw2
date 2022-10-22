@@ -21,7 +21,6 @@ object RotationMode extends Enumeration {
 import dsp.AlgebraicMode._
 import dsp.RotationMode._
 
-// TODO: range extension
 case class CordicConfig(algebraicMode: AlgebraicMode, rotationMode: RotationMode,
                         iteration: Int, fraction: Int)
   extends TransformBase {

@@ -86,7 +86,7 @@ case class PermutationByRamConfig[T <: Data](permutation: Seq[Int], override val
   def getControls = {
     // build the mapping matrix according to definition 2
     val mappingMatrix = getMappingMatrix
-    val permutations = getDecomposition(mappingMatrix)
+    val permutations = getDecomposition(mappingMatrix).map(perm => Permutation(perm))
     val readAddr = ArrayBuffer[Seq[Int]]() // read addr of M_0
     val writeAddr = ArrayBuffer[Seq[Int]]() // write addr of M_1
     // remained elements
@@ -95,13 +95,13 @@ case class PermutationByRamConfig[T <: Data](permutation: Seq[Int], override val
     permutations.foreach { case (perm) =>
       // algorithm 6 line7
       val elem = (0 until w).map { i =>
-        elems.find(x => (x % w == i) && (permutation.indexOf(x) % w == perm.indexOf(i))).get
+        elems.find(x => (x % w == i) && (permutation.indexOf(x) % w == perm.permuted.indexOf(i))).get
       }
       elems --= elem
       // algorithm 6 line9
       readAddr += elem.map(_ / w)
       // algorithm 6 line10
-      writeAddr += elem.indices.map(index => permutation.indexOf(elem(perm(index))) / w)
+      writeAddr += elem.indices.map(index => permutation.indexOf(elem(perm.permuted(index))) / w)
     }
     (permutations, readAddr, writeAddr)
   }

@@ -6,8 +6,6 @@ import spinal.core._
 
 import scala.language.postfixOps
 
-object ComplexFixType
-
 /** complex number type based on SFix
  *
  * @param R real part of the complex number

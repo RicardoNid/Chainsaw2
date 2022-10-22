@@ -1,99 +1,91 @@
 package org.datenlord
 package algos
 
-import breeze.numerics.ceil
+// TODO: cost & count for different Karatsuba Mode
+case class Decomposition(split: Int, row: Int, col: Int) {
 
-case class Decomposition(shape: (Int, Int), part: Int) {
+  val w = gcd(row, col)
+  val a = row / w
+  val b = col / w
+  val karaCount = split * (split - 1) / 2 * a * b // number of KaraBase Structure
 
-  // 2MN * 2MN tiles
+  val compressorEff = 1.0
 
-  def scale: Int = shape._1 * shape._2 * part // 2MN
+  def widthNext = split * a * b * w
 
-  def multiple = part * (part + 1) / 2 * shape._1 * shape._2
+  def *(split: Int) = Decomposition(split, widthNext, widthNext)
 
-  def karaBaseCount = part * (part - 1) / 2
+  def subMultCount = split * (split + 1) / 2 * a * b
 
-  // TODO: formula for pre-addition and post-addition cost
+  def splitCost = karaCount * (row + col)
+
+  def mergeCost = {
+    val minusCost = karaCount * 2 * (row + col) // reduce high & low
+    val plusCost = (subMultCount - karaCount) * (row + col) + karaCount * (row + col + 2) - (widthNext * 2) // reduce = all - remained
+    (minusCost + plusCost) / compressorEff
+  }
+
+  def clbCost = splitCost + mergeCost
+}
+
+case class KaraSolution(dsp: (Int, Int), splits: Seq[Int]) {
+
+  val head: Decomposition = Decomposition(splits.head, row = dsp._1, col = dsp._2)
+
+  val all: Seq[Decomposition] = Seq.iterate((head, 0), splits.length) { case (decomposition, i) => (decomposition * splits(i + 1), i + 1) }
+    .map(_._1)
+
+  val layer = splits.length
+
+  def width = all.last.widthNext
+
+  def dspCost = all.map(_.subMultCount).product
+
+  def splitCost = all.tails.toSeq.init.map { chain =>
+    val multiple = chain.tail.map(_.subMultCount).product
+    multiple * chain.head.splitCost
+  }.sum
+
+  def mergeCost = all.tails.toSeq.init.map { chain =>
+    val multiple = chain.tail.map(_.subMultCount).product
+    multiple * chain.head.mergeCost
+  }.sum
+
+  def clbCost = all.tails.toSeq.init.map { chain =>
+    val multiple = chain.tail.map(_.subMultCount).product
+    multiple * chain.head.clbCost
+  }.sum
+
+  def showCosts = {
+    println("----Karatsuba report----")
+    println(s"layer = $layer")
+    println(s"width = $width")
+    println(s"dspCost = $dspCost")
+    println(s"splitCost = $splitCost")
+    println(s"mergeCost = $mergeCost")
+    println(s"clbCost = $clbCost")
+  }
 
 }
 
-/** search for optimized Karatsuba decomposition for specific width
- *
- */
-object KaraSearch {
+object KaraSolution extends App {
+  val kara64A = KaraSolution((16, 16), Seq(2, 2))
+  val kara64B = KaraSolution((16, 16), Seq(4))
 
-  val shapes = Seq((1, 1), (2, 3), (2, 5), (3, 4), (3, 5), (4, 5))
-  val parts = Seq(2, 3, 4, 5)
+  val kara377A = KaraSolution((16, 24), Seq(2, 2, 2))
+  val kara377B = KaraSolution((16, 16), Seq(2, 2, 2, 3))
+  val kara377C = KaraSolution((16, 16), Seq(3, 2, 2, 2))
+  val kara377D = KaraSolution((16, 24), Seq(2,4))
 
-  val decompositions = Seq.tabulate(shapes.length, parts.length) { (i, j) => Decomposition(shapes(i), parts(j)) }.flatten
+  val kara256 = KaraSolution((16, 16), Seq(2,2,2,2))
+  val kara1024 = KaraSolution((16, 16), Seq(8,8))
 
-
-  def apply(width: Int) = {
-
-    var bestDspCost = Int.MaxValue
-    var bestPath = Seq[Decomposition]()
-    var pathCount = 0
-    var baseWidth = (0, 0)
-
-    // TODO: implement LUT cost
-    def searchRec(width: (Int, Int), path: Seq[Decomposition], dspCost: Int, lutCost: Int): Unit = {
-      if (width._1 <= 17 && width._2 <= 26 || width._2 <= 17 && width._1 <= 26) { // decomposition done
-        pathCount += 1
-        // make judgement by cost function
-        val pass = (dspCost < bestDspCost) || ((dspCost == bestDspCost) && (path.length < bestPath.length))
-        if (pass) {
-          bestDspCost = dspCost
-          bestPath = path
-          baseWidth = width
-        }
-      }
-      else {
-        decompositions.foreach { decomp =>
-          val base = ceil((width._1 max width._2).toDouble / decomp.scale).toInt
-          val newWidth = (decomp.shape._1 * base, decomp.shape._2 * base)
-          val newCost = dspCost * decomp.multiple
-          val newPath = path :+ decomp
-          searchRec(newWidth, newPath, newCost, lutCost)
-        }
-      }
-    }
-
-    searchRec((width, width), Seq[Decomposition](), 1, 0)
-    logger.info(s"best path: ${bestPath.mkString(" ")}, baseWidth: $baseWidth")
-    logger.info(s"best cost: $bestDspCost dsps")
-    bestDspCost
-  }
-
-  def main(args: Array[String]): Unit = {
-    //    (1 until 512).foreach { i =>
-    //      println(i)
-    //      KaraSearch(i)
-    //    }
-    KaraSearch(377)
-    //    KaraSearch(1024)
-  }
-}
-
-object KaratsubaAlgo {
-
-  // TODO: DO THIS LATER AS ZPRIZE(377) NEEDS 2-PART ONLY
-  def doKPart(a: BigInt, b: BigInt, width: (Int, Int), decomp: Decomposition) = {
-
-    val base = ceil((width._1 max width._2).toDouble / decomp.scale).toInt
-
-    val aSplitPoints = (1 until decomp.scale / decomp.shape._1).map(i => i * base * decomp.shape._1)
-    val bSplitPoints = (1 until decomp.scale / decomp.shape._2).map(i => i * base * decomp.shape._2)
-
-    val aSplits = a.split(aSplitPoints)
-    val bSplits = b.split(bSplitPoints)
-
-    Seq.tabulate(aSplits.length, bSplits.length) { (i, j) =>
-      val aSplit = aSplits(i)
-      val bSplit = bSplits(j)
-
-    }
-
-  }
-
-
+  kara64A.showCosts
+  kara64B.showCosts
+  kara377A.showCosts
+  kara377B.showCosts
+  kara377C.showCosts
+  kara377D.showCosts
+  kara256.showCosts
+  kara1024.showCosts
 }

@@ -14,7 +14,7 @@ import spinal.core._
 import spinal.core.sim._
 import spinal.lib._
 import spinal.lib.fsm._
-import zprize.{ChainsawGenerator, DagPort, DagVertex}
+import zprize.{DagPort, DagVertex}
 
 import scala.collection.mutable.ArrayBuffer
 

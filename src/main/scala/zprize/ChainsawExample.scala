@@ -6,16 +6,15 @@ import spinal.core._
 import spinal.core.sim._
 import spinal.lib._
 import spinal.lib.fsm._
-import zprize.ChainsawGenerator
 
 import scala.language.postfixOps
 import scala.util.Random
-
 import org.jgrapht._
 import org.jgrapht.graph._
 import org.jgrapht.graph.builder._
 import org.jgrapht.traverse._
 import org.jgrapht.generate._
+
 import scala.collection.JavaConversions._ // as JGraphT is based on Java
 
 // a simple ChainsawGenerator

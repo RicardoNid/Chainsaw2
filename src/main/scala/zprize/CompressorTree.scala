@@ -21,7 +21,7 @@ case class OperandInfo(width: Int, weight: Int, positive: Boolean, time: Int) {
 
 case class CompressorTree(operandInfos: Seq[OperandInfo]) extends ChainsawGenerator {
 
-  override def name = s"CompressorTree_${operandInfos.hashCode()}".replace('-', 'N')
+  override def name = s"CompressorTree_operands${operandInfos.hashCode()}".replace('-', 'N')
 
   override val impl = (dataIn: Seq[Any]) => {
     val ret = dataIn.asInstanceOf[Seq[BigInt]].zip(operandInfos).map { case (operand, info) => info.evaluate(operand) }.sum

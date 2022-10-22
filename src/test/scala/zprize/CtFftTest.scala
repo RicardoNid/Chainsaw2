@@ -1,6 +1,7 @@
 package org.datenlord
 package zprize
 
+import ip.ftn.{CtFft, CtFftCore}
 import org.scalatest.flatspec.AnyFlatSpec
 
 import scala.util.Random

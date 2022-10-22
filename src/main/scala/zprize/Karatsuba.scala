@@ -8,13 +8,13 @@ import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
 import scala.util.Random // as JGraphT is based on Java
 
-case class Karatsuba(width: Int, constant:Option[BigInt] = None) extends Dag {
+case class Karatsuba(width: Int, constant: Option[BigInt] = None) extends Dag {
 
   override def name = s"karatsuba_$width"
 
   override val impl = (dataIn: Seq[Any]) => Seq(dataIn.asInstanceOf[Seq[BigInt]].product)
 
-  val baseWidth = 34
+  val baseWidth = 32
   val splitLimit = 96
 
   def getValidWidths(width: Int) = {
@@ -84,7 +84,7 @@ case class Karatsuba(width: Int, constant:Option[BigInt] = None) extends Dag {
     val treeGen = CompressorTree(operandInfos)
     compensation = treeGen.compensation
     logger.info(s"bits into compressor tree: ${operandInfos.map(_.width).sum}")
-    logger.info(s"latency of compressor tree: ${treeGen.latency}")
+    logger.info(s"compressor tree latency: ${treeGen.latency}")
     val merge = treeGen.asVertex
     merge := (operands: _*)
     merge.outPorts
@@ -149,6 +149,8 @@ case class Karatsuba(width: Int, constant:Option[BigInt] = None) extends Dag {
   val targets = Some(products.map(_.target))
   AutoPipeline(this, targets = targets)
 
+  logger.info(s"split network latency: ${targets.get.map(retimingInfo).min} to ${targets.get.map(retimingInfo).max}")
+
   /** --------
    * post-addition rewriting
    * -------- */
@@ -183,6 +185,7 @@ case class Karatsuba(width: Int, constant:Option[BigInt] = None) extends Dag {
   logger.info(s"bits before inflation: ${products.map(_.width).sum}")
   val sortedOperands = operandsAndInfos.sortBy(_._2.time)
 
+  sortedOperands.groupBy(_._1).foreach{ case (port, tuples) => println(s"port $port -> ${tuples.map(_._2.weight).mkString(" ")}")}
 
   val carrySaves = merge(sortedOperands.map(_._1), sortedOperands.map(_._2))
   val ret = carrySaves(0) +^ carrySaves(1)
@@ -193,11 +196,11 @@ case class Karatsuba(width: Int, constant:Option[BigInt] = None) extends Dag {
    * full retiming
    * -------- */
   autoPipeline()
-  println(s"products: ${products.map(product => retimingInfo(product.vertex))}")
+  logger.info(s"latency in total: $latency")
   graphDone()
 
   override def implNaiveH = Some(new ChainsawModule(this) {
-    if(constant.nonEmpty) uintDataOut.head := (uintDataIn.head * constant.get).d(latency)
+    if (constant.nonEmpty) uintDataOut.head := (uintDataIn.head * constant.get).d(latency)
     else uintDataOut.head := uintDataIn.reduce(_ * _).d(latency)
   })
 }

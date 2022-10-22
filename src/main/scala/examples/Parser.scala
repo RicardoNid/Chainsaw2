@@ -1,8 +1,9 @@
 package org.datenlord
 package examples
 
-import scala.util.parsing.combinator._
+// example of implementing a simple parser using scala.util.parsing
 
+import scala.util.parsing.combinator._
 class SOPParsers extends RegexParsers {
   def expression: Parser[Any] = sum
   def sum: Parser[Any] = product ~ opt("+" ~ sum)
