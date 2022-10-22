@@ -1,8 +1,8 @@
-package org.datenlord
-package algos
+package ip.pippenger
+
+import org.datenlord.logger
 
 import scala.collection.mutable
-import scala.util.Random
 
 object PippengerNew {
 

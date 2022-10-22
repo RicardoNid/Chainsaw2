@@ -1,12 +1,8 @@
-package org.datenlord
-package algos
+package crypto
 
 import cc.redberry.rings
-
-import rings.poly.PolynomialMethods._
-import rings.scaladsl._
-import syntax._
-import rings.primes._
+import cc.redberry.rings.scaladsl._
+import cc.redberry.rings.scaladsl.syntax._
 
 object Ntt {
   case class Term(coeff: Long, order: Long) // 系数-指数对,比起字符串,更加接近于仿真得到的输出(实际上,仿真得到的输出应该包含256个<3329的自然数)

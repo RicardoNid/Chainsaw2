@@ -1,10 +1,9 @@
 package org.datenlord
-package algos
+package crypto
 
 import spinal.core._
 
 import scala.language.postfixOps
-import scala.util.Random
 
 object ModularMult { // all kinds of algorithm for modular multiplication
 

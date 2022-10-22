@@ -1,6 +1,7 @@
 package org.datenlord
 package flowConverters
 
+import arithmetic.Matrices
 import breeze.linalg._
 
 object SpatialPermutation { // permutation implemented by hardwired
@@ -18,7 +19,7 @@ object SpatialPermutation { // permutation implemented by hardwired
 
   def main(args: Array[String]): Unit = { // example
     val perm = Seq(2, 1, 0)
-    val matrix = algos.Matrices.permutation[Int](perm)
+    val matrix = Matrices.permutation[Int](perm)
     println(SpatialPermutation(Seq(0,1,2), matrix).mkString(" "))
   }
 }

@@ -1,7 +1,8 @@
 package org.datenlord
-package arithmetic
+package ip.pippenger
 
-import dfg._
+import org.datenlord.dfg.{RingDag, RingPort}
+import org.datenlord.{FullMultiplier, LsbMultiplier, MsbMultiplier, MultiplierType}
 
 object Karatsuba377 {
 

@@ -1,9 +1,8 @@
 package org.datenlord
-package algos
+package ip.pippenger
 
-import scala.collection.mutable
+
 import scala.collection.mutable.ArrayBuffer
-import scala.util.Random
 
 /**
  * @param N       number of all scalars
@@ -14,7 +13,7 @@ import scala.util.Random
  * @param zero    zero generator
  * @param latency latency of EC adder
  */
-case class Pippenger[T](N: Int, W: Int, w: Int, add: (T, T) => T, dbl: T => T, zero: T, latency: Int = 300) {
+case class PippengerOld[T](N: Int, W: Int, w: Int, add: (T, T) => T, dbl: T => T, zero: T, latency: Int = 300) {
 
   var addCount = 0
   var dblCount = 0
@@ -88,7 +87,7 @@ case class Pippenger[T](N: Int, W: Int, w: Int, add: (T, T) => T, dbl: T => T, z
 
 }
 
-object Pippenger {
+object PippengerOld {
   def estimateWorkload(N: Int, W: Int, w: Int) = {
     val scale = BigDecimal(1) / w
     val frac1 = (BigDecimal(2).pow(w) - 1) / BigDecimal(2).pow(w) * scale

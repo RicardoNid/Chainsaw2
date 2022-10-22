@@ -1,5 +1,6 @@
-package org.datenlord
-package algos
+package arithmetic
+
+import org.datenlord.gcd
 
 // TODO: cost & count for different Karatsuba Mode
 case class Decomposition(split: Int, row: Int, col: Int) {

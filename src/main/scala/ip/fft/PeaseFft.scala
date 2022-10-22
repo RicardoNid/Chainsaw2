@@ -2,12 +2,13 @@ package org.datenlord
 package ip.fft
 
 import arithmetic.{Diagonal, DiagonalConfig}
-import algos.Matrices.{digitReversalPermutation, stridePermutation}
+import arithmetic.Matrices.digitReversalPermutation
 import flowConverters._
-
 import breeze.linalg.DenseVector
 import breeze.math.Complex
 import breeze.numerics.ceil
+import dsp.Dft._
+import dsp.Dft
 import org.datenlord.device.ComplexMult
 import spinal.core._
 import spinal.lib._
@@ -71,7 +72,7 @@ case class PeaseFftConfig(N: Int, radix: Int,
 
   override def impl(dataIn: Seq[Any]) = {
     val data = dataIn.asInstanceOf[Seq[Complex]]
-    val dftMatrix = algos.Dft.dftMatrix(N, inverse)
+    val dftMatrix = Dft.dftMatrix(N, inverse)
     val input = new DenseVector(SpatialPermutation(data.toArray, bitReverse).toArray)
     val ret = if (!inverse) dftMatrix * input else dftMatrix * input / Complex(N, 0)
     val normalizeWidth = if (!inverse) (n + 1) / 2 else n / 2 // around sqrt(N), take upper for dft and lower for idft
@@ -92,7 +93,6 @@ case class PeaseFftConfig(N: Int, radix: Int,
 
 case class PeaseFft(config: PeaseFftConfig) extends TransformModule[ComplexFix, ComplexFix] {
 
-  import algos.Dft.diagC
   import config._
 
   val dataType = HardType(ComplexFix(0 exp, -(dataWidth - 1) exp))

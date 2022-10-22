@@ -1,4 +1,5 @@
 package org.datenlord
+
 import spinal.core._
 import spinal.lib._
 
@@ -59,20 +60,25 @@ class ChainsawModule(val gen: ChainsawGenerator) extends Module {
   /** --------
    * inner control logic
    * -------- */
-  val started = if (needNoControl) null else RegInit(False)
-  if (!needNoControl) started.setWhen(lastIn)
+  // as a lazy val, the counter won't be created you never use it,
+  // besides, it won't be created multiple times even if you repeatedly use it
+  lazy val localCounter = {
+    val ret = CounterFreeRun(gen.inputFormat.period)
+    when(lastIn)(ret.clear())
+    ret
+  }
 
-  val localCounter =
-    if (needNoControl) null else {
-      val ret = CounterFreeRun(gen.inputFormat.period)
-      when(lastIn)(ret.clear())
-      ret
-    }
+  lazy val started = {
+    val ret = RegInit(False)
+    ret.setWhen(lastIn)
+    ret
+  }
 
-  val validFrame = if (needNoControl) null else RegInit(False)
-  if (!needNoControl) {
-    when(lastIn)(validFrame.set())
-    when(localCounter.willOverflow && ~lastIn)(validFrame.clear())
+  lazy val validFrame = {
+    val ret = RegInit(False)
+    when(lastIn)(ret.set())
+    when(localCounter.willOverflow && ~lastIn)(ret.clear())
+    ret
   }
 
   /** --------
@@ -90,18 +96,21 @@ class ChainsawModule(val gen: ChainsawGenerator) extends Module {
     mark
   }
 
-  def atTime(time: Int) = lastIn.validAfter(time + 1)
+  def atTime(time: Int) = localCounter.value === U(time)
 
   def beforeTime(time: Int) = betweenTime(0, time)
+
+  def afterTime(time: Int) = betweenTime(time + 1, period)
 
   def delayedValid(delay: Int) = validIn.validAfter(delay)
 
   def delayedLast(delay: Int) = lastIn.validAfter(delay)
 
   /** generate a periodic trigger synced with lastIn
+   *
    * @example this can be used to trigger inner modules running under a smaller period
    */
-  def periodicTrigger(period:Int): Bool = {
+  def periodicTrigger(period: Int): Bool = {
     val innerCounter = CounterFreeRun(period)
     when(lastIn)(innerCounter.clear())
     (innerCounter.willOverflow && started) || lastIn

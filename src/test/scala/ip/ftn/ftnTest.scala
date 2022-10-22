@@ -66,14 +66,14 @@ class ftnTest extends AnyFlatSpec {
 
   behavior of "impls"
 
-  it should "impl for convFtn" in ChainsawImpl(ConvFtn, name = "implConvFtn")
-
-  it should "impl for intrlvFtn" in ChainsawImpl(IntrlvFtn, name = "implIntrlvFtn")
-
-  it should "impl for qammodFtn" in ChainsawImpl(QammodFtn, name = "implQammodFtn")
-
-  it should "impl for ifftFtn" in ChainsawImpl(IfftFtn, name = "implQammodFtn")
-
-  it should "impl for tx"  in ChainsawImpl(tx, name = "implTx")
+//  it should "impl for convFtn" in ChainsawImpl(ConvFtn, name = "implConvFtn")
+//
+//  it should "impl for intrlvFtn" in ChainsawImpl(IntrlvFtn, name = "implIntrlvFtn")
+//
+//  it should "impl for qammodFtn" in ChainsawImpl(QammodFtn, name = "implQammodFtn")
+//
+//  it should "impl for ifftFtn" in ChainsawImpl(IfftFtn, name = "implQammodFtn")
+//
+//  it should "impl for tx"  in ChainsawImpl(tx, name = "implTx")
 
 }

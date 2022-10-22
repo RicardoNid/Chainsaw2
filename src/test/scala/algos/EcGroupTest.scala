@@ -3,13 +3,15 @@ package algos
 
 import cc.redberry.rings
 import cc.redberry.rings.scaladsl._
+import crypto.{EcGroup, EcPointAffine}
+import ip.pippenger.ZPrizeMSM
 import org.scalatest.flatspec.AnyFlatSpec
 
 import scala.io.Source
 
 class EcGroupTest extends AnyFlatSpec {
 
-  val p = algos.ZPrizeMSM.baseModulus
+  val p = ZPrizeMSM.baseModulus
   val a = 0
   val b = 1
 
@@ -27,7 +29,7 @@ class EcGroupTest extends AnyFlatSpec {
     EcPointAffine(x, y)
   }.take(10)
 
-  val scalar = algos.ZPrizeMSM.scalarModulus
+  val scalar = ZPrizeMSM.scalarModulus
 
   //  val points = Seq(EcPointAffine(x, y))
   val size = points.size

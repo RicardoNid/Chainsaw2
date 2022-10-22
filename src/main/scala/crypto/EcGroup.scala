@@ -1,5 +1,5 @@
 package org.datenlord
-package algos
+package crypto
 
 import cc.redberry.rings.scaladsl._
 import cc.redberry.rings.scaladsl.syntax._

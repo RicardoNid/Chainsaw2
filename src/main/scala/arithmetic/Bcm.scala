@@ -23,7 +23,7 @@ case class BcmConfig(constant: BigInt, widthIn: Int, mode: OperatorType, widthTa
   override val widthsOut = Seq(widthOut)
 
   val constantDigits: String = { // get digits of the constant, low to high
-    val temp = if (useCsd) Csd.fromBigInt(constant).csd else constant.toString(2) // get binary/CSD coded digits
+    val temp = if (useCsd) Csd(constant).csd else constant.toString(2) // get binary/CSD coded digits
     if (temp.startsWith("0")) temp.tail else temp // remove the leading 0 of CSD
   }
 

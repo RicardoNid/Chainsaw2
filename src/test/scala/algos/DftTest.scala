@@ -3,6 +3,7 @@ package algos
 
 import breeze.linalg._
 import breeze.math._
+import dsp.Dft
 import org.scalatest.flatspec.AnyFlatSpec
 
 import scala.util.Random

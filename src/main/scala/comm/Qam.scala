@@ -1,5 +1,4 @@
-package org.datenlord
-package algos.comm
+package comm
 
 import breeze.linalg._
 import breeze.math._

@@ -1,5 +1,4 @@
-package org.datenlord
-package algos.comm
+package comm
 
 object Gray {
 

@@ -1,7 +1,7 @@
 package org.datenlord
 package arithmetic
 
-import algos.ZPrizeMSM.{MPrime, baseModulus}
+import ip.pippenger.ZPrizeMSM.{MPrime, baseModulus}
 
 import org.scalatest.flatspec.AnyFlatSpec
 

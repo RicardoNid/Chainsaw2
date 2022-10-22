@@ -1,7 +1,8 @@
 package org.datenlord
-package arithmetic
+package ip.pippenger
 
-import dfg._
+import org.datenlord.dfg.RingDag
+import org.datenlord.logger
 
 object Karatsuba96 {
 

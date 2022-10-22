@@ -43,7 +43,12 @@ trait ChainsawGenerator {
   def implH: ChainsawModule // core module, that is, the datapath
 
   def implNaiveH: Option[ChainsawModule] = None // naive RTL implementation for simulation & top-down design
-
+  def implPass: ChainsawModule = new ChainsawModule(this) {
+    // TODO: general method that make output variables(rather than constants)
+    dataIn.foreach(_.addAttribute("dont_touch", "yes"))
+    dataOut.foreach(_.assignDontCare())
+    dataOut.foreach(_.addAttribute("dont_touch", "yes"))
+  }
   def setAsNaive(): Unit = naiveSet += this.getClass.getSimpleName
 
   def useNaive: Boolean = naiveSet.contains(this.getClass.getSimpleName)
@@ -56,13 +61,6 @@ trait ChainsawGenerator {
   }
 
   def implDut = new ChainsawModuleWrapper(this) // testable module, datapath + protocol
-
-  def implPass: ChainsawModule = new ChainsawModule(this) {
-    // TODO: general method that make output variables(rather than constants)
-    dataIn.foreach(_.addAttribute("dont_touch", "yes"))
-    dataOut.foreach(_.assignDontCare())
-    dataOut.foreach(_.addAttribute("dont_touch", "yes"))
-  }
 
   /** --------
    * utils

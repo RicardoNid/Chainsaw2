@@ -1,10 +1,10 @@
 package org.datenlord
 package device
 
-import algos.ZPrizeMSM.{MPrime, NPrime, baseModulus}
-import arithmetic.MultiConstantMultiplicationConfig
-import arithmetic.McmType._
-
+import org.datenlord.arithmetic.McmType._
+import org.datenlord.arithmetic.MultiConstantMultiplicationConfig
+import org.datenlord.ip.pippenger.ZPrizeMSM
+import org.datenlord.ip.pippenger.ZPrizeMSM.{MPrime, baseModulus}
 import org.scalatest.flatspec.AnyFlatSpec
 
 import scala.util.Random
@@ -42,6 +42,6 @@ class MultiConstantMultiplicationTest extends AnyFlatSpec {
     VivadoSynth(config.implH)
   }
 
-  it should "show" in println((algos.ZPrizeMSM.baseModulus - 1).toString(2).reverse.takeWhile(_ == '0').size)
+  it should "show" in println((ZPrizeMSM.baseModulus - 1).toString(2).reverse.takeWhile(_ == '0').size)
 
 }

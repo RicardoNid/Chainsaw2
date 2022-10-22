@@ -1,7 +1,8 @@
 package org.datenlord
-package algos
+package ip.pippenger
 
 import cc.redberry.rings.scaladsl._
+import crypto.{EcGroup, EcPointAffine, EcZeroAffine}
 
 import scala.io.Source
 
@@ -48,7 +49,7 @@ object ZPrizeMSM {
   def msm(k: Seq[IntZ], p: Seq[EcPointAffine]) = {
     val add = (a: EcPointAffine, b: EcPointAffine) => a + b
     val dbl = (a: EcPointAffine) => a + a
-    Pippenger(N, W, w, add, dbl, EcZeroAffine).doPippenger(k.map(_.toBigInt), p)
+    PippengerOld(N, W, w, add, dbl, EcZeroAffine).doPippenger(k.map(_.toBigInt), p)
   }
 
   def main(args: Array[String]): Unit = {

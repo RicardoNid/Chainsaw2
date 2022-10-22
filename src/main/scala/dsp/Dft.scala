@@ -1,10 +1,12 @@
 package org.datenlord
-package algos
+package dsp
 
+import arithmetic.Matrices
 import breeze.linalg._
 import breeze.math._
 import breeze.numerics._
 import breeze.numerics.constants._
+import org.datenlord.{logR, powR}
 
 import scala.reflect.ClassTag
 

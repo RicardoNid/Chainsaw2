@@ -1,6 +1,7 @@
 package org.datenlord
 package arithmetic
 
+import ip.pippenger.{Barrett377, ZPrizeMSM}
 import org.scalatest.flatspec.AnyFlatSpec
 
 import scala.util.Random
@@ -8,7 +9,7 @@ import scala.util.Random
 class Barrett377Test extends AnyFlatSpec {
 
   val k = 377
-  val M = algos.ZPrizeMSM.baseModulus
+  val M = ZPrizeMSM.baseModulus
   val testCaseCount = 1000
   val data = (0 until testCaseCount * 2).map(_ => Random.nextBigInt(k))
 

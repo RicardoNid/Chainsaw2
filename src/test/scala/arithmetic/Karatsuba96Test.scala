@@ -1,8 +1,8 @@
 package org.datenlord
 package arithmetic
 
+import ip.pippenger.Karatsuba96
 import xilinx.VivadoUtilRequirement
-
 import org.scalatest.flatspec.AnyFlatSpec
 import spinal.core._
 

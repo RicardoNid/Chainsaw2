@@ -1,21 +1,12 @@
 package org.datenlord
-package zprize
 
 import org.datenlord.xilinx.VivadoUtilRequirement
+import org.datenlord.zprize._
+import org.datenlord.{BinaryAdder, ChainsawGenerator, ChainsawModule, ChainsawTest, RtlGen, UIntInfo, VivadoImpl, VivadoSynth, verbose}
 import spinal.core._
-import spinal.core.sim._
-import spinal.lib._
-import spinal.lib.fsm._
 
 import scala.language.postfixOps
-import scala.util.Random
-import org.jgrapht._
-import org.jgrapht.graph._
-import org.jgrapht.graph.builder._
-import org.jgrapht.traverse._
-import org.jgrapht.generate._
-
-import scala.collection.JavaConversions._ // as JGraphT is based on Java
+import scala.util.Random // as JGraphT is based on Java
 
 // a simple ChainsawGenerator
 case class ChainsawAddGen(width: Int) extends ChainsawGenerator {
@@ -32,6 +23,9 @@ case class ChainsawAddGen(width: Int) extends ChainsawGenerator {
   override def implH: ChainsawModule = new ChainsawModule(this) {
     dataOut.head := dataIn.map(_.asUInt).reduce(_ +^ _).d(1).asBits
   }
+
+  utilEstimation = VivadoUtilRequirement(lut = width + 2, carry8 = width.divideAndCeil(8))
+  fmaxEstimation = 600 MHz
 
 }
 
@@ -108,39 +102,44 @@ case class CpaGraph() extends Dag {
   graphDone() // this must be invoked explicitly
 }
 
-object UseGenerator extends App {
+object UseGenerator {
+  def apply() = {
+    verbose = 1
 
-  verbose = 1
+    val add10 = ChainsawAddGen(10) // declare a generator
+    RtlGen(add10.implH, "adder_10") // generate verilog file
 
-  val generator = ChainsawAddGen(10)
-  RtlGen(generator.implH)
-  ChainsawTest.test(generator, Seq.fill(10)(BigInt(10, Random)))
+    // behavioral test
+    ChainsawTest.test(add10, Seq.fill(10)(BigInt(10, Random)))
 
-  VivadoSynth(generator.implH).require(
-    VivadoUtilRequirement(lut = 11, carry8 = 2), 400 MHz)
-  VivadoImpl(generator.implH).require(
-    VivadoUtilRequirement(lut = 11, carry8 = 2), 400 MHz)
+    // performance tests
+    ChainsawSynth(add10, name = "synthAdd10", withRequirement = true) // by synth
+    ChainsawImpl(add10, name = "synthAdd10", withRequirement = true) // by synt + P&R
+  }
+
 }
 
-object UseDag extends App {
-  val adderGraph = AdderGraph(10)
+object UseDag {
+  def apply() = {
+    val adderGraph = AdderGraph(10)
 
-  //  RtlGen(adderGraph.implH)
-  //  ChainsawTest.test(adderGraph, Seq.fill(40)(BigInt(10, Random)))
-  //
-  //  VivadoSynth(adderGraph.implH).require(
-  //    VivadoUtilRequirement(lut = 50, carry8 = 8), 400 MHz)
-  //  VivadoImpl(adderGraph.implH).require(
-  //    VivadoUtilRequirement(lut = 50, carry8 = 8), 400 MHz)
+    RtlGen(adderGraph.implH)
+    ChainsawTest.test(adderGraph, Seq.fill(40)(BigInt(10, Random)))
 
-  adderGraph.toPng()
+    adderGraph.toPng()
 
-  val nestedGraph = NestedAdderGraph
+    val nestedGraph = NestedAdderGraph
 
-  ChainsawTest.test(nestedGraph, Seq.fill(64)(BigInt(10, Random)))
-  nestedGraph.toPng("nested")
+    ChainsawTest.test(nestedGraph, Seq.fill(64)(BigInt(10, Random)))
+    nestedGraph.toPng("nested")
 
-  nestedGraph.flatten()
-  ChainsawTest.test(nestedGraph, Seq.fill(64)(BigInt(10, Random)))
-  nestedGraph.toPng("flattened")
+    nestedGraph.flatten()
+    ChainsawTest.test(nestedGraph, Seq.fill(64)(BigInt(10, Random)))
+    nestedGraph.toPng("flattened")
+  }
+}
+
+object SelfTest extends App {
+  UseGenerator()
+  UseDag()
 }

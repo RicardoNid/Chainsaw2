@@ -1,20 +1,20 @@
 package org.datenlord
-package arithmetic
-
-import algos.{EcGroup, EcPointProj}
-import dfg.{RingDag, RingPort}
+package ip.pippenger
 
 import cc.redberry.rings.scaladsl._
-import cc.redberry.rings
+import org.datenlord.arithmetic.CpaConfig
+import org.datenlord.crypto.{EcGroup, EcPointProj, FineReduction}
+import org.datenlord.dfg.{RingDag, RingPort}
+import org.datenlord.{BinaryAdder, BinarySubtractor, logger}
 
 object PAdd {
 
   def apply(): RingDag = {
 
     val k = 377
-    val M = algos.ZPrizeMSM.baseModulus
+    val M = ZPrizeMSM.baseModulus
 
-    implicit val ec: EcGroup = algos.ZPrizeMSM.ec
+    implicit val ec: EcGroup = ZPrizeMSM.ec
     val golden = (dataIn: Seq[BigInt]) => {
       val Seq(x0, y0, z0, x1, y1, z1) = dataIn
       val p0 = EcPointProj(x0, y0, z0)

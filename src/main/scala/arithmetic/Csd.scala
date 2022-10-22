@@ -2,13 +2,11 @@ package org.datenlord
 package arithmetic
 
 import scala.annotation.tailrec
-import scala.math.pow
-import scala.util.Random
-import algos.ZPrizeMSM._
 
-/** canonic signed digit and corresponding methods
+/** canonical signed digit and corresponding methods
  *
  * @param csd CSD number represented by a string, 9 stands for -1
+ * @see ''Digital Signal Processing with Field Programmable Gate Arrays'' Chapter 2.2.2
  */
 case class Csd(csd: String) {
   def evaluate: BigInt = csd.reverse.zipWithIndex
@@ -20,7 +18,7 @@ case class Csd(csd: String) {
       }
     }.sum
 
-  def weight = csd.count(_ != '0') // number of nonzero digits
+  def weight: Int = csd.count(_ != '0') // number of nonzero digits
 
   def takeLow(value: Int) = Csd(csd.takeRight(value))
 
@@ -30,13 +28,11 @@ case class Csd(csd: String) {
 }
 
 object Csd {
-
   def getWeight(bigInt: BigInt) = bigInt.toString(2).count(_ != '0')
 
   // TODO: use optimal csd coding
-  def fromBigInt(bigInt: BigInt) = {
+  def apply(bigInt: BigInt): Csd = {
     val raw = bigInt.toString(2).reverse + "0" // LSB -> MSB with 0 padded
-
     val pattern = "11+0".r
 
     @tailrec
@@ -51,13 +47,4 @@ object Csd {
     assert(ret.evaluate == bigInt)
     ret
   }
-
-  def main(args: Array[String]): Unit = {
-
-    println(Csd.fromBigInt(baseModulus))
-    println(Csd.getWeight(baseModulus))
-    println(Csd.fromBigInt(baseModulus).weight)
-
-  }
-
 }

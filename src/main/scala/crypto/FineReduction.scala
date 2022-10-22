@@ -1,18 +1,18 @@
 package org.datenlord
-package arithmetic
+package crypto
 
-import org.datenlord.TransformDfg
+import org.datenlord.arithmetic.CpaConfig
+import org.datenlord.{BinarySubtractor, Custom, TransformDfg, TransformModule, logger, skipComponentSim}
 import spinal.core._
-import spinal.core.sim._
 import spinal.lib._
-import spinal.lib.fsm._
 
 import scala.language.postfixOps
 
 /** do modular reduction for an input very close to [0, M) (diff < 20M)
  *
  * @param M          the modulus
- * @param upperBound the input falls in [0, upperBound * M)
+ * @param upperBound upperbound of the input \in [0, upperBound * M)
+ * @see ''Langhammer, Martin and Bogdan Mihai Pasca. “Efficient FPGA Modular Multiplication Implementation.” The 2021 ACM/SIGDA International Symposium on Field-Programmable Gate Arrays (2021): n. pag.''
  */
 case class FineReduction(M: BigInt, upperBound: Int) extends TransformDfg {
 

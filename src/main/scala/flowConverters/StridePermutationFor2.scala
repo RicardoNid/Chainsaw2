@@ -1,10 +1,9 @@
 package org.datenlord
 package flowConverters
 
-import algos.Matrices
+import arithmetic.Matrices
 import flowConverters.StridePermutationFor2.matrixJ
 import flowConverters.Utils.DSD
-
 import breeze.linalg._
 import spinal.core._
 import spinal.lib.{Counter, _}

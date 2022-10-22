@@ -1,8 +1,9 @@
 package org.datenlord
-package algos
+package arithmetic
 
 import breeze.linalg._
 import breeze.math.Semiring
+import org.datenlord.{logR, powR}
 
 import scala.reflect.ClassTag
 

@@ -1,7 +1,10 @@
 package org.datenlord
 package algos
 
+import crypto.ModularMult
+import ip.pippenger.ZPrizeMSM
 import org.scalatest.flatspec.AnyFlatSpec
+
 import scala.util.Random
 
 class ModularMultTest extends AnyFlatSpec {

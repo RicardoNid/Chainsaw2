@@ -1,6 +1,8 @@
 package org.datenlord
 package arithmetic
 
+import crypto.BarrettConfig
+import ip.pippenger.ZPrizeMSM
 import org.scalatest.flatspec.AnyFlatSpec
 
 import scala.util.Random
@@ -8,8 +10,8 @@ import scala.util.Random
 class BarrettTest extends AnyFlatSpec {
 
   val width = 377
-  val M = algos.ZPrizeMSM.baseModulus
-  val MPrime = algos.ZPrizeMSM.MPrime
+  val M = ZPrizeMSM.baseModulus
+  val MPrime = ZPrizeMSM.MPrime
 
   val config = BarrettConfig(width, M, MPrime)
 

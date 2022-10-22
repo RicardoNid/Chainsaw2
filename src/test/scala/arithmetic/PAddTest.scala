@@ -1,6 +1,7 @@
 package org.datenlord
 package arithmetic
 
+import ip.pippenger.{Karatsuba377, PAdd}
 import org.scalatest.flatspec.AnyFlatSpec
 
 class PAddTest extends AnyFlatSpec {

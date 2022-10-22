@@ -1,11 +1,11 @@
 package org.datenlord
-package algos
+package ip.pippenger
 
 import org.scalatest.flatspec.AnyFlatSpec
 
 import scala.util.Random
 
-class PippengerTest extends AnyFlatSpec {
+class PippengerOldTest extends AnyFlatSpec {
 
   "Pippenger" should "make a good estimation on cost" in {
 
@@ -18,8 +18,8 @@ class PippengerTest extends AnyFlatSpec {
       val w = b + 12
       val scalars = (0 until N).map(_ => Random.nextBigInt(253))
       val points = (0 until N).map(_ => Random.nextBigInt(8))
-      val cost = Pippenger(N, W, w, add, dbl, BigInt(0)).doPippenger(scalars, points)
-      val costEstimated = Pippenger.estimateWorkload(N, W, w)
+      val cost = PippengerOld(N, W, w, add, dbl, BigInt(0)).doPippenger(scalars, points)
+      val costEstimated = PippengerOld.estimateWorkload(N, W, w)
       val err1 = (costEstimated._1 - cost._1).abs.toDouble / cost._1
       val err2 = (costEstimated._2 - cost._2).abs.toDouble / cost._2
       val err3 = (costEstimated._3 - cost._3).abs.toDouble / cost._3
@@ -34,7 +34,7 @@ class PippengerTest extends AnyFlatSpec {
 
   it should "show estimation for different w" in {
     val candidates = Seq(4, 10, 12, 17, 18, 19)
-    candidates.map(Pippenger.estimateWorkload(1 << 26, 253, _))
+    candidates.map(PippengerOld.estimateWorkload(1 << 26, 253, _))
   }
 
   it should "work for ZPRIZE MSM" in {
