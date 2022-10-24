@@ -1,5 +1,5 @@
 package org.datenlord
-package ip.ftn
+package dsp
 
 import breeze.linalg._
 import breeze.math._

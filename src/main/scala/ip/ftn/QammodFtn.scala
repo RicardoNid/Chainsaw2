@@ -1,9 +1,8 @@
 package org.datenlord
 package ip.ftn
 
-import flowConverters.S2P
-import org.datenlord.zprize._
-import spinal.core._
+import org.datenlord.comm.QammodWithAlloc
+import org.datenlord.flowConverters.S2P
 
 object QammodFtn extends ChainsawGenerator {
 
@@ -28,7 +27,6 @@ object QammodFtn extends ChainsawGenerator {
 
     val core = coreGen.implH
     val s2p = s2pGen.implH
-    //    val p2s = p2sGen.implH
 
     s2p.dataIn := dataIn
     s2p.lastIn := lastIn

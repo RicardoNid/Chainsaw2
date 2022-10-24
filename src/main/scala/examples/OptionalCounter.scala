@@ -4,6 +4,7 @@ package examples
 import spinal.core._
 import spinal.lib._
 
+// this example showed that you can create an "optional" component by lazy val
 class OptionalCounter extends Component {
 
   val dataIn = in UInt (4 bits)

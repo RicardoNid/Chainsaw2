@@ -1,1 +1,1 @@
-Seq(0,1,2).tails.toSeq.mkString("\n")
+object A extends Object

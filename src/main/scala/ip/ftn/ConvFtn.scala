@@ -15,7 +15,7 @@ object ConvFtn extends ChainsawGenerator {
   override var inputFormat = rawFrameFormat
   override var outputFormat = codedFrameFormat
   override var inputTypes = Seq.fill(N1/2)(UIntInfo(1))
-  override var outputTypes = Seq.fill(N2)(UIntInfo(1))
+  override var outputTypes = Seq.fill(N1)(UIntInfo(1))
 
   override var latency = 1
 

@@ -2,12 +2,9 @@ package org.datenlord
 package flowConverters
 
 import org.scalatest.flatspec.AnyFlatSpec
+import spinal.core._
 
 import scala.util.Random
-import spinal.core._
-import spinal.core.sim._
-import spinal.lib._
-import spinal.lib.fsm._
 
 class PermutationByRamTest extends AnyFlatSpec {
 

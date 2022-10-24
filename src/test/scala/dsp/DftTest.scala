@@ -1,7 +1,8 @@
 package org.datenlord
-package zprize
+package dsp
 
-import ip.ftn.Dft
+import org.datenlord.dsp.Dft
+import org.datenlord.{ChainsawMetric, ChainsawTest, ComplexFixInfo, VivadoImpl}
 import org.scalatest.flatspec.AnyFlatSpec
 
 import scala.util.Random

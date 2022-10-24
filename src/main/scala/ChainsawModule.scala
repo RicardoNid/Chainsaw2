@@ -12,7 +12,7 @@ class ChainsawModule(val gen: ChainsawGenerator) extends Module {
 
   val dataIn = in Vec inputWidths.map(w => Bits(w bits))
   val dataOut = out Vec outputWidths.map(w => Bits(w bits))
-  setDefinitionName(gen.name)
+  //  setDefinitionName(gen.name)
 
   val validIn, lastIn = if (gen.needNoControl) null else in(Bool())
 
@@ -32,6 +32,13 @@ class ChainsawModule(val gen: ChainsawGenerator) extends Module {
     typed.assignFromBits(bits)
     typed
   })
+
+  lazy val sfixDataIn: Vec[SFix] = Vec(gen.inputTypes.zip(dataIn).map { case (info, bits) =>
+    val typed = info.asSFix()
+    typed.assignFromBits(bits)
+    typed
+  })
+
 
   lazy val uintDataIn: Vec[UInt] = Vec(gen.inputTypes.zip(dataIn).map { case (info, bits) =>
     val typed = info.asUInt()

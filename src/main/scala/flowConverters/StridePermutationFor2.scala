@@ -1,15 +1,35 @@
 package org.datenlord
 package flowConverters
 
-import arithmetic.Matrices
-import flowConverters.StridePermutationFor2.matrixJ
-import flowConverters.Utils.DSD
 import breeze.linalg._
+import org.datenlord.arithmetic.Matrices
+import org.datenlord.flowConverters.StridePermutationFor2.matrixJ
 import spinal.core._
 import spinal.lib.{Counter, _}
 
 import scala.collection.mutable.ArrayBuffer
 import scala.language.postfixOps
+
+object SpatialPermutation { // permutation implemented by hardwired
+
+  def apply[T](dataIn: Seq[T], perm: Seq[Int]): Seq[T] = {
+    require(dataIn.length == perm.length)
+    perm.map(i => dataIn(i))
+  }
+
+  def apply[T](dataIn: Seq[T], perm: DenseMatrix[Int]): Seq[T] = {
+    val N = perm.rows
+    val indices = (0 until N).map(i => perm(i, ::).t.toArray.indexWhere(_ == 1))
+    indices.map(i => dataIn(i))
+  }
+
+  def main(args: Array[String]): Unit = { // example
+    val perm = Seq(2, 1, 0)
+    val matrix = Matrices.permutation[Int](perm)
+    println(SpatialPermutation(Seq(0,1,2), matrix).mkString(" "))
+  }
+}
+
 
 /** Stride permutation for which frame, stride and stream width are all 2's exponent, based on Registers
  *
@@ -35,7 +55,6 @@ case class StridePermutationFor2Config(n: Int, q: Int, s: Int, bitWidth: Int)
     else if (q <= n - r && q >= r) 1
     else 2 // q < r
 
-
   override val size = (N, N)
 
   override def latency =
@@ -55,6 +74,30 @@ case class StridePermutationFor2Config(n: Int, q: Int, s: Int, bitWidth: Int)
 
 object StridePermutationFor2Config {
 
+}
+
+object Switch22 {
+  def apply(a: Bits, b: Bits, control: Bool) = {
+    val retA = Mux(control, b, a)
+    val retB = Mux(control, a, b)
+    (retA, retB)
+  }
+}
+
+object DSD {
+  def apply(K: Int, a: Bits, b: Bits, control: Bool) = {
+    val (sA, sB) = Switch22(a, b.d(K), control)
+    (sA.d(K), sB)
+  }
+}
+
+object SEU {
+  def apply(K: Int, data: Bits, control: Bool) = {
+    val afterM0, afterM1 = cloneOf(data)
+    afterM0 := Mux(control, afterM0.d(K), data)
+    afterM1 := Mux(control, data, afterM0.d(K))
+    afterM1
+  }
 }
 
 case class StridePermutationFor2(config: StridePermutationFor2Config) extends TransformModule[Bits, Bits] {
@@ -264,7 +307,7 @@ case class SPN(config: SPNConfig) extends TransformModule[Bits, Bits] {
       (0 until s).foreach { i =>
         val seuSize = (1 << i) * ((1 << s) - 1)
         val prevLatency = ((1 << i) - 1) * baseLatency
-        val next = Utils.SEU(seuSize, dataPath.last, controls(i).d(prevLatency))
+        val next = SEU(seuSize, dataPath.last, controls(i).d(prevLatency))
         dataPath += next
       }
 
@@ -282,7 +325,7 @@ case class SPN(config: SPNConfig) extends TransformModule[Bits, Bits] {
       val dataPath = ArrayBuffer[Bits](dataIn.fragment.head)
       exps.zip(latencies).zipWithIndex.foreach { case ((exp, latency), i) =>
         val seuSize = 1 << exp
-        val next = Utils.SEU(seuSize, dataPath.last, controls(i).d(latency))
+        val next = SEU(seuSize, dataPath.last, controls(i).d(latency))
         dataPath += next
       }
       dataOut.fragment := Vec(dataPath.last)

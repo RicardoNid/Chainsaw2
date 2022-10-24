@@ -35,7 +35,6 @@ package object ftn {
   val bitAlloc = Seq.fill(N1)(4)
   val powAlloc = Seq.fill(N1)(1.0)
 
-
   def readFtnGolden[T: ClassTag](name: String) = {
     matlabEngine.eval(s"value = load('./src/main/resources/ftnGolden/${N1}_$N1/$name', 'ans').ans.Data;")
     matlabEngine.eval(s"if size(value, 1) == 101\n\tvalue=value';\nend")
@@ -51,6 +50,12 @@ package object ftn {
   lazy val interleaved = readFtnGolden[Double]("interleaved").map(d => BigInt(d.toInt)).toSeq
   lazy val symbols = readFtnGolden[MComplex]("mapped").toSeq.map(_.toComplex)
   lazy val ifftOut = readFtnGolden[Double]("dataTx").toSeq.map(_ * 16) // as simulink ifft is not scaled
+
+  lazy val equalizationOut = readFtnGolden[MComplex]("afterEqualization").toSeq.map(_.toComplex)
+  lazy val qamdemodOut = readFtnGolden[Double]("afterQamdemod").toSeq.map(d => BigInt(d.toInt))
+  lazy val deinterleaveOut: Seq[BigInt] = readFtnGolden[Double]("afterDeInterleave").map(d => BigInt(d.toInt)).toSeq
+  lazy val viterbiOut: Seq[BigInt] = readFtnGolden[Double]("afterViterbi").map(d => BigInt(d.toInt)).toSeq
+
   logger.info(s"size = ${ifftOut.length / 101 / 16}")
 
   /** --------

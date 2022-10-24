@@ -1,4 +1,5 @@
 package org.datenlord
+
 import breeze.math.Complex
 import org.datenlord.{Comb, Infinite, Metric, StateMachine, logger, naiveSet}
 import spinal.core._
@@ -34,13 +35,16 @@ object ChainsawTest {
    * methods for debug/visualization
    * -------- */
   def showData[T](data: Seq[T], portSize: Int) = {
-    val elementsPerCycle = 4 // TODO: this should be adjustable
+    val elementsPerCycle = 4 max data.length / portSize // TODO: this should be adjustable
     val cycles = 4 // TODO: this should be adjustable
 
-    def showRow(data: Seq[T]) = data.take(elementsPerCycle).mkString(" ") + (if (data.length > elementsPerCycle) s" ${data.length - elementsPerCycle} more elements... " else "")
+    def showRow(data: Seq[T]) = data.take(elementsPerCycle).mkString(" ") +
+      (if (data.length > elementsPerCycle) s" ${data.length - elementsPerCycle} more elements... " else "")
 
     val matrix = data.grouped(portSize).toSeq
-    matrix.take(cycles).map(showRow).mkString("\n") + (if (matrix.length > 2 * cycles) s"\n${matrix.length - 2 * cycles} more cycles... \n" else "\n") + matrix.takeRight(cycles).map(showRow).mkString("\n")
+    matrix.take(cycles).map(showRow).mkString("\n") +
+      (if (matrix.length > 2 * cycles) s"\n${matrix.length - 2 * cycles} more cycles... \n" else "") +
+      (if (matrix.length > 2 * cycles) "\n" + matrix.takeRight(cycles).map(showRow).mkString("\n") else "")
   }
 
   def defaultMetric(yours: Seq[Any], golden: Seq[Any]): Boolean = yours.equals(golden)
@@ -220,7 +224,7 @@ object ChainsawTest {
 
     def testOnce(chain: Seq[ChainsawGenerator], metric: Metric) = {
       val name = s"${testName}_minus_${gens.length - chain.length}"
-      val report = test(chain.reduce(_ + _), data, metric = metric, silentTest = true, testName = name)
+      val report = test(chain.reduce(_ -> _), data, metric = metric, silentTest = true, testName = name)
       if (report.passed) logger.info(s"test $name passed")
       else logger.error(s"test $name failed")
       report

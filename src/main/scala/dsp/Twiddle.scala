@@ -1,9 +1,10 @@
 package org.datenlord
-package zprize
+package dsp
 
 import breeze.math._
+import org.datenlord.zprize.CommonAlgos.WNnk
+import org.datenlord.{ChainsawGenerator, ChainsawModule, ComplexFix, NumericTypeInfo, SFConstant}
 import spinal.core._
-import CommonAlgos.WNnk
 
 import scala.language.postfixOps
 

@@ -39,6 +39,7 @@
     <orderEntry type="library" name="sbt: com.github.vlsi.mxgraph:jgraphx:3.9.8.1:jar" level="project" />
     <orderEntry type="library" name="sbt: com.github.wendykierp:JTransforms:3.1:jar" level="project" />
     <orderEntry type="library" name="sbt: com.lihaoyi:sourcecode_2.11:0.2.7:jar" level="project" />
+    <orderEntry type="library" name="sbt: com.regblanc:scala-smtlib_2.11:0.2.2-12-g91e7214:jar" level="project" />
     <orderEntry type="library" name="sbt: com.thoughtworks.paranamer:paranamer:2.8:jar" level="project" />
     <orderEntry type="library" name="sbt: com.typesafe.scala-logging:scala-logging_2.11:3.9.2:jar" level="project" />
     <orderEntry type="library" name="sbt: commons-io:commons-io:2.4:jar" level="project" />
@@ -106,5 +107,6 @@
       </library>
     </orderEntry>
     <orderEntry type="library" name="glnxa64" level="project" />
+    <orderEntry type="library" name="x86-64_linux" level="project" />
   </component>
 </module>

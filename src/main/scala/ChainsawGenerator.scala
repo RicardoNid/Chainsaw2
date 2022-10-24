@@ -6,6 +6,7 @@ import spinal.core._
 
 import scala.language.postfixOps
 
+
 trait ChainsawGenerator {
 
   def name: String
@@ -42,6 +43,8 @@ trait ChainsawGenerator {
    * -------- */
   def implH: ChainsawModule // core module, that is, the datapath
 
+  def implDut = new ChainsawModuleWrapper(this) // testable module, datapath + protocol
+
   def implNaiveH: Option[ChainsawModule] = None // naive RTL implementation for simulation & top-down design
   def implPass: ChainsawModule = new ChainsawModule(this) {
     // TODO: general method that make output variables(rather than constants)
@@ -59,8 +62,6 @@ trait ChainsawGenerator {
     else if (useNaive) implNaiveH.getOrElse(implH)
     else implH
   }
-
-  def implDut = new ChainsawModuleWrapper(this) // testable module, datapath + protocol
 
   /** --------
    * utils
@@ -101,25 +102,17 @@ trait ChainsawGenerator {
 
   def outputNoControl: FrameFormat = FrameFormat(Seq(0 until sizeOut))
 
-  def actualInTimes = inputTimes.getOrElse(inputTypes.map(_ => 0))
+  def actualInTimes: Seq[Int] = inputTimes.getOrElse(inputTypes.map(_ => 0))
 
-  def actualOutTimes = outputTimes.getOrElse(outputTypes.map(_ => 0))
+  def actualOutTimes: Seq[Int] = outputTimes.getOrElse(outputTypes.map(_ => 0))
 
   def period = {
     require(inputFormat.period == outputFormat.period)
     inputFormat.period
   }
 
-  // common instantiation steps
-  // TODO: how to print concrete class name?
-
-  if (generatorList.contains(name) && !this.isInstanceOf[IoGenerator] && !this.isInstanceOf[Combinational]) {
-    //    logger.warn(s"an identical generator $name already instantiated, you'd better reuse the existing generator")
-    // throw new IllegalArgumentException(s"an identical generator $name already instantiated, you'd better reuse the existing generator")
-  } else if (!generatorList.contains(name)) generatorList(name) = 0
-
-  // generator algebra
-  def +(that: ChainsawGenerator) = {
+  // TODO: this should be implemented in Dag
+  def ->(that: ChainsawGenerator) = {
     val old = this
     new ChainsawGenerator {
       override def name = old.name + "_" + that.name

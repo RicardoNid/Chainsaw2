@@ -1,2 +1,9 @@
 /testReports/
 /src/main/scala/lc/
+/quartusWorkspace/
+/genWorkspace/
+/simWorkspace/
+/target/
+/synthWorkspace/
+/tmp/
+/.bsp/

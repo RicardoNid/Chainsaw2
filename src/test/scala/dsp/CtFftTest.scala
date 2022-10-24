@@ -1,17 +1,15 @@
 package org.datenlord
-package zprize
+package dsp
 
-import ip.ftn.{CtFft, CtFftCore}
+import org.datenlord.{ChainsawImpl, ChainsawMetric, ChainsawTest, ComplexFixInfo, logger}
 import org.scalatest.flatspec.AnyFlatSpec
 
 import scala.util.Random
 
 class CtFftTest extends AnyFlatSpec {
 
-
   val dataType = ComplexFixInfo(5, 12)
   val coeffWidth = 16
-
 
   // TODO: more testcases for different factors/scales
 

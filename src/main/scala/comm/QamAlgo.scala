@@ -1,3 +1,4 @@
+package org.datenlord
 package comm
 
 import breeze.linalg._
@@ -7,18 +8,20 @@ import spinal.core.{isPow2, log2Up}
 
 import scala.collection.mutable.ArrayBuffer
 
-object Qam {
+/** algorithms for QAM, by implementing them, corresponding generator can be generated without Matlab runtime environment
+ *
+ */
+object QamAlgo {
 
   /** get modulated symbols of QAM2<->QAM256, in gray code order by default
    */
-  def getSymbols(modulationOrder: Int) = {
+  def getSymbols(modulationOrder: Int): DenseVector[Complex] = {
     require(isPow2(modulationOrder))
     require(modulationOrder <= 256, "modulation order higher than 256 has not been supported yet")
-    //    require(modulationOrder != 32 && modulationOrder != 128, "modulation order 32 & 128 has not been supported yet")
 
     val bits = log2Up(modulationOrder)
 
-    def genSymbol(order: Int, bits: Int) = {
+    def genSymbol(order: Int, bits: Int): Seq[Double] = {
       require(order < (1 << bits))
       val lowBits = bits / 2 // when bits is odd, lowBits is smaller than highBits
       val highBits = bits - lowBits
@@ -42,24 +45,27 @@ object Qam {
 
   /** get rms of modulated symbols of QAM2<->QAM256, in gray code order by default
    */
-  def getRms(modulationOrder: Int) = {
+  def getRms(modulationOrder: Int): Double = {
     val realVector = getSymbols(modulationOrder).map(_.real)
     val imagVector = getSymbols(modulationOrder).map(_.imag)
     sqrt(sum(pow(DenseVector.vertcat(realVector, imagVector), 2)) / modulationOrder) // rms of complex
   }
 
-  // TODO: the relationship between gray & bin is 2-D in Qam
-  // more specifically, it adopted gray code on two axis independently, for example
+  def getSymbolsByRms(modulationOrder: Int) = {
+    val rms = getRms(modulationOrder)
+    getSymbols(modulationOrder).map(_ / rms)
+  }
+
 
   /** use gray code order by default as there's no extra effort implementing it
    */
-  def qammod(data: DenseVector[Int], modulationOrder: Int): DenseVector[Complex] = {
+  def qammod(data: Array[Int], modulationOrder: Int): Array[Complex] = {
     val averagePower = getRms(modulationOrder)
     val lut = getSymbols(modulationOrder)
     data.map(lut(_) / averagePower)
   }
 
-  def qamdemod(data: DenseVector[Complex], modulationOrder: Int): DenseVector[Int] = {
+  def qamdemod(data: Array[Complex], modulationOrder: Int): Array[Int] = {
     require(isPow2(modulationOrder))
     require(modulationOrder <= 256, "demodulation order higher than 256 has not been supported yet")
     require(modulationOrder != 32 && modulationOrder != 128, "demodulation order 32 & 128 has not been supported yet")
@@ -68,7 +74,7 @@ object Qam {
     val lowBits = bits / 2 // when bits is odd, lowBits is smaller than highBits
     val highBits = bits - lowBits
 
-    def getThresholds(bits: Int) = (0 +: (bits - 1 to 1 by -1).map(1 << _)).map(_ / getRms(modulationOrder))
+    def getThresholds(bits: Int): Seq[Double] = (0 +: (bits - 1 to 1 by -1).map(1 << _)).map(_ / getRms(modulationOrder))
 
     def folding(value: Double, bits: Int): Seq[Boolean] = {
       if (bits == 0) ArrayBuffer[Boolean]()

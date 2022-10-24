@@ -1,6 +1,7 @@
-package org.datenlord
-package zprize
+package crypto
 
+import org.datenlord.zprize.Karabase
+import org.datenlord.{ChainsawImpl, ChainsawTest}
 import org.scalatest.flatspec.AnyFlatSpec
 
 import scala.util.Random

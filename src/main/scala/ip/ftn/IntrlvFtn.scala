@@ -1,8 +1,9 @@
 package org.datenlord
 package ip.ftn
 
-import org.datenlord.zprize._
 import spinal.core._
+
+import scala.language.postfixOps
 
 object IntrlvFtn extends ChainsawGenerator {
   override def name = "intrlvFtn"

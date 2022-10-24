@@ -16,8 +16,7 @@ class DagVertex(val gen: ChainsawGenerator)(implicit ref: Dag) {
 
   override def equals(obj: Any): Boolean = this.hashCode() == obj.hashCode()
 
-  if (!gen.isInstanceOf[IoGenerator]) generatorList(gen.name) += 1
-  var vertexName = s"${gen.name}_${generatorList(gen.name)}"
+  var vertexName = s"${gen.name}_${ref.vertexSet().size()}"
 
   // generate DagPorts
   def in(portOrder: Int): DagPort = { // get one port

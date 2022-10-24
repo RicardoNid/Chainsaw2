@@ -1,10 +1,7 @@
-package org.datenlord
-package zprize
+package dsp
 
+import org.datenlord.VivadoImpl
 import spinal.core._
-import spinal.core.sim._
-import spinal.lib._
-import spinal.lib.fsm._
 
 import scala.language.postfixOps
 

@@ -1,10 +1,9 @@
 package org.datenlord
 package ip.ftn
 
-import flowConverters.{P2S, S2P}
-import org.datenlord.ChainsawImpl
-import org.datenlord.ip.ftn._
+import org.datenlord.flowConverters.{P2S, S2P}
 import org.scalatest.flatspec.AnyFlatSpec
+import dsp.CtFft
 
 import scala.util.Random
 
@@ -46,15 +45,20 @@ class ftnTest extends AnyFlatSpec {
     data = symbols,
     golden = ifftOut,
     metric = fftMetric(1e-2),
-    silentTest = true,
     testName = "testIfftFtn")
+
+  "viterbiFtn" should "work" in ChainsawTest.test(ViterbiFtn,
+    data = deinterleaveOut,
+    golden = viterbiOut,
+    testName = "testViterbiFtn"
+  )
 
   "ctfft" should "work" in ChainsawTest.test(CtFft(512, inverse = true, fftType, 16, factors, scales, 64),
     data = ifftData,
     metric = ChainsawMetric.fftByMean(1e-2)
   )
 
-  val tx = ConvFtn + IntrlvFtn + QammodFtn + IfftFtn
+  val tx = ConvFtn -> IntrlvFtn -> QammodFtn -> IfftFtn
 
   "tx" should "work" in ChainsawTest.test(tx,
     data = raw,

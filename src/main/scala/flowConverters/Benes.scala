@@ -1,6 +1,7 @@
 package org.datenlord
 package flowConverters
 
+import flowConverters.Permutation
 import org.jgrapht.alg.color.SmallestDegreeLastColoring
 import org.jgrapht.graph._
 import spinal.core._
@@ -33,20 +34,7 @@ case class BenesControl[TControl](value: Seq[Seq[TControl]]) {
 
 }
 
-case class Permutation(permuted: Seq[Int]) {
 
-  val size = permuted.size
-  require(permuted.sorted.equals(permuted.indices))
-
-  def permute[T](dataIn: Seq[T]): Seq[T] = permuted.map(dataIn.apply)
-
-  /** concatenation of permutations
-   */
-  def concat(that: Permutation) = {
-    require(this.size == that.size)
-    Permutation(that.permute(permuted))
-  }
-}
 
 /** model of Benes network
  * @see [[BenesNetworkTest]] for test

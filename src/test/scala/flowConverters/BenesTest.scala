@@ -1,7 +1,9 @@
 package org.datenlord
 package flowConverters
 
+import flowConverters.Permutation
 import org.scalatest.flatspec.AnyFlatSpec
+
 import scala.util.Random
 
 class BenesTest extends AnyFlatSpec {

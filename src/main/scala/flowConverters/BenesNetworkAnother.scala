@@ -1,6 +1,7 @@
 package org.datenlord
 package flowConverters
 
+import flowConverters.Permutation
 import spinal.core._
 
 import scala.language.postfixOps

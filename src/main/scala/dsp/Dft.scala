@@ -1,81 +1,103 @@
 package org.datenlord
 package dsp
 
-import arithmetic.Matrices
-import breeze.linalg._
-import breeze.math._
-import breeze.numerics._
-import breeze.numerics.constants._
-import org.datenlord.{logR, powR}
+import breeze.linalg.DenseVector
+import breeze.math.Complex
+import breeze.signal.{fourierTr, iFourierTr}
+import org.datenlord.{ChainsawGenerator, ChainsawModule, ComplexFix, NumericTypeInfo, SFConstant}
+import spinal.core._
 
-import scala.reflect.ClassTag
+import scala.language.postfixOps
 
-object Dft {
+case class Dft(N: Int, inverse: Boolean, dataType: NumericTypeInfo, coeffWidth: Int)
+  extends ChainsawGenerator {
 
-  /** generic DFT which can be implemented in multiple different domain
-   *
-   * @param omega N-th root of unity in the domain
-   * @see ''Fast Algorithms for Signal Processing'' Chap1.4
-   */
-  def genericDFTMatrix[T: ClassTag](N: Int, inverse: Boolean, omega: T)(implicit field: Field[T]) = {
-    val base = if (inverse) field.one / omega else omega
+  val prefix = if (inverse) "idft" else "dft"
 
-    def factor(exp: Int) = {
-      exp match {
-        case 0 => field.one
-        case 1 => base
-        case _ => Seq.fill(exp)(base).reduce(_ * _)
-      }
+  override def name = s"$prefix$N"
+
+  override val impl = (dataIn: Seq[Any]) => {
+    val data = dataIn.asInstanceOf[Seq[Complex]].toArray
+    if (inverse) iFourierTr.dvComplexIFFT(DenseVector(data)).toArray.toSeq.map(_ * N)
+    else fourierTr.dvComplex1DFFT(DenseVector(data)).toArray.toSeq
+  }
+
+  override var inputTypes = Seq.fill(N)(dataType)
+  override var outputTypes = Seq.fill(N)(dataType)
+
+  override var inputFormat = inputNoControl
+  override var outputFormat = outputNoControl
+  override var latency = N match {
+    case 2 => 1
+    case 4 => 2
+    case 8 => 5
+  }
+
+  override def implH: ChainsawModule = new ChainsawModule(this) {
+
+    val coeffType = HardType(SFix(1 exp, -(coeffWidth - 2) exp))
+
+    /** --------
+     * utils for datapath description
+     * -------- */
+    def butterfly(A: ComplexFix, B: ComplexFix) = Seq(A + B, A - B)
+
+    // get idft result
+    def getFftSym(data: Seq[ComplexFix]): Seq[ComplexFix] = {
+      val N = data.length
+      val mid = Seq(data(N / 2))
+      val seg0 = data.slice(1, N / 2)
+      val seg1 = data.slice(N / 2 + 1, N)
+      Seq(data.head) ++ seg1.reverse ++ mid ++ seg0.reverse
     }
 
-    DenseMatrix.tabulate(N, N)((i, j) => factor(i * j))
-  }
+    /** --------
+     * datapath description
+     * -------- */
+    val ret: Seq[ComplexFix] = N match {
+      case 2 => butterfly(complexDataIn.head, complexDataIn.last)
 
-  // for complex field
-  def omega(N: Int, inverse: Boolean) = if (inverse) exp((2 * Pi / N) * i) else Complex(1, 0) / exp((2 * Pi / N) * i)
+      case 4 =>
+        val Seq(a, b, c, d) = complexDataIn
+        val Seq(e, f, g, h) = Seq(a + c, b + d, a - c, b - d).map(_.d(1))
+        val ret = Seq(e + f, g - h.multiplyI, e - f, g + h.multiplyI)
+        if (!inverse) ret else getFftSym(ret)
 
-  def diagT(N: Int, n: Int, inverse: Boolean) =
-    Matrices.diagonal(Seq.tabulate(N / n, n) { (i, j) =>
-      Seq.fill(i * j)(omega(N, inverse)).product
-    }.flatten)
+      case 8 =>
 
-  def diagC(N: Int, l: Int, radix: Int, inverse: Boolean) = {
-    val pow: Int => Int = powR(radix, _)
-    val t = logR(N, radix)
-    val part0 = Matrices.stridePermutation[Complex](N, pow(t - l - 1))
-    val T = diagT(pow(t - l), pow(t - l - 1), inverse)
-    val part1 = Matrices.kronecker(T, pow(l))
-    val part2 = Matrices.stridePermutation[Complex](N, pow(l + 1))
-    part0 * part1 * part2
-  }
+        val s0 = { // stage 0, latency +1
+          val Seq(a, b, c, d, e, f, g, h) = complexDataIn
+          Seq(a + e, b + f, c + g, d + h, a - e, b - f, c - g, d - h).map(_.d(1))
+        }
 
-  def dftMatrix(N: Int, inverse: Boolean) = genericDFTMatrix(N, inverse, omega(N, false))
+        val s1 = { // stage 1, latency +2
+          val Seq(a, b, c, d, e, f, g, h) = s0
+          val sqrt2coeff = SFConstant(1 / scala.math.sqrt(2), coeffType)
+          Seq(
+            (a + c).d(2), (b + d).d(2),
+            (a - c).d(2), (b - d).d(2),
+            e.d(2),
+            ((f + h).d(1) * sqrt2coeff).d(1).truncate(dataType.asSFix),
+            g.d(2),
+            ((f - h).d(1) * sqrt2coeff).d(1).truncate(dataType.asSFix))
+        }
 
-  // TODO: implement inverse
-  def peaseFftMatrix(N: Int, radix: Int, inverse: Boolean) = {
-    val pow: Int => Int = powR(radix, _)
-    val t = logR(N, radix)
-    if (t == 1) dftMatrix(radix, inverse) else {
+        val s2 = { // stage 2, latency +1
+          val Seq(a, b, c, d, e, f, g, h) = s1
+          Seq(a + b, a - b,
+            c - d.multiplyI, c + d.multiplyI,
+            e - f.multiplyI, e + f.multiplyI,
+            h - g.multiplyI, h + g.multiplyI).map(_.d(1))
+        }
 
-      val L = Matrices.stridePermutation[Complex](N, radix)
-      val DFTs = Matrices.kronecker(dftMatrix(radix, inverse), pow(t - 1))
-      def C(l: Int) = diagC(N, l, radix, inverse)
-      def iterativeBox(l:Int) = L * DFTs * C(l)
+        val s3 = { // stage 3, latency +1
+          val Seq(a, b, c, d, e, f, g, h) = s2
+          Seq(a, e + g, c, e - g, b, f - h, d, f + h)
+        }
 
-      val R = Matrices.digitReversalPermutation[Complex](N, radix)
-      val parts = (0 until t).map(iterativeBox)
-      parts.reduce(_ * _) * R
+        if (!inverse) s3 else getFftSym(s3)
     }
+
+    complexDataOut.zip(ret.map(_.d(1))).foreach { case (port, fix) => port := fix }
   }
-
-
-  def main(args: Array[String]): Unit = {
-    val data = DenseVector((0 until 8).map(i => Complex(i, 0)).toArray)
-    val golden = dftMatrix(8, true) * data
-    val pease = peaseFftMatrix(8, 2, true) * data
-    println(golden)
-    println(pease)
-    assert((golden - pease).forall(_.abs < 0.001))
-  }
-
 }

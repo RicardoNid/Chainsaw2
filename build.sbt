@@ -42,5 +42,7 @@ libraryDependencies += "org.scalatest" %% "scalatest" % "3.2.9"
 
 libraryDependencies += "org.json4s" %% "json4s-jackson" % "4.0.3"
 
+libraryDependencies += "com.regblanc" %% "scala-smtlib" % "0.2.2-12-g91e7214"
+
 Compile / unmanagedJars += file("/home/ltr/matlab2020b/extern/engines/java/jar/engine.jar")
 Compile / unmanagedJars += file("/opt/ibm/ILOG/CPLEX_Studio1210/cplex/lib/cplex.jar")

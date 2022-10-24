@@ -4,11 +4,10 @@ package ip.ftn
 import breeze.linalg.DenseVector
 import breeze.math._
 import breeze.signal.iFourierTr
-import flowConverters.{P2S, S2P}
-import ip.ftn.CtFft
-import org.datenlord.zprize._
+import org.datenlord.flowConverters.{P2S, S2P}
 import org.datenlord.{CF, ComplexFix}
 import spinal.core._
+import dsp.CtFft
 
 import scala.language.postfixOps
 
@@ -54,7 +53,6 @@ object HsIfftPre extends ChainsawGenerator {
     dataOut := p2s.dataOut
   }
 }
-
 
 object HsIfftPost extends ChainsawGenerator {
   override def name = "hsIfftPost"
@@ -120,30 +118,27 @@ object IfftFtn extends ChainsawGenerator {
   override val impl = (dataIn: Seq[Any]) => {
     val all = dataIn.asInstanceOf[Seq[Complex]]
 
-    def doOnce(both: Seq[Complex]) = {
+    def doOnce(both: Seq[Complex]): Seq[Double] = {
       val (as, bs) = both.splitAt(N1)
 
-      def hs(data: Seq[Complex]) = (data :+ Complex(0, 0)) ++ data.tail.map(_.conjugate).reverse
-
-      def pad(data: Seq[Complex]) = {
+      def pad(data: Seq[Complex]): Seq[Complex] = {
         val zero = Complex(0, 0)
         Seq.fill(2)(zero) ++ data ++ Seq.fill(256 - N1 - 2)(zero)
+      }
+
+      def hs(data: Seq[Complex]): Seq[Complex] = (data :+ Complex(0, 0)) ++ data.tail.map(_.conjugate).reverse
+
+      def extractAndCp(whole: Seq[Double]): Seq[Double] = {
+        val extracted = whole.slice(0, N2 * 2)
+        extracted.takeRight(20) ++ extracted
       }
 
       val (padA, padB) = (pad(as), pad(bs))
       val (hsA, hsB) = (hs(padA), hs(padB))
       val merged = hsA.zip(hsB).map { case (a, b) => a + b * i }
-      //      val hs = merged
-      //      val hs = (merged :+ Complex(0, 0)) ++ merged.tail.map(_.conjugate).reverse
-
       val ret = iFourierTr.dvComplexIFFT(DenseVector(merged.toArray)).toArray.toSeq
         .map(_ * 512 / (1 << scales.sum))
       val (retA, retB) = (ret.map(_.real), ret.map(_.imag))
-
-      def extractAndCp(whole: Seq[Double]) = {
-        val extracted = whole.slice(0, N2 * 2)
-        extracted.takeRight(20) ++ extracted
-      }
 
       extractAndCp(retA) ++ extractAndCp(retB)
     }

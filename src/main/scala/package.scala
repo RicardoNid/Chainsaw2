@@ -124,6 +124,12 @@ package object datenlord {
 
   implicit class BigIntUtil(bi: BigInt) {
 
+    def withWidth(width:Int) = bi.toString(2).padToLeft(width, '0')
+
+    def ##(that:BigInt, width:Int) = {
+      BigInt(bi.withWidth(width) + that.withWidth(width), 2)
+    }
+
     def to2sComplement =
       if (bi > 0) s"0${bi.toString(2)}"
       // TODO: better implementation for 0 and -1
