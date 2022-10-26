@@ -16,6 +16,28 @@ object DftAlgo {
   /** generic DFT which can be implemented in multiple different domain
    *
    * @param omega N-th root of unity in the domain
+   * @param unity multiplication unity in the domain
+   * @param mult  multiplication operation
+   * @param add   addition operation
+   * @see ''Fast Algorithms for Signal Processing'' Chap1.4
+   */
+  def genericDft[T](data: DenseVector[T], omega: T, inverse: Boolean = false)
+                   (implicit semiring: Semiring[T], classTag: ClassTag[T]) = {
+    val N = data.length
+    val factors = semiring.one +: (1 to N).map(i => product(DenseVector.fill(i)(omega)))
+
+    DenseVector.tabulate(N) { k => // vector style, which use var
+      val indices = (0 until N).map(i => if (inverse) (i * k) % N else -(i * k) % N + N)
+      val coeffs = DenseVector.tabulate(N)(i => factors(indices(i)))
+      sum(data *:* coeffs)
+    }
+
+    // TODO: matrix style
+  }
+
+  /** generic DFT which can be implemented in multiple different domain
+   *
+   * @param omega N-th root of unity in the domain
    * @see ''Fast Algorithms for Signal Processing'' Chap1.4
    */
   def genericDFTMatrix[T: ClassTag](N: Int, inverse: Boolean, omega: T)(implicit field: Field[T]) = {
