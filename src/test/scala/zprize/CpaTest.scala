@@ -31,13 +31,15 @@ class CpaTest extends AnyFlatSpec {
     val ter1 = Cpa(TernarySubtractor1, Seq.fill(4)(10), M2M)
     val ter2 = Cpa(TernarySubtractor2, Seq.fill(4)(10), M2M)
 
-    val cpaMetric: Metric = (yours: Seq[Any], golden: Seq[Any]) => {
+    val cpaFrameMetric = (yours: Seq[Any], golden: Seq[Any]) => {
       val str = yours.asInstanceOf[Seq[BigInt]].zip(widths).map { case (int, i) =>
         int.toString(2).padToLeft(i, '0')
       }.reverse.reduce(_ + _)
       val ret = BigInt(str, 2)
       (golden.asInstanceOf[Seq[BigInt]].head < 0) || golden.head == ret
     }
+
+    val cpaMetric = ChainsawMetric(frameWise = cpaFrameMetric)
 
     // TODO: implementation of ternary adder
     val data = Seq.fill(1200)(BigInt(10, Random))

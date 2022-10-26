@@ -56,7 +56,7 @@ case class Cpa(adderType: AdderType, widths: Seq[Int], cpaMode: CpaMode, withCar
     case _ => Seq(widthsWithInc.sum).map(UIntInfo(_))
   }
 
-  override val impl = (dataIn: Seq[Any]) => {
+  override def impl(dataIn: Seq[Any])  =  {
 
     def concat(bigInts: Seq[BigInt], widths: Seq[Int]): BigInt = {
       val str = bigInts.zip(widths).map { case (int, i) => int.toString(2).padToLeft(i, '0') }.reverse.reduce(_ + _)

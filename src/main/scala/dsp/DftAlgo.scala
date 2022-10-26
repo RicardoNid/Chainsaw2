@@ -1,11 +1,12 @@
 package org.datenlord
 package dsp
 
-import arithmetic.Matrices
 import breeze.linalg._
 import breeze.math._
 import breeze.numerics._
 import breeze.numerics.constants._
+import breeze.signal._
+import org.datenlord.arithmetic.Matrices
 import org.datenlord.{logR, powR}
 
 import scala.reflect.ClassTag
@@ -68,6 +69,18 @@ object DftAlgo {
     }
   }
 
+  def rvdftByDouble(data0: DenseVector[Double], data1: DenseVector[Double]): (DenseVector[Complex], DenseVector[Complex]) = {
+    def fftSymmetricOf(data: DenseVector[Complex]) =
+      new DenseVector((data(0) +: data.toArray.tail.reverse).map(_.conjugate))
+    
+    val dataIn = new DenseVector(data0.toArray.zip(data1.toArray).map { case (real, imag) => Complex(real, imag) })
+    val dataOut = fourierTr.dvComplex1DFFT(dataIn)
+    val out0 = (dataOut + fftSymmetricOf(dataOut)) / Complex(2.0, 0.0)
+    val out1 = (dataOut - fftSymmetricOf(dataOut)) / Complex(0.0, 2.0)
+    assert((out0 - fourierTr.dvComplex1DFFT(data0.map(Complex(_, 0)))).forall(_.abs < 1e-4))
+    assert((out1 - fourierTr.dvComplex1DFFT(data1.map(Complex(_, 0)))).forall(_.abs < 1e-4))
+    (out0, out1)
+  }
 
   def main(args: Array[String]): Unit = {
     val data = DenseVector((0 until 8).map(i => Complex(i, 0)).toArray)

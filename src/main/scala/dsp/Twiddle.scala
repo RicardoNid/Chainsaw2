@@ -16,7 +16,7 @@ case class Twiddle(N: Int, nk: Int, dataType: NumericTypeInfo, coeffWidth: Int) 
 
   override def name = s"twiddle_${positiveIndex}_by_$N"
 
-  override val impl = (dataIn:Seq[Any]) => dataIn.asInstanceOf[Seq[Complex]].map(_ * WNnk(N, nk))
+  override def impl(dataIn:Seq[Any]): Seq[Complex] = dataIn.asInstanceOf[Seq[Complex]].map(_ * WNnk(N, nk))
   override var inputTypes = Seq(dataType)
   override var outputTypes = Seq(dataType)
 

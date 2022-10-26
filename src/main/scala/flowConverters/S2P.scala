@@ -14,7 +14,7 @@ case class S2P(s: Int, p: Int, bitWidth: Int)
 
   override def name = s"S2P_s${s}_p$p"
 
-  override val impl = (dataIn: Seq[Any]) => dataIn
+  override def impl(dataIn: Seq[Any])  =  dataIn
 
   override var inputTypes = Seq.fill(s)(UIntInfo(bitWidth))
   override var outputTypes = Seq.fill(p)(UIntInfo(bitWidth))

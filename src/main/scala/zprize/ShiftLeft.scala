@@ -8,7 +8,7 @@ case class ShiftLeft(shift:Int, width:Int) extends Combinational{
 
   override def name = s"shift_$shift"
 
-  override val impl = (dataIn: Seq[Any]) => dataIn.asInstanceOf[Seq[BigInt]].map(_ << shift)
+  override def impl(dataIn: Seq[Any])  =  dataIn.asInstanceOf[Seq[BigInt]].map(_ << shift)
 
   override var inputTypes = Seq(UIntInfo(width))
   override var outputTypes = Seq(UIntInfo(width + shift))
@@ -23,7 +23,7 @@ case class Resize(widthIn:Int, widthOut:Int) extends Combinational{
 
   override def name = s"resize_${widthIn}_$widthOut"
 
-  override val impl = (dataIn: Seq[Any]) => dataIn.asInstanceOf[Seq[BigInt]]
+  override def impl(dataIn: Seq[Any])  =  dataIn.asInstanceOf[Seq[BigInt]]
 
   override var inputTypes = Seq(UIntInfo(widthIn))
   override var outputTypes = Seq(UIntInfo(widthOut))

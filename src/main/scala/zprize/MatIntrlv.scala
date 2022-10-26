@@ -15,7 +15,7 @@ case class MatIntrlvCore(row: Int, col: Int, width: Int)
 
   override def name = s"matintrlv_r${row}_c${col}_w$width"
 
-  override val impl: Seq[Any] => Seq[Any] = CommonAlgos.matIntrlv(row, col, _)
+  override def impl(dataIn: Seq[Any]): Seq[Any] = CommonAlgos.matIntrlv(row, col, dataIn)
 
   override var inputTypes = Seq.fill(col)(UIntInfo(width))
   override var outputTypes = Seq.fill(row)(UIntInfo(width))
@@ -79,8 +79,8 @@ case class MatIntrlvCore(row: Int, col: Int, width: Int)
       ram.write(
         address = writePointer.asUInt @@ counterIn.value.resize(addrWidth), // using write pointer as the MSB
         data = data,
-//        enable = validIn.validAfter(1))
-              enable = betweenTime(1, 1 + row))
+        //        enable = validIn.validAfter(1))
+        enable = betweenTime(1, 1 + row))
     }
     // read addrs generation(by rotation)
     val initValues = Vec((0 +: (1 until ramCount).reverse).map(U(_, addrWidth bits)))
@@ -118,7 +118,7 @@ case class MatIntrlv(row: Int, col: Int, width: Int, pF: Int)
 
   override def name = s"matintrlv_r${row}_c${col}_w${width}_sw$pF"
 
-  override val impl: Seq[Any] => Seq[Any] = CommonAlgos.matIntrlv(row, col, _)
+  override def impl(dataIn: Seq[Any]): Seq[Any] = CommonAlgos.matIntrlv(row, col, dataIn)
 
   override var inputTypes = Seq.fill(pF)(UIntInfo(width))
   override var outputTypes = Seq.fill(pF)(UIntInfo(width))

@@ -7,7 +7,7 @@ sudo apt-get install zlibc zlib1g zlib1g-dev  # Ubuntu only (ignore if gives err
 
 cd ~ # install everything in home dir by default
 wget https://github.com/verilator/verilator/archive/refs/heads/master.zip # get zip file, instead of git clone
-unzip verilator-master.zip
+unzip master.zip
 cd ~/verilator-master
 
 #

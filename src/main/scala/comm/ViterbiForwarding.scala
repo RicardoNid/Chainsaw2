@@ -11,7 +11,7 @@ case class ViterbiForwarding(trellis: Trellis, disWidth: Int, blockLength: Int)
 
   val maxValueForStart = 1 << (disWidth - 1)
 
-  override val impl = (dataIn: Seq[Any]) => {
+  override def impl(dataIn: Seq[Any])  =  {
     val bigInts = dataIn.asInstanceOf[Seq[BigInt]]
     val ret = ViterbiAlgo.viterbiForwarding(bigInts.map(_.toInt).toArray, trellis, max = maxValueForStart)
     ret.reverse.flatten.map(BigInt(_))

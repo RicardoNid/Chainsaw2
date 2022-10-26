@@ -12,7 +12,7 @@ case class Karatsuba(width: Int, constant: Option[BigInt] = None) extends Dag {
 
   override def name = s"karatsuba_$width"
 
-  override val impl = (dataIn: Seq[Any]) => Seq(dataIn.asInstanceOf[Seq[BigInt]].product)
+  override def impl(dataIn: Seq[Any])  =  Seq(dataIn.asInstanceOf[Seq[BigInt]].product)
 
   val baseWidth = 32
   val splitLimit = 96

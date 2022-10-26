@@ -21,7 +21,7 @@ case class Karabase(widthA: Int, widthB: Int) extends ChainsawGenerator {
 
   override def name = s"karabase_${widthA}_$widthB"
 
-  override val impl = (dataIn: Seq[Any]) => {
+  override def impl(dataIn: Seq[Any])  =  {
     val Seq(aH, aL, bH, bL) = dataIn.asInstanceOf[Seq[BigInt]]
     Seq(aH * bH, aH * bL + aL * bH, aL * bL)
   }

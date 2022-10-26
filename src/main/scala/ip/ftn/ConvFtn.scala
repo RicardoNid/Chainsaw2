@@ -10,7 +10,7 @@ import scala.language.postfixOps // as JGraphT is based on Java
 object ConvFtn extends ChainsawGenerator {
   override def name = "convFtn"
 
-  override val impl = (dataIn: Seq[Any]) => ??? // not necessary as we use data from simulink
+  override def impl(dataIn: Seq[Any])  =  ??? // not necessary as we use data from simulink
 
   override var inputFormat = rawFrameFormat
   override var outputFormat = codedFrameFormat

@@ -1,4 +1,5 @@
 package org.datenlord
+
 import org.datenlord.xilinx.{VivadoUtil, VivadoUtilRequirement}
 import org.datenlord.zprize._
 import org.datenlord.{Comb, ImplMode, generatorList, naiveSet}
@@ -14,7 +15,8 @@ trait ChainsawGenerator {
   /** --------
    * golden model
    * -------- */
-  val impl: Seq[Any] => Seq[Any] // golden model
+  def impl(dataIn: Seq[Any]): Seq[Any] // golden model
+
   val implMode: ImplMode = Comb
 
   /** --------
@@ -46,12 +48,14 @@ trait ChainsawGenerator {
   def implDut = new ChainsawModuleWrapper(this) // testable module, datapath + protocol
 
   def implNaiveH: Option[ChainsawModule] = None // naive RTL implementation for simulation & top-down design
+
   def implPass: ChainsawModule = new ChainsawModule(this) {
     // TODO: general method that make output variables(rather than constants)
     dataIn.foreach(_.addAttribute("dont_touch", "yes"))
     dataOut.foreach(_.assignDontCare())
     dataOut.foreach(_.addAttribute("dont_touch", "yes"))
   }
+
   def setAsNaive(): Unit = naiveSet += this.getClass.getSimpleName
 
   def useNaive: Boolean = naiveSet.contains(this.getClass.getSimpleName)
@@ -113,11 +117,13 @@ trait ChainsawGenerator {
 
   // TODO: this should be implemented in Dag
   def ->(that: ChainsawGenerator) = {
+    require(that.inputFormat.portSize == this.outputFormat.portSize, s"out ${this.outputFormat.portSize} -> in ${that.inputFormat.portSize}")
+    //    require(that.inputFormat.period == this.outputFormat.period, s"prev period ${this.outputFormat.period} -> next period ${that.outputFormat.period}")
     val old = this
     new ChainsawGenerator {
       override def name = old.name + "_" + that.name
 
-      override val impl = (dataIn: Seq[Any]) => that.impl(old.impl(dataIn))
+      override def impl(dataIn: Seq[Any]): Seq[Any] = that.impl(old.impl(dataIn))
 
       override var inputTypes = old.inputTypes
       override var outputTypes = that.outputTypes
@@ -135,5 +141,8 @@ trait ChainsawGenerator {
       }
     }
   }
+
+  // TODO: flowConverters can test itself
+  def testItSelf() = {}
 
 }

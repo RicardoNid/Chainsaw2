@@ -1,51 +1,50 @@
 package org.datenlord
+
 import breeze.linalg.{DenseVector, max}
 import breeze.math.Complex
 import breeze.numerics.abs
 import breeze.stats.mean
+import org.datenlord.ChainsawMetric.noBound
 import org.datenlord.logger
 
-object ChainsawMetric {
+case class ChainsawMetric(
+                           elementWise: Metric = noBound,
+                           frameWise: FrameMetric
+                         )
 
-  def complexAbs(epsilon: Double) =
-    (yours: Seq[Any], golden: Seq[Any]) => {
-      val yourV = new DenseVector(yours.map(_.asInstanceOf[Complex]).toArray)
-      val goldenV = new DenseVector(golden.map(_.asInstanceOf[Complex]).toArray)
-      val errorV = yourV - goldenV
-      val pass = errorV.forall(_.abs < epsilon)
-      logger.info(s"errorMax = ${max(abs(errorV))}, errorMean = ${mean(abs(errorV))}")
-      pass
-    }
+object ChainsawMetric { // common metrics
 
-  def fftByMean(epsilon: Double) =
-    (yours: Seq[Any], golden: Seq[Any]) => {
-      val yourV = new DenseVector(yours.tail.map(_.asInstanceOf[Complex]).toArray) // leave DC part alone
-      val goldenV = new DenseVector(golden.tail.map(_.asInstanceOf[Complex]).toArray)
-      val errorV = yourV - goldenV
-      val pass = mean(abs(errorV)) < epsilon
-      logger.info(s"errorMax = ${max(abs(errorV))}, errorMean = ${mean(abs(errorV))}")
-      pass
-    }
+  def noBound: Metric = (y: Any, g: Any) => true
 
-  def doubleAbs(epsilon: Double) =
-    (yours: Seq[Any], golden: Seq[Any]) => {
-      val yourV = new DenseVector(yours.map(_.asInstanceOf[Double]).toArray)
-      val goldenV = new DenseVector(golden.map(_.asInstanceOf[Double]).toArray)
-      val errorV = (yourV - goldenV).map(_.abs)
-      val pass = errorV.forall(_.abs < epsilon)
-      if (!pass) logger.info(s"errorMax = ${max(errorV)}, errorMean = ${mean(errorV)}")
-      pass
-    }
+  def defaultBound: Metric = (y: Any, g: Any) => y == g
 
-  def ignoreNegative = (yours: Seq[Any], golden: Seq[Any]) => {
-    if (golden.asInstanceOf[Seq[BigInt]].exists(_ < 0)) true else yours.equals(golden)
+  def doubleBound(epsilon: Double): Metric = (y: Any, g: Any) => abs(y.asInstanceOf[Double] - g.asInstanceOf[Double]) < epsilon
+
+  def complexBound(epsilon: Double): Metric = (y: Any, g: Any) => abs(y.asInstanceOf[Complex] - g.asInstanceOf[Complex]) < epsilon
+
+  def berBound(ber: Double, elementWise: (Any, Any) => Boolean): FrameMetric = (ys: Seq[Any], gs: Seq[Any]) => {
+    val errorCount = ys.zip(gs).count { case (y, g) => !elementWise(y, g) }
+    val ret = errorCount.toDouble / ys.length <= ber
+    logger.info(s"frame ber: ${errorCount.toDouble / ys.length}")
+    ret
   }
 
-  def carrySaveMetric(compensation:BigInt) = (yours: Seq[Any], golden: Seq[Any]) => {
-    val g = golden.asInstanceOf[Seq[BigInt]].sum
-    val y = yours.asInstanceOf[Seq[BigInt]].sum
-    if (g < 0) true else g == y - compensation
+  def forallBound(elementWise: (Any, Any) => Boolean): FrameMetric = (ys: Seq[Any], gs: Seq[Any]) => {
+    ys.zip(gs).forall { case (y, g) => elementWise(y, g) }
   }
 
 
+  def complexAbs(epsilon: Double) = ChainsawMetric(complexBound(epsilon), berBound(0, complexBound(epsilon)))
+
+  def doubleAbs(epsilon: Double) = ChainsawMetric(doubleBound(epsilon), berBound(0, doubleBound(epsilon)))
+
+  def carrySaveMetric(compensation: BigInt) = ChainsawMetric(noBound,
+    frameWise = (yours: Seq[Any], golden: Seq[Any]) => {
+      val g = golden.asInstanceOf[Seq[BigInt]].sum
+      val y = yours.asInstanceOf[Seq[BigInt]].sum
+      if (g < 0) true else g == y - compensation
+    }
+  )
+
+  val defaultMetric = ChainsawMetric(defaultBound, forallBound(defaultBound))
 }

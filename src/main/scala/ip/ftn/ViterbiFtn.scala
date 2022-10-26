@@ -10,7 +10,7 @@ import scala.language.postfixOps // as JGraphT is based on Java
 object ViterbiFtn extends ChainsawGenerator {
   override def name = "viterbiFtn"
 
-  override val impl = (dataIn: Seq[Any]) => ??? // not necessary as we use data from simulink
+  override def impl(dataIn: Seq[Any]) = ??? // not necessary as we use data from simulink
 
   override var inputFormat = codedFrameFormat
   override var outputFormat = rawFrameFormat
@@ -29,9 +29,8 @@ object ViterbiFtn extends ChainsawGenerator {
 
   override def implH: ChainsawModule = new ChainsawModule(this) {
 
-    val viterbiInputs: Seq[Bits] = (0 until N1 / 2).map { i =>
-      //      val source = dataIn(i) ## dataIn(i + N1 / 2)
-      val source = dataIn(i + N1 / 2) ## dataIn(i)
+    val viterbiInputs: Seq[Bits] = (0 until N1 / 2).map { i => // reorder
+      val source = dataIn(i) ## dataIn(i + N1 / 2)
       Mux(validIn, source, B(0, 2 bits))
     }
 

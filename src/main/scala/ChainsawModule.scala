@@ -71,6 +71,7 @@ class ChainsawModule(val gen: ChainsawGenerator) extends Module {
   // besides, it won't be created multiple times even if you repeatedly use it
   lazy val localCounter = {
     val ret = CounterFreeRun(gen.inputFormat.period)
+    ret.setName("localCounter")
     when(lastIn)(ret.clear())
     ret
   }
@@ -94,6 +95,7 @@ class ChainsawModule(val gen: ChainsawGenerator) extends Module {
   def betweenTime(from: Int, until: Int) = {
     require(until - from <= period, "betweenTime can't be used to specify a range longer than the period")
     if (until >= 128) logger.warn(s"betweenTime is implemented by delay line, delay line longer than $until may not suitable for efficiency, you'd better design the control logic by yourself")
+    //    localCounter.value >= from && localCounter.value < until
     val mark = RegInit(False)
     val aMark = lastIn.validAfter(from)
     val bMark = lastIn.validAfter(until)

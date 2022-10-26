@@ -1,4 +1,5 @@
 package org.datenlord
+
 import org.datenlord.util.{Waveform, WaveformGraph}
 
 import scala.collection.mutable.ArrayBuffer
@@ -31,6 +32,7 @@ case class FrameFormat(flow: Seq[Seq[Int]]) {
   def getPort(elem: Int) = flow.flatten.indexWhere(_ == elem) % portSize
 
   def validCycles = flow.zipWithIndex.filterNot(_._1.forall(_ == -1)).map(_._2)
+
   def bubbleCycles = flow.zipWithIndex.filter(_._1.forall(_ == -1)).map(_._2)
 
   def firstValid = validCycles.head
@@ -39,8 +41,12 @@ case class FrameFormat(flow: Seq[Seq[Int]]) {
    * methods for readability & visualization
    * -------- */
   override def toString = {
-    val charChange = (index: Int) => if (index < 0) "-" else index.toString
-    s"data flow: \n${flow.transpose.map(_.map(charChange(_).padTo(2, ' ')).mkString(" ")).mkString("\n")}"
+    val charChange = (index: Int) => if (index < 0) " " else "■"
+    s"data flow: portSize=$portSize, period=$period, size=${portSize * period}, raw=$rawDataCount\n${
+      flow.zipWithIndex.map { case (seq, i) =>
+        s"c$i".padTo(5, ' ') + seq.map(charChange(_)).mkString("")
+      }.mkString("\n")
+    }"
   }
 
   /** generate the waveform figure as json file, which can be rendered by VS Code plugin "Waveform Render"
@@ -72,7 +78,7 @@ case class FrameFormat(flow: Seq[Seq[Int]]) {
    * simulation utils
    * -------- */
   def fromRawData[T](seq: Seq[T], zero: T) = {
-    val data = flow.map(_.map(index => if (index >= 0) seq(index) else zero))
+    val data = flow.map(_.map(index => if (index >= 0) seq(index) else zero)) //
     val valid = flow.map(_.exists(_ >= 0))
     val last = Seq.fill(period - 1)(false) :+ true
     (data, valid, last)
@@ -101,10 +107,22 @@ case class FrameFormat(flow: Seq[Seq[Int]]) {
     FrameFormat(interpolated)
   }
 
-  def pad(cycle:Int) = {
+  def pad(cycle: Int) = {
     val padded = flow ++ Seq.fill(cycle)(getBubble)
     FrameFormat(padded)
   }
+
+  def repeat(multiple: Int): FrameFormat = {
+    def next(current: Seq[Int]): Seq[Int] = current.map(i => if (i < 0) -1 else i + rawDataCount)
+
+    val repeated = Seq.iterate(flow.flatten, multiple)(next).flatten
+    FrameFormat(repeated.grouped(portSize).toSeq)
+  }
+
+}
+
+object FrameFormat {
+  def apply(flow: Seq[Int], portSize: Int): FrameFormat = FrameFormat(flow.grouped(portSize).toSeq)
 
 }
 
@@ -122,7 +140,11 @@ object MatrixFormatAddBubble {
   }
 }
 
-object ShowFrameFormat{
-  val formatA = MatrixFormatAddBubble(4,4,2)
-  val data = 0 until 16
+object ShowFrameFormat extends App {
+
+  val seq0 = (-1 +: (0 until 224)) ++ Seq.fill(256 - 225)(-1)
+  val format0 = FrameFormat(seq0, 64)
+  println(format0)
+  println(format0.repeat(4))
+
 }

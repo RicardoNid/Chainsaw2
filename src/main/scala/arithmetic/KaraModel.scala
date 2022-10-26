@@ -12,21 +12,21 @@ case class Decomposition(split: Int, row: Int, col: Int) {
 
   val compressorEff = 1.0
 
-  def widthNext = split * a * b * w
+  def widthNext: Int = split * a * b * w
 
   def *(split: Int) = Decomposition(split, widthNext, widthNext)
 
   def subMultCount = split * (split + 1) / 2 * a * b
 
-  def splitCost = karaCount * (row + col)
+  def splitCost: Int = karaCount * (row + col)
 
-  def mergeCost = {
+  def mergeCost: Double = {
     val minusCost = karaCount * 2 * (row + col) // reduce high & low
     val plusCost = (subMultCount - karaCount) * (row + col) + karaCount * (row + col + 2) - (widthNext * 2) // reduce = all - remained
     (minusCost + plusCost) / compressorEff
   }
 
-  def clbCost = splitCost + mergeCost
+  def clbCost: Double = splitCost + mergeCost
 }
 
 case class KaraSolution(dsp: (Int, Int), splits: Seq[Int]) {
@@ -76,10 +76,10 @@ object KaraSolution extends App {
   val kara377A = KaraSolution((16, 24), Seq(2, 2, 2))
   val kara377B = KaraSolution((16, 16), Seq(2, 2, 2, 3))
   val kara377C = KaraSolution((16, 16), Seq(3, 2, 2, 2))
-  val kara377D = KaraSolution((16, 24), Seq(2,4))
+  val kara377D = KaraSolution((16, 24), Seq(2, 4))
 
-  val kara256 = KaraSolution((16, 16), Seq(2,2,2,2))
-  val kara1024 = KaraSolution((16, 16), Seq(8,8))
+  val kara256 = KaraSolution((16, 16), Seq(2, 2, 2, 2))
+  val kara1024 = KaraSolution((16, 16), Seq(8, 8))
 
   kara64A.showCosts
   kara64B.showCosts

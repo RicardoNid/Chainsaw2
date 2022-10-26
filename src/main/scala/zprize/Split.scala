@@ -12,7 +12,7 @@ case class Split(width: Int, lowWidth: Int) extends Combinational {
 
   override def name = s"split_${width}_${lowWidth}"
 
-  override val impl = (dataIn: Seq[Any]) => {
+  override def impl(dataIn: Seq[Any])  =  {
     val (high, low) = dataIn.asInstanceOf[Seq[BigInt]].head.split(lowWidth)
     Seq(high, low)
   }

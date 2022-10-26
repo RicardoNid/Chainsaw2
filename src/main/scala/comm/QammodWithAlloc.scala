@@ -22,7 +22,7 @@ case class QammodWithAlloc(bitAlloc: Seq[Int], powAlloc: Seq[Double], numericTyp
 
   override def name = s"qammod_${bitAlloc.hashCode()}_${powAlloc.hashCode()}".replace("-", "N")
 
-  override val impl = (dataIn: Seq[Any]) => {
+  override def impl(dataIn: Seq[Any])  =  {
     val bits = dataIn.asInstanceOf[Seq[BigInt]]
     val segments = bitAlloc.scan(0)(_ + _) // split points
       .prevAndNext { case (start, end) => bits.slice(start, end) } // segments

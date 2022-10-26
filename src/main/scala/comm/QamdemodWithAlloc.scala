@@ -26,7 +26,7 @@ case class QamdemodWithAlloc(bitAlloc: Seq[Int], powAlloc: Seq[Double], numericT
   /** --------
    * pre-computation
    * -------- */
-  override val impl = (dataIn: Seq[Any]) => {
+  override def impl(dataIn: Seq[Any])  =  {
     val complex = dataIn.asInstanceOf[Seq[Complex]].toArray
     val scaled = complex.zip(powAlloc).map { case (complex, pow) => complex / sqrt(pow) }
 

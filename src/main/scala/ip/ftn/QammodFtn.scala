@@ -12,15 +12,13 @@ object QammodFtn extends ChainsawGenerator {
 
   override def name = "QammodFtn"
 
-  override val impl = null
+  override def impl(dataIn: Seq[Any]) = null
 
   override var inputTypes = Seq.fill(N1)(UIntInfo(1))
-  //  override var outputTypes = Seq.fill(N1 / 4)(symbolType)
   override var outputTypes = Seq.fill(N1)(symbolType)
 
   override var inputFormat = codedFrameFormat
   override var outputFormat = symbolFrameFormat
-  //  override var latency = Seq(coreGen, s2pGen, p2sGen).map(_.latency).sum
   override var latency = Seq(coreGen, s2pGen).map(_.latency).sum
 
   override def implH: ChainsawModule = new ChainsawModule(this) {

@@ -22,7 +22,7 @@ case class Multiplier(widths: Seq[Int]) extends ChainsawGenerator {
 
   override def name = s"mult_${widths.mkString("_")}"
 
-  override val impl = (dataIn: Seq[Any]) => {
+  override def impl(dataIn: Seq[Any])  =  {
     val Seq(a, b) = dataIn.asInstanceOf[Seq[BigInt]]
     require(a.bitLength <= widths.head, b.bitLength <= widths.last)
     Seq(a * b)

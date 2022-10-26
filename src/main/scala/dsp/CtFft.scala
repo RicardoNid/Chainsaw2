@@ -37,7 +37,7 @@ case class CtFftCore(N: Int, inverse: Boolean, // determining the transformation
 
   override def name = s"${prefix}_n${N}_factors_${factors.mkString("_")}_scales_${scales.mkString("_")}"
 
-  override val impl = (dataIn: Seq[Any]) => {
+  override def impl(dataIn: Seq[Any])  =  {
     val data = dataIn.asInstanceOf[Seq[Complex]].toArray
     if (inverse) iFourierTr.dvComplexIFFT(DenseVector(data)).toArray.toSeq.map(_ * N / (1 << scales.sum))
     else fourierTr.dvComplex1DFFT(DenseVector(data)).toArray.toSeq.map(_ / (1 << scales.sum))
@@ -132,7 +132,7 @@ case class CtFft(N: Int, inverse: Boolean, // determining the transformation
 
   override def name = s"${prefix}_n${N}_sw${streamWidth}_factors_${factors.mkString("_")}"
 
-  override val impl = (dataIn: Seq[Any]) => {
+  override def impl(dataIn: Seq[Any])  =  {
     val data = dataIn.asInstanceOf[Seq[Complex]].toArray
     if (inverse) iFourierTr.dvComplexIFFT(DenseVector(data)).toArray.toSeq.map(_ * N / (1 << scales.sum))
     else fourierTr.dvComplex1DFFT(DenseVector(data)).toArray.toSeq.map(_ / (1 << scales.sum))

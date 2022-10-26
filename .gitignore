@@ -7,3 +7,5 @@
 /synthWorkspace/
 /tmp/
 /.bsp/
+/src/main/resources/simulink/FTN/data/
+/src/main/resources/ftnGolden/

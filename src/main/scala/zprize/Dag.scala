@@ -23,7 +23,7 @@ case class IoGenerator(numericType: NumericTypeInfo, direction: Direction)
   extends ChainsawGenerator {
   override def name = if (direction == In) "in" else "out"
 
-  override val impl = (dataIn: Seq[Any]) => dataIn
+  override def impl(dataIn: Seq[Any])  =  dataIn
   override var inputTypes = Seq(numericType)
   override var outputTypes = Seq(numericType)
   override var inputFormat = inputNoControl

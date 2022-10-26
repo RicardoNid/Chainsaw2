@@ -11,7 +11,7 @@ case class ViterbiBackwarding(trellis: Trellis, disWidth: Int, blockLength: Int)
 
   override def name = s"viterbiBackwarding_dw${disWidth}_trellis${trellis.hashCode()}".replace("-", "N")
 
-  override val impl = (dataIn: Seq[Any]) => {
+  override def impl(dataIn: Seq[Any])  =  {
     val ints = dataIn.asInstanceOf[Seq[BigInt]].map(_.toInt)
     val slices = ints.grouped(trellis.numStates).toSeq
     val stack = mutable.Stack(slices: _*)

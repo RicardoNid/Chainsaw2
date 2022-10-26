@@ -20,7 +20,7 @@
 //  /** --------
 //   * golden model
 //   * -------- */
-//  override val impl = (dataIn: Seq[Any]) => Seq(dataIn.asInstanceOf[Seq[BigInt]].product % M)
+//  override def impl(dataIn: Seq[Any])  =  Seq(dataIn.asInstanceOf[Seq[BigInt]].product % M)
 //
 //  require(M.bitLength == k)
 //

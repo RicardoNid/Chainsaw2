@@ -29,9 +29,10 @@ package object datenlord {
     else gcd(q, p % q)
   }
 
-  def mux[T](condition: Boolean, whenTrue: T, whenFalse: T) = if(condition) whenTrue else whenFalse
+  def mux[T](condition: Boolean, whenTrue: T, whenFalse: T) = if (condition) whenTrue else whenFalse
 
-  type Metric = (Seq[Any], Seq[Any]) => Boolean
+  type Metric = (Any, Any) => Boolean
+  type FrameMetric = (Seq[Any], Seq[Any]) => Boolean
 
   // adjustable parameters
 
@@ -124,9 +125,9 @@ package object datenlord {
 
   implicit class BigIntUtil(bi: BigInt) {
 
-    def withWidth(width:Int) = bi.toString(2).padToLeft(width, '0')
+    def withWidth(width: Int) = bi.toString(2).padToLeft(width, '0')
 
-    def ##(that:BigInt, width:Int) = {
+    def ##(that: BigInt, width: Int) = {
       BigInt(bi.withWidth(width) + that.withWidth(width), 2)
     }
 

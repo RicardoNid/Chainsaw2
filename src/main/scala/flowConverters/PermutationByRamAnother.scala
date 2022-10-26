@@ -25,7 +25,7 @@ case class PermutationByRamAnother(permutation: Permutation, streamWidth: Int, b
 
   override def name = s"permutationByRam_N${permutation.size}_sw${streamWidth}_w${bitWidth}_${permutation.hashCode()}".replace("-", "N")
 
-  override val impl = (dataIn: Seq[Any]) => permutation.permute(dataIn.asInstanceOf[Seq[BigInt]])
+  override def impl(dataIn: Seq[Any]): Seq[Any] = permutation.permute(dataIn)
 
   override var inputTypes = Seq.fill(streamWidth)(UIntInfo(bitWidth))
   override var outputTypes = Seq.fill(streamWidth)(UIntInfo(bitWidth))
@@ -99,7 +99,7 @@ case class PermutationByRamAnother(permutation: Permutation, streamWidth: Int, b
 
     /** --------
      * components
-     -------- */
+     * -------- */
     val network = benesNetwork.implDut // switch network
     // ROMs
     val R = Mem(readAddr.map(seq => Vec(seq.map(U(_, addrWidth bits)))))
@@ -109,7 +109,7 @@ case class PermutationByRamAnother(permutation: Permutation, streamWidth: Int, b
 
     /** --------
      * controls
-     -------- */
+     * -------- */
     val time = localCounter.value
     val timeForM1 = time.d(benesNetwork.latency)
 
@@ -122,7 +122,7 @@ case class PermutationByRamAnother(permutation: Permutation, streamWidth: Int, b
 
     /** --------
      * data path
-     -------- */
+     * -------- */
     // step 1 input -> M0
     M0.zip(dataIn).foreach { case (port, data) => port.write(time @@ pingPongM0, data) }
     // step 2 M0 -> data

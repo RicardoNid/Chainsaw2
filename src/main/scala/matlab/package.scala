@@ -13,6 +13,7 @@ package object matlab {
   implicit def ComplexConversion(mcomplex: MComplex): Complex = Complex(mcomplex.real, mcomplex.imag)
 
   implicit class mcomplexConversion(mcomplex: MComplex){
+
     def toComplex = Complex(mcomplex.real, mcomplex.imag)
   }
 

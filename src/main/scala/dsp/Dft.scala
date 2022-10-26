@@ -16,7 +16,7 @@ case class Dft(N: Int, inverse: Boolean, dataType: NumericTypeInfo, coeffWidth: 
 
   override def name = s"$prefix$N"
 
-  override val impl = (dataIn: Seq[Any]) => {
+  override def impl(dataIn: Seq[Any])  =  {
     val data = dataIn.asInstanceOf[Seq[Complex]].toArray
     if (inverse) iFourierTr.dvComplexIFFT(DenseVector(data)).toArray.toSeq.map(_ * N)
     else fourierTr.dvComplex1DFFT(DenseVector(data)).toArray.toSeq

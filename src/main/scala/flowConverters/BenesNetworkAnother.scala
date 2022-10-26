@@ -20,7 +20,7 @@ case class BenesNetworkAnother(N: Int, permutations: Seq[Permutation], bitWidth:
 
   val n = permutations.head.size
 
-  override val impl = (dataIn: Seq[Any]) => {
+  override def impl(dataIn: Seq[Any])  =  {
     val segments = dataIn.asInstanceOf[Seq[BigInt]].grouped(n).toSeq
     segments.zip(permutations).flatMap { case (ints, permutation) => permutation.permute(ints) }
   }

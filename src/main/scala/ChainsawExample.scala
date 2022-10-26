@@ -13,7 +13,8 @@ case class ChainsawAddGen(width: Int) extends ChainsawGenerator {
 
   override def name = s"adder_$width"
 
-  override val impl = (dataIn: Seq[Any]) => Seq(dataIn.asInstanceOf[Seq[BigInt]].sum)
+  override def impl(dataIn: Seq[Any]): Seq[BigInt] = Seq(dataIn.asInstanceOf[Seq[BigInt]].sum)
+
   override var inputTypes = Seq.fill(2)(UIntInfo(width))
   override var outputTypes = Seq(UIntInfo(width + 1))
   override var inputFormat = inputNoControl
@@ -33,7 +34,7 @@ case class ChainsawAddGen(width: Int) extends ChainsawGenerator {
 case class AdderGraph(width: Int) extends Dag {
   override def name = s"adderGraph_$width"
 
-  override val impl = (dataIn: Seq[Any]) => Seq(dataIn.asInstanceOf[Seq[BigInt]].sum)
+  override def impl(dataIn: Seq[Any]) = Seq(dataIn.asInstanceOf[Seq[BigInt]].sum)
 
   // the generator can be instantiated outside the SpinalHDL context
   val generator = ChainsawAddGen(width)
@@ -59,7 +60,7 @@ case class AdderGraph(width: Int) extends Dag {
 object NestedAdderGraph extends Dag {
   override def name = s"nestedAdderGraph"
 
-  override val impl = (dataIn: Seq[Any]) => Seq(dataIn.asInstanceOf[Seq[BigInt]].sum)
+  override def impl(dataIn: Seq[Any]) = Seq(dataIn.asInstanceOf[Seq[BigInt]].sum)
 
   // the generator can be instantiated outside the SpinalHDL context
   val addGraph0 = AdderGraph(10)
@@ -82,7 +83,8 @@ object NestedAdderGraph extends Dag {
 
 case class CpaGraph() extends Dag {
   override val name = "cpaGraph"
-  override val impl = (dataIn: Seq[Any]) => Seq(dataIn.asInstanceOf[Seq[BigInt]].sum)
+
+  override def impl(dataIn: Seq[Any]) = Seq(dataIn.asInstanceOf[Seq[BigInt]].sum)
 
   // declare components
   // declare IO

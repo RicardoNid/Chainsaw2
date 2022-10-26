@@ -55,13 +55,11 @@ class ViterbiTest extends AnyFlatSpec {
     data = discrepancies
   )
 
-  def viterbiMetric: Metric = (yours: Seq[Any], golden: Seq[Any]) => yours.reverse.equals(golden)
-
   it should "work" in ChainsawTest.test(
     Viterbi(trellis, blockLength, disWidth, copies = 1),
     data = coded,
-    golden = data.map(BigInt(_)),
-    metric = viterbiMetric)
+    golden = data.map(BigInt(_))
+  )
 
   it should "impl at disWidth = 6" in ChainsawSynth(Viterbi(trellis, blockLength, 6, copies = 1))
   it should "impl at disWidth = 4" in ChainsawSynth(Viterbi(trellis, blockLength, 4, copies = 1))
