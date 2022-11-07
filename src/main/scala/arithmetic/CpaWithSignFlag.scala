@@ -2,24 +2,24 @@ package org.datenlord
 package arithmetic
 
 import xilinx.VivadoUtilRequirement
-
 import spinal.core._
+import spinal.core.sim.SimBoolPimper
 import spinal.lib._
 
 import scala.language.postfixOps
 
 /** carry propagate binary/ternary adder of any width
- *
- * @param widthIn
- *   width of all input operands
- * @param mode
- *   binary / ternary
- * @param sub
- *   number of negative operands, negative operands should appear after positive ones
- */
-case class CpaConfig(widthIn: Int, mode: AdderType, sub: Int = 0) extends TransformDfg {
+  *
+  * @param widthIn
+  *   width of all input operands
+  * @param mode
+  *   binary / ternary
+  * @param sub
+  *   number of negative operands, negative operands should appear after positive ones
+  */
+case class CpaWithSignFlagConfig(widthIn: Int, mode: AdderType, sub: Int = 0) extends TransformDfg {
 
-  override val name   = s"CPA"
+  override val name   = s"CPA with signFlag"
   override val opType = mode
 
   override def impl(dataIn: Seq[Any]): Seq[BigInt] = {
@@ -65,7 +65,7 @@ case class CpaConfig(widthIn: Int, mode: AdderType, sub: Int = 0) extends Transf
 
   override def latency = coreCount
 
-  override def implH = Cpa(this)
+  override def implH = CpaWithSignFlag(this)
 
   override def utilRequirement = mode match {
     case BinaryAdder      => VivadoUtilRequirement(lut = widthOut, carry8 = coreCount * slice.divideAndCeil(8))
@@ -74,13 +74,14 @@ case class CpaConfig(widthIn: Int, mode: AdderType, sub: Int = 0) extends Transf
   }
 }
 
-case class Cpa(config: CpaConfig) extends TransformModule[UInt, UInt] {
+case class CpaWithSignFlag(config: CpaWithSignFlagConfig) extends TransformModule[UInt, UInt] with SignFlagPort {
 
   import config._
 
-  override val dataIn  = slave Flow Fragment(Vec(UInt(widthIn bits), inputPortWidth))
-  override val dataOut = master Flow Fragment(Vec(UInt(widthOut bits), outputPortWidth))
-  val extendedDataIn   = dataIn.fragment.map(_.resize(widthOut))
+  override val dataIn     = slave Flow Fragment(Vec(UInt(widthIn bits), inputPortWidth))
+  override val dataOut    = master Flow Fragment(Vec(UInt(widthOut bits), outputPortWidth))
+  override val isPositive = out Bool ()
+  val extendedDataIn      = dataIn.fragment.map(_.resize(widthOut))
 
   val coreWidths = Seq.fill(widthOut)(1).grouped(slice).toSeq.map(_.sum) // width of each segment
   // get input words
@@ -99,7 +100,7 @@ case class Cpa(config: CpaConfig) extends TransformModule[UInt, UInt] {
       }
   }
 
-  Seq.iterate((carriesStart, 0), coreCount + 1) { case (carries, i) =>
+  val carryOuts = Seq.iterate((carriesStart, 0), coreCount + 1) { case (carries, i) =>
     mode match {
 
       case BinaryAdder =>
@@ -129,6 +130,11 @@ case class Cpa(config: CpaConfig) extends TransformModule[UInt, UInt] {
   }
 
   dataOut.fragment.head := sumWords.reverse.reduce(_ @@ _).resize(widthOut)
+  mode match {
+    case BinaryAdder      => isPositive := True
+    case BinarySubtractor => isPositive := carryOuts.last._1.head
+    case TernaryAdder     => isPositive := carryOuts.last._1.head ^ carryOuts.last._1.last
+  }
 
   autoValid()
   autoLast()

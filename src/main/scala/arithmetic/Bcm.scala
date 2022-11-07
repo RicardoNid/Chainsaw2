@@ -23,7 +23,7 @@ case class BcmConfig(constant: BigInt, widthIn: Int, mode: OperatorType, widthTa
   override val widthsOut = Seq(widthOut)
 
   val constantDigits: String = { // get digits of the constant, low to high
-    val temp = if (useCsd) Csd(constant).csd else constant.toString(2) // get binary/CSD coded digits
+    val temp = if (useCsd) Csd.fromBigInt(constant).csd else constant.toString(2) // get binary/CSD coded digits
     if (temp.startsWith("0")) temp.tail else temp // remove the leading 0 of CSD
   }
 
@@ -62,7 +62,7 @@ case class BcmConfig(constant: BigInt, widthIn: Int, mode: OperatorType, widthTa
 
   logger.info(
     s"\n----configuration report of big constant multiplier----" +
-      s"\n\tmode: ${mode.getClass.getSimpleName}" +
+      s"\n\tmode: ${mode.getClass.getSimpleName.init}" +
       s"\n\twidthAll: $widthAll, widthTake: $widthTake, widthDrop: $widthDrop" +
       s"\n\tuse csd: $useCsd" +
       s"\n\tconstant sequence in use: $constantDigits" +
@@ -147,7 +147,6 @@ case class Bcm(config: BcmConfig)
       }
     }
 
-    // FIXME: sometimes the result width is less than widthAll, is that correct?
     val ret = compressorConfig.implH.asFunc(operandsIn).head.resize(widthAll) // using bit heap compressor
 
     mode match { // take bits of interest according to multiplication mode

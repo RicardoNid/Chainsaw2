@@ -2,7 +2,6 @@ package org.datenlord
 package zprize
 
 import org.datenlord
-import org.datenlord.arithmetic.Compressor3to1Hard
 import spinal.core._
 import spinal.core.sim._
 import spinal.lib._
@@ -56,7 +55,7 @@ case class Cpa(adderType: AdderType, widths: Seq[Int], cpaMode: CpaMode, withCar
     case _ => Seq(widthsWithInc.sum).map(UIntInfo(_))
   }
 
-  override def impl(dataIn: Seq[Any])  =  {
+  override def impl(dataIn: Seq[Any]) = {
 
     def concat(bigInts: Seq[BigInt], widths: Seq[Int]): BigInt = {
       val str = bigInts.zip(widths).map { case (int, i) => int.toString(2).padToLeft(i, '0') }.reverse.reduce(_ + _)

@@ -1,6 +1,7 @@
 /** -------- general purpose compressors
  * --------
  */
+
 package org.datenlord
 package zprize
 
@@ -28,7 +29,7 @@ import scala.language.postfixOps
  */
 object Gpcs {
   def apply(): Seq[Compressor] = {
-    val ret = Seq(Compressor1to1, Compressor4to2, Compressor3to1, Compressor6to3, Compressor3to2, Compressor606To5)
+    val ret = Seq(Compressor1to1, Compressor4to2, Compressor3to1, Compressor6to3, Compressor3to2)
     ret
   }
 }
@@ -182,7 +183,11 @@ object Compressor4to2 extends Compressor {
 
   override def outputFormat(width: Int) = 1 +: Seq.fill(width)(2)
 
-  override def areaCost(width: Int): Int = Seq(utilRequirement(width).lut, utilRequirement(width).carry8 * 8, utilRequirement(width).ff.divideAndCeil(2)).max
+  override def areaCost(width: Int, considerCarry8: Boolean = true, isPipeline: Boolean = true): Double = Seq(
+    utilRequirement(width).lut.toDouble,
+    if (considerCarry8) utilRequirement(width).carry8 * 8.0 else 0.0,
+    if (isPipeline) utilRequirement(width).ff.toDouble / 2 else 0.0
+  ).max
 
   override def impl(bitsIn: BitHeap[Bool], width: Int) = {
     val paddedHeap      = bitsIn.currentBitHeap.head.padTo(5, False) +: bitsIn.currentBitHeap.tail.map(_.padTo(4, False))
@@ -198,7 +203,7 @@ object Compressor4to2 extends Compressor {
     bitHeap.last += core.cOut
     core.sumsOut.asBools.zip(bitHeap).foreach { case (bit, column) => column += bit }
     core.carrysOut.asBools.zip(bitHeap.tail).foreach { case (bit, column) => column += bit }
-    BitHeap(bitHeap, bitsIn.currentWeightLow, bitsIn.currentTime + 1)
+    BitHeap(bitHeap, bitsIn.currentWeightLow, bitsIn.currentTime)
   }
 
   override def utilRequirement(width: Int) = VivadoUtilRequirement(lut = width, carry8 = width.divideAndCeil(8), ff = outputFormat(width).sum)
@@ -220,7 +225,11 @@ object Compressor3to1 extends Compressor {
 
   override def outputFormat(width: Int): Seq[Int] = Seq.fill(width)(1) :+ 2
 
-  override def areaCost(width: Int): Int = Seq(utilRequirement(width).lut, utilRequirement(width).carry8 * 8, utilRequirement(width).ff.divideAndCeil(2)).max
+  override def areaCost(width: Int, considerCarry8: Boolean = true, isPipeline: Boolean = true): Double = Seq(
+    utilRequirement(width).lut.toDouble,
+    if (considerCarry8) utilRequirement(width).carry8 * 8.0 else 0.0,
+    if (isPipeline) utilRequirement(width).ff.toDouble / 2 else 0.0
+  ).max
 
   override def impl(bitsIn: BitHeap[Bool], width: Int) = {
 
@@ -238,7 +247,7 @@ object Compressor3to1 extends Compressor {
     bitHeap.last += core.cOut0
     bitHeap.last += core.cOut1
     core.sumsOut.asBools.zip(bitHeap).foreach { case (bit, column) => column += bit }
-    BitHeap(bitHeap, bitsIn.currentWeightLow, bitsIn.currentTime + 1)
+    BitHeap(bitHeap, bitsIn.currentWeightLow, bitsIn.currentTime)
   }
 
   override def utilRequirement(width: Int) = VivadoUtilRequirement(lut = width, carry8 = width.divideAndCeil(8), ff = outputFormat(width).sum)
@@ -258,11 +267,11 @@ object Compressor1to1 extends Compressor {
 
   override def outputFormat(width: Int) = Seq.fill(width)(1)
 
-  override def areaCost(width: Int): Int = 0
+  override def areaCost(width: Int, considerCarry8: Boolean = true, isPipeline: Boolean = true): Double = if(isPipeline) width.toDouble / 2 else 0.0
 
-  override def impl(bitsIn: BitHeap[Bool], width: Int): BitHeap[Bool] = BitHeap(bitsIn.bitHeapConfigInfo.map(config => BitHeapConfigInfo(config.bitHeap, config.weightLow, config.time + 1)): _*)
+  override def impl(bitsIn: BitHeap[Bool], width: Int): BitHeap[Bool] = BitHeap(bitsIn.newBitHeapConfigInfo.map(config => BitHeapConfigInfo(config.bitHeap, config.weightLow, config.time)): _*)
 
-  override def utilRequirement(width: Int) = null
+  override def utilRequirement(width: Int) = VivadoUtilRequirement(ff = width)
 
   override def fMaxRequirement: HertzNumber = 600 MHz
 }
@@ -301,7 +310,7 @@ object Compressor6to3 extends Compressor {
 
   override def outputFormat(width: Int) = Seq.fill(3)(1)
 
-  override def areaCost(width: Int): Int = 3
+  override def areaCost(width: Int, considerCarry8: Boolean = true, isPipeline: Boolean = true): Double = 3.0
 
   override def impl(bitsIn: BitHeap[Bool], width: Int): BitHeap[Bool] = {
     val dataIns = bitsIn.currentBitHeap.head.padTo(6, False).asBits().asUInt
@@ -310,7 +319,7 @@ object Compressor6to3 extends Compressor {
     val ret     = core.dataOut
     val bitHeap = ArrayBuffer.fill(3)(ArrayBuffer[Bool]())
     ret.asBools.zip(bitHeap).foreach { case (bit, column) => column += bit }
-    BitHeap(bitHeap, bitsIn.currentWeightLow, bitsIn.currentTime + 1)
+    BitHeap(bitHeap, bitsIn.currentWeightLow, bitsIn.currentTime)
   }
 
   override def utilRequirement(width: Int) = VivadoUtilRequirement(lut = 3, carry8 = 0, ff = 3)
@@ -351,7 +360,7 @@ object Compressor3to2 extends Compressor {
 
   override def outputFormat(width: Int): Seq[Int] = Seq.fill(2)(1)
 
-  override def areaCost(width: Int): Int = 1
+  override def areaCost(width: Int, considerCarry8: Boolean = true, isPipeline: Boolean = true): Double = 1.0
 
   override def impl(bitsIn: BitHeap[Bool], width: Int): BitHeap[Bool] = {
     val dataIns = bitsIn.currentBitHeap.head.padTo(3, False)
@@ -359,7 +368,7 @@ object Compressor3to2 extends Compressor {
     ret.dataIn := dataIns.asBits().asUInt
     val bitHeap = ArrayBuffer.fill(2)(ArrayBuffer[Bool]())
     ret.dataOut.asBools.zip(bitHeap).foreach { case (bit, column) => column += bit }
-    BitHeap(bitHeap, bitsIn.currentWeightLow, bitsIn.currentTime + 1)
+    BitHeap(bitHeap, bitsIn.currentWeightLow, bitsIn.currentTime)
   }
 
   override def utilRequirement(width: Int): VivadoUtil = VivadoUtilRequirement(lut = 1, carry8 = 0, ff = 2)
@@ -387,7 +396,7 @@ case class Compressor606To5() extends Component {
     .map { case (init, ins) => lut(init, ins(0), ins(1), ins(2), ins(3), ins(4), ins(5)) }
 
   val dataIns = (Seq(dataIn(0)(4), lutOuts(1)._1, dataIn(1)(4), lutOuts(3)._1) ++ Seq.fill(4)(False)).asBits.asUInt
-  val selects = (Seq(lutOuts(0)._2, lutOuts(1)._2, lutOuts(2)._2, lutOuts(3)._2) ++ Seq.fill(4)(False)).asBits.asUInt
+  val selects = (Seq(lutOuts.head._2, lutOuts(1)._2, lutOuts(2)._2, lutOuts(3)._2) ++ Seq.fill(4)(False)).asBits.asUInt
   val carry8  = CARRY8()
   carry8.CI     := dataIn(0).asBools.last
   carry8.CI_TOP := False
@@ -414,7 +423,7 @@ object Compressor606To5 extends Compressor {
 
   /** number of LUTs
    */
-  override def areaCost(width: Int): Int = 8
+  override def areaCost(width: Int, considerCarry8: Boolean = true, isPipeline: Boolean = true): Double = if (considerCarry8) 8.0 else 4.0
 
   /** hardware implementation, the compressor is responsible for padding zeros
    */
@@ -424,7 +433,7 @@ object Compressor606To5 extends Compressor {
     ret.dataIn := Vec(dataIns.head.asBits.asUInt, dataIns.last.asBits.asUInt)
     val bitHeap = ArrayBuffer.fill(5)(ArrayBuffer[Bool]())
     bitHeap.zip(ret.dataOut.asBools).foreach { case (bits, bout) => bits += bout }
-    BitHeap(bitHeap, bitsIn.currentWeightLow, bitsIn.currentTime + 1)
+    BitHeap(bitHeap, bitsIn.currentWeightLow, bitsIn.currentTime)
   }
 
   override def utilRequirement(width: Int): VivadoUtil = VivadoUtilRequirement(lut = 4, carry8 = 1, ff = 5)

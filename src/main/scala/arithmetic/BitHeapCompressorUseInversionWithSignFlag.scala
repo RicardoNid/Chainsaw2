@@ -7,7 +7,7 @@ import spinal.lib._
 
 import scala.language.postfixOps
 
-case class BitHeapCompressorUseInversionConfig(infos: Seq[ArithInfo]) extends TransformDfg {
+case class BitHeapCompressorUseInversionWithSignFlagConfig(infos: Seq[ArithInfo]) extends TransformDfg {
 
   override def impl(dataIn: Seq[Any]): Seq[BigInt] = {
     val bigInts = dataIn.asInstanceOf[Seq[BigInt]]
@@ -25,14 +25,13 @@ case class BitHeapCompressorUseInversionConfig(infos: Seq[ArithInfo]) extends Tr
   if (hasNegative) {
     compensation = infos
       .filter(_.isPositive == false) // negative operands
-      .map(info => ((BigInt(1) << info.width) - 1) << info.weight)
-      .reduce(_ + _)
+      .map(info => ((BigInt(1) << info.width) - 1) << info.weight).sum
   }
 
   val (retBitHeap, solutions) = BitHeap.getHeapFromInfos[Int](Seq(infos)).compressAll(Gpcs(), name = "compressor tree for config")
   val (csaLatency, widthOut)  = (solutions.getLatency, if (solutions.getFinalWidthOut != 0) solutions.getFinalWidthOut else retBitHeap.width)
 
-  val cpaConfig  = CpaConfig(widthOut max (compensation >> retBitHeap.weightLows.head).bitLength, if (hasNegative) TernaryAdder else BinaryAdder, if (hasNegative) 1 else 0) // final two rows - compensation
+  val cpaConfig  = CpaWithSignFlagConfig(widthOut max (compensation >> retBitHeap.weightLows.head).bitLength, if (hasNegative) TernaryAdder else BinaryAdder, if (hasNegative) 1 else 0) // final two rows - compensation
   val cpaLatency = cpaConfig.latency
 
   override val name      = "BitHeapCompressorUseInversion"
@@ -48,15 +47,16 @@ case class BitHeapCompressorUseInversionConfig(infos: Seq[ArithInfo]) extends Tr
       s"\n\tCSA latency: $csaLatency, CPA latency: $cpaLatency"
   )
 
-  override def implH = BitHeapCompressorUseInversion(this)
+  override def implH = BitHeapCompressorUseInversionWithSignFlag(this)
 }
 
-case class BitHeapCompressorUseInversion(config: BitHeapCompressorUseInversionConfig) extends TransformModule[UInt, UInt] {
+case class BitHeapCompressorUseInversionWithSignFlag(config: BitHeapCompressorUseInversionWithSignFlagConfig) extends TransformModule[UInt, UInt] with SignFlagPort {
 
   import config._
 
-  override val dataIn  = slave Flow Fragment(Vec(infos.map(info => UInt(info.width bits))))
-  override val dataOut = master Flow Fragment(Vec(UInt(), size._2))
+  override val dataIn     = slave Flow Fragment(Vec(infos.map(info => UInt(info.width bits))))
+  override val dataOut    = master Flow Fragment(Vec(UInt(), size._2))
+  override val isPositive = out Bool ()
 
   // build operands through bitwise inversion
   val operands = dataIn.fragment
@@ -74,9 +74,14 @@ case class BitHeapCompressorUseInversion(config: BitHeapCompressorUseInversionCo
   // two rows from
   val rows = ret.output(zero).map(_.asBits().asUInt)
 
-  val cpaResult = cpaConfig.asFunc(if (hasNegative) Seq(rows.head, rows.last, compensation >> ret.weightLows.head) else Seq(rows.head, rows.last))
+  val (cpaResult, sign) = cpaConfig.asFuncWithSignFlag(if (hasNegative) Seq(rows.head, rows.last, compensation >> ret.weightLows.head) else Seq(rows.head, rows.last))
 
-  dataOut.fragment.head := (cpaResult.head @@ U(0, ret.weightLows.head bits)).d(1)
+  val positiveResult = (cpaResult.head @@ U(0, ret.weightLows.head bits)).d(1)
+  val negativeResult = (~(cpaResult.head @@ U(0, ret.weightLows.head bits)) + U(1)).d(1)
+  val signResult     = sign.d(1)
+  when(signResult) { dataOut.fragment.head := positiveResult }
+    .otherwise { dataOut.fragment.head := negativeResult }
+  isPositive := signResult
 
   autoValid()
   autoLast()

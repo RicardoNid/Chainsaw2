@@ -1,8 +1,9 @@
 package org.datenlord
 package zprize
 
-import org.datenlord.xilinx.VivadoUtil
-import spinal.core.{Bool, HertzNumber}
+import spinal.core.{Bool, False, HertzNumber}
+import xilinx._
+import scala.collection.mutable.ArrayBuffer
 
 /** define necessary properties for a basic compressor which can be used to build a compressor tree
  */
@@ -32,7 +33,7 @@ abstract class Compressor {
 
   /** number of CLBs
    */
-  def areaCost(width: Int): Int
+  def areaCost(width: Int, considerCarry8: Boolean = true, isPipeline: Boolean = true): Double
 
   /** hardware implementation, the compressor is responsible for padding zeros
    */
@@ -53,7 +54,7 @@ abstract class Compressor {
 
   def reductionRatio(width: Int): Double = inputBitsCount(width).toDouble / outputBitsCount(width)
 
-  def reductionEfficiency(width: Int): Double = bitReduction(width).toDouble / areaCost(width)
+  def reductionEfficiency(width: Int, considerCarry8: Boolean = true, isPipeline: Boolean = true): Double = bitReduction(width).toDouble / areaCost(width, considerCarry8, isPipeline)
 
   def utilRequirement(width: Int): VivadoUtil
 

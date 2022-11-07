@@ -1,5 +1,5 @@
 package org.datenlord
-package zprize
+package arithmetic
 
 case class CompressTreeSolution(solutions: Seq[StageSolution]) {
   def getLatency: Int                           = solutions.count(_.isPipeline)
@@ -17,11 +17,12 @@ case class CompressTreeSolution(solutions: Seq[StageSolution]) {
   def getTotalAreaCost      = solutions.map(_.getAreaCost).sum
   def getTotalCompressedBit = solutions.map(_.getBitReduction).sum
   def getTotalEfficiency    = getTotalCompressedBit.toDouble / getTotalAreaCost
-  def getFinalBitHeap       = if (solutions.nonEmpty) new BitHeap(solutions.last.getNextBitHeapConfig: _*) else null
+  def getFinalBitHeap       = if (solutions.nonEmpty) BitHeap(solutions.last.getNextBitHeapConfig: _*) else null
   def getFinalWidthOut      = if (getFinalBitHeap != null) getFinalBitHeap.width else 0
 
   def printLog(srcBitHeap: BitHeap[Int]): Unit = {
     solutions.zipWithIndex.foreach { case (stageResolution, stage) =>
+      if (stageResolution.isFinalStage && verbose >= 1) logger.info(s"enter finalStage")
       if (verbose >= 1)
         logger.info(
           s"compressed info :\n\tstage bit reduction: ${stageResolution.getBitReduction}, stage reduction efficiency: ${stageResolution.getReductionEfficiency}, stage reduction ratio: ${stageResolution.getReductionRatio}" +
@@ -29,7 +30,7 @@ case class CompressTreeSolution(solutions: Seq[StageSolution]) {
             s"\n\tcompressors used: ${stageResolution.getUsedCompressor.mkString(",")}" +
             s"\n\twhole info :\n\theight: ${stageResolution.getWholeHeightDiff}, bits remained: ${getNextBitHeapInStage(stage).bitsCount}"
         )
-      if (stageResolution.isFinalStage && verbose >= 1) logger.info(s"\n${getNextBitHeapInStage(stage).toString}")
+      if (stageResolution.isFinalStage && stageResolution.isPipeline && verbose >= 1) logger.info(s"\n${getNextBitHeapInStage(stage).toString}")
     }
     logger.info(
       s"\n----efficiency report of bit heap compressor----" +

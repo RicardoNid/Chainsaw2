@@ -2,7 +2,7 @@ package org.datenlord
 package zprize
 
 import dfg._
-import org.datenlord.zprize.BitHeap.getHeapFromHeights
+import zprize.BitHeap.getHeapFromHeights
 import spinal.core._
 
 import java.io._
@@ -11,33 +11,34 @@ import scala.collection.mutable.Set
 import scala.language.postfixOps
 import scala.math._
 import scala.util.control._
+
 import org.json4s._
 import org.json4s.jackson.Serialization._
 
 /** @tparam T
-  *   a bit heap can be initialized by a non-hardware type, so it can be run outside a component
-  * @param bitHeap
-  *   the bits, each array buffer in the table stands for a column, low to high
-  * @example
-  *   bitHeap.head(m)(n) is the (n+1)-th bit of (m+1)-th column in first sub-bitHeap
-  * @param weightLow
-  *   the base weight of the whole bit heap, this is necessary as a bit matrices can merge with each other
-  * @param time
-  *   the delay of each sub-bitHeap
-  */
+ *   a bit heap can be initialized by a non-hardware type, so it can be run outside a component
+ * @param bitHeap
+ *   the bits, each array buffer in the table stands for a column, low to high
+ * @example
+ *   bitHeap.head(m)(n) is the (n+1)-th bit of (m+1)-th column in first sub-bitHeap
+ * @param weightLow
+ *   the base weight of the whole bit heap, this is necessary as a bit matrices can merge with each other
+ * @param time
+ *   the delay of each sub-bitHeap
+ */
 case class BitHeapConfigInfo[T](bitHeap: ArrayBuffer[ArrayBuffer[T]], weightLow: Int, time: Int) {
   def +(that: BitHeapConfigInfo[T]): BitHeapConfigInfo[T] = {
-    require(this.time == that.time, "add two BitHeapConigInfo must have same time value !")
-    val newLow   = this.weightLow min that.weightLow
-    val newHigh  = (this.weightLow + this.bitHeap.length - 1) max (that.weightLow + that.bitHeap.length - 1)
+    require(time == that.time, "add two BitHeapConigInfo must have same time value !")
+    val newLow   = weightLow min that.weightLow
+    val newHigh  = (weightLow + bitHeap.length - 1) max (that.weightLow + that.bitHeap.length - 1)
     val newWidth = newHigh + 1 - newLow
 
     // initialization
     val newTable = ArrayBuffer.fill(newWidth)(ArrayBuffer[T]())
     // move bits
     newTable
-      .drop(this.weightLow - newLow) // align
-      .zip(this.bitHeap)
+      .drop(weightLow - newLow) // align
+      .zip(bitHeap)
       .foreach { case (a, b) => a ++= b } // move bits
     newTable
       .drop(that.weightLow - newLow) // align
@@ -48,18 +49,18 @@ case class BitHeapConfigInfo[T](bitHeap: ArrayBuffer[ArrayBuffer[T]], weightLow:
 }
 
 /** Storing information of a bit matrix(heap), while providing util methods, making operations on bit matrix easier
-  *
-  * @tparam T
-  *   a bit heap can be initialized by a non-hardware type, so it can be run outside a component
-  * @param bitHeapConfigInfo
-  *   the config information of bitHeap
-  * @see
-  *   [[BitHeapCompressor]] for hardware implementation
-  * @see
-  *   ''Arithmetic core generation using bit heaps.'' [[https://ieeexplore.ieee.org/stamp/stamp.jsp?tp=&arnumber=6645544]]
-  */
+ *
+ * @tparam T
+ *   a bit heap can be initialized by a non-hardware type, so it can be run outside a component
+ * @param bitHeapConfigInfo
+ *   the config information of bitHeap
+ * @see
+ *   [[BitHeapCompressor]] for hardware implementation
+ * @see
+ *   ''Arithmetic core generation using bit heaps.'' [[https://ieeexplore.ieee.org/stamp/stamp.jsp?tp=&arnumber=6645544]]
+ */
 case class BitHeap[T](bitHeapConfigInfo: BitHeapConfigInfo[T]*) {
-  val newBitHeapConfigInfo = bitHeapConfigInfo.groupBy(_.time).toSeq.map { case (time, infos) => infos.reduce(_ + _) }
+  val newBitHeapConfigInfo = bitHeapConfigInfo.groupBy(_.time).toSeq.map { case (_, infos) => infos.reduce(_ + _) }
 
   val bitHeaps   = ArrayBuffer(newBitHeapConfigInfo).flatten.map(_.bitHeap)
   val weightLows = ArrayBuffer(newBitHeapConfigInfo).flatten.map(_.weightLow)
@@ -73,47 +74,55 @@ case class BitHeap[T](bitHeapConfigInfo: BitHeapConfigInfo[T]*) {
 
   // merge two bit heaps
   def +(that: BitHeap[T]): BitHeap[T] = {
-    that.times.foreach { t =>
-      if (this.times.contains(t)) {
-        val retIndex    = this.times.indexOf(t)
-        val sourceIndex = that.times.indexOf(t)
+    require(
+      this.lastPipeline == that.lastPipeline,
+      s"two BitHeap which will to be add should have the same lastPipeline.\tleftHeap's lastPipeline is ${this.lastPipeline}, rightHeap's lastPipeline is ${that.lastPipeline}"
+    )
+    val leftHeap  = this.copy
+    val rightHeap = that.copy
+    rightHeap.times.foreach { t =>
+      if (leftHeap.times.contains(t)) {
+        val retIndex    = leftHeap.times.indexOf(t)
+        val sourceIndex = rightHeap.times.indexOf(t)
         // get size of the new table
-        val newLow   = this.weightLows(retIndex) min that.weightLows(sourceIndex)
-        val newHigh  = this.weightHighs(retIndex) max that.weightHighs(sourceIndex)
+        val newLow   = leftHeap.weightLows(retIndex) min rightHeap.weightLows(sourceIndex)
+        val newHigh  = leftHeap.weightHighs(retIndex) max rightHeap.weightHighs(sourceIndex)
         val newWidth = newHigh + 1 - newLow
 
         // initialization
         val newTable = ArrayBuffer.fill(newWidth)(ArrayBuffer[T]())
         // move bits
         newTable
-          .drop(this.weightLows(retIndex) - newLow) // align
-          .zip(this.bitHeaps(retIndex))
+          .drop(leftHeap.weightLows(retIndex) - newLow) // align
+          .zip(leftHeap.bitHeaps(retIndex))
           .foreach { case (a, b) => a ++= b } // move bits
         newTable
-          .drop(that.weightLows(sourceIndex) - newLow) // align
-          .zip(that.bitHeaps(sourceIndex))
+          .drop(rightHeap.weightLows(sourceIndex) - newLow) // align
+          .zip(rightHeap.bitHeaps(sourceIndex))
           .foreach { case (a, b) => a ++= b } // move bits
-        this.bitHeaps(retIndex)   = newTable
-        this.weightLows(retIndex) = newLow
-        this.times(retIndex)      = t
+        leftHeap.bitHeaps(retIndex)   = newTable
+        leftHeap.weightLows(retIndex) = newLow
+        leftHeap.times(retIndex)      = t
       } else {
         // append new bitHeap
-        val sourceIndex = that.times.indexOf(t)
-        this.bitHeaps += that.bitHeaps(sourceIndex)
-        this.weightLows += that.weightLows(sourceIndex)
-        this.times += that.times(sourceIndex)
+        val sourceIndex = rightHeap.times.indexOf(t)
+        leftHeap.bitHeaps += rightHeap.bitHeaps(sourceIndex)
+        leftHeap.weightLows += rightHeap.weightLows(sourceIndex)
+        leftHeap.times += rightHeap.times(sourceIndex)
       }
     }
-    this
+    val retHeap = leftHeap.copy
+    retHeap.lastPipeline = this.lastPipeline
+    retHeap
   }
 
   // add a row on bit heap, in-place operation, the row must be aligned this bit heap
   def addConstant(row: Seq[T], time: Int, zero: T) = {
-    require(this.times.contains(time), s"The source BitHeap isn't contain the delay : $time, please check it !")
+    require(times.contains(time), s"The source BitHeap isn't contain the delay : $time, please check it !")
     val retIndex = times.indexOf(time)
     val overflow = row.length - widths(retIndex)
     if (overflow > 0) bitHeaps(retIndex) ++= Seq.fill(overflow)(ArrayBuffer[T]())
-    this.bitHeaps(retIndex).zip(row).foreach { case (column, bit) => if (bit != zero) column += bit }
+    bitHeaps(retIndex).zip(row).foreach { case (column, bit) => if (bit != zero) column += bit }
     this
   }
 
@@ -165,10 +174,18 @@ case class BitHeap[T](bitHeapConfigInfo: BitHeapConfigInfo[T]*) {
 
   def currentMaxValue = currentHeights.zipWithIndex.map { case (count, weight) => (BigInt(1) << weight) * count }.sum
 
+  def finalStage = currentTime == times.max
+
+  def isPipeline = if (finalStage) !lastPipeline else lastPipeline
+
+  var lastPipeline = true
+
+  var enterFinalStage = times.length <= 1
+
   /** -------- methods for compression-------- */
 
   // these methods are designed for compress tree implement
-  def implCompressOnce(compressors: Seq[Compressor], compressorSolution: CompressorSolution): BitHeap[Bool] = {
+  def implCompressOnce(compressors: Seq[Compressor], compressorSolution: CompressorSolution, isPipeline: Boolean): BitHeap[Bool] = {
     val compressorInSolution = compressors.find(_.name == compressorSolution.compressorName).get
     val inputTable = compressorInSolution
       .inputFormat(compressorSolution.width)                   // remove and get bits in each columns that you need
@@ -179,17 +196,21 @@ case class BitHeap[T](bitHeapConfigInfo: BitHeapConfigInfo[T]*) {
         column --= slice // remove them from current heap
         slice
       }
-    val heapIn = BitHeap.getHeapFromTable(Seq(inputTable.asInstanceOf[Seq[ArrayBuffer[Bool]]]), Seq(compressorSolution.startIndex + currentWeightLow), Seq(currentTime))
+    val heapIn = BitHeap.getHeapFromTable(
+      Seq(inputTable.asInstanceOf[Seq[ArrayBuffer[Bool]]]),
+      Seq(compressorSolution.startIndex + currentWeightLow),
+      Seq(if (isPipeline) currentTime + 1 else currentTime)
+    )
     compressorInSolution.impl(heapIn, compressorSolution.width)
 
   }
 
   def implCompressOneStage(compressors: Seq[Compressor], stageSolution: StageSolution, pipeline: Bool => Bool): BitHeap[Bool] = {
     val results = ArrayBuffer[BitHeap[Bool]]()
-    stageSolution.compressorSolutions.foreach(compressorSolution => results += implCompressOnce(compressors, compressorSolution))
+    stageSolution.compressorSolutions.foreach(compressorSolution => results += implCompressOnce(compressors, compressorSolution, stageSolution.isPipeline))
     val partialNextStage = results
       .reduce(_ + _)
-      .d(pipeline)
+      .d(if (stageSolution.isPipeline) pipeline else b => b)
     this.bitHeaps.remove(currentIndex)
     this.weightLows.remove(currentIndex)
     this.times.remove(currentIndex)
@@ -204,15 +225,16 @@ case class BitHeap[T](bitHeapConfigInfo: BitHeapConfigInfo[T]*) {
   }
 
   /** get the exact(rather than maximum) efficiency of a compressor applied on current bit heap
-    *
-    * @param columnIndex
-    *   index of column with lowest weight covered by the compressor in heights
-    */
+   *
+   * @param columnIndex
+   *   index of column with lowest weight covered by the compressor in heights
+   */
   def getExactReductionEfficiency(
-      compressor: Compressor,
-      width: Int,
-      columnIndex: Int
-  ): Double = {
+                                   compressor: Compressor,
+                                   considerCarry8: Boolean,
+                                   width: Int,
+                                   columnIndex: Int
+                                 ): Double = {
     // for a given compressor and a column, find the exact number of bits covered by the compressor
     val bits = compressor
       .inputFormat(width)                    // height of columns in input pattern
@@ -220,16 +242,16 @@ case class BitHeap[T](bitHeapConfigInfo: BitHeapConfigInfo[T]*) {
       .map { case (h0, h1) => h0 min h1 }    // overlap
       .sum
 
-    (bits -                                // bitsIn
-      compressor.outputBitsCount(width)) / // bitsOut
-      compressor.areaCost(width).toDouble  // divided by cost
+    (bits -                                                  // bitsIn
+      compressor.outputBitsCount(width)) /                   // bitsOut
+      compressor.areaCost(width, considerCarry8, isPipeline) // divided by cost
   }
 
   def getExactReductionRatio(
-      compressor: Compressor,
-      width: Int,
-      columnIndex: Int
-  ): Double = {
+                              compressor: Compressor,
+                              width: Int,
+                              columnIndex: Int
+                            ): Double = {
     // for a given compressor and a column, find the exact number of bits covered by the compressor
     val bits = compressor
       .inputFormat(width)                    // height of columns in input pattern
@@ -241,10 +263,10 @@ case class BitHeap[T](bitHeapConfigInfo: BitHeapConfigInfo[T]*) {
   }
 
   def getExactBitReduction(
-      compressor: Compressor,
-      width: Int,
-      columnIndex: Int
-  ): Int = {
+                            compressor: Compressor,
+                            width: Int,
+                            columnIndex: Int
+                          ): Int = {
     // for a given compressor and a column, find the exact number of bits covered by the compressor
     val bits = compressor
       .inputFormat(width)                    // height of columns in input pattern
@@ -255,112 +277,146 @@ case class BitHeap[T](bitHeapConfigInfo: BitHeapConfigInfo[T]*) {
     bits - compressor.outputBitsCount(width)
   }
 
-  /** get the most efficient compressor for current bit heap and do compression with it
-    *
-    * @param compressors
-    *   a list of available compressors, the first one must be a 1 to 1 compressor which won't do compression
-    * @param finalStage
-    *   the this flag is set, a lower efficiency threshold will be used
-    * @return
-    *   new bit heap generated by the compressor, and the LUT cost
-    */
-  def compressOneTime(
-      compressors: Seq[Compressor],
-      finalStage: Boolean,
-      headBound: Double,
-      tailBound: Double,
-      naiveStrategy: Boolean = true
-  ): (BitHeap[T], CompressorSolution) = {
+  def getExactHeightReduction(
+                               compressor: Compressor,
+                               width: Int,
+                               columnIndex: Int
+                             ): Int = {
+    // for a given compressor and a column, find the exact number of bits covered by the compressor
+    val bits = compressor
+      .inputFormat(width)                    // height of columns in input pattern
+      .zip(currentHeights.drop(columnIndex)) // zip with height of columns in this heap
+      .map { case (h0, h1) => h0 min h1 }
 
-    // TODO: better strategies on final stages
+    bits.max - compressor.outputFormat(width).max
+  }
 
+  def headStrategy(
+                    compressors: Seq[Compressor],
+                    considerCarry8: Boolean,
+                    headBound: Double
+                  ) = {
     val searchThreshold = 0.2
-    val effBound        = if (finalStage) tailBound else headBound
-    // when no qualified compressor can be found, the 1 to 1 compressor(no compression) will be chosen
-    var bestCompressor          = compressors.head
-    var bestReductionEfficiency = 0.0
+    val effBound        = headBound
+
     val columnIndex             = currentHeights.indexWhere(_ == currentHeights.max) // find the first(lowest weight) column with maximum height
-    // number of continuous nonempty columns that 1 to 1 compressor can be applied on
-    var bestWidth          = currentBitHeap.drop(columnIndex).takeWhile(_.nonEmpty).length
-    var bestReductionRatio = 1
-    // sort by efficiency, high to low, besides the 1 to 1 compressor which appear as head
+    var bestCompressor          = compressors.head
+    var bestWidth               = currentBitHeap.drop(columnIndex).takeWhile(_.nonEmpty).length
+    var bestReductionEfficiency = bestCompressor.reductionEfficiency(bestWidth, considerCarry8)
+    var bestReductionRatio      = bestCompressor.reductionRatio(bestWidth)
+
     val candidates = compressors.tail
-      .sortBy(compressor =>
-        if (finalStage) compressor.heightReduction((currentWidth - columnIndex) min compressor.widthMax)
-        else compressor.reductionRatio((currentWidth - columnIndex) min compressor.widthMax)
-      )
+      .sortBy(compressor => compressor.reductionEfficiency((currentWidth - columnIndex) min compressor.widthMax, considerCarry8))
       .reverse
 
-    if (naiveStrategy) {
-      candidates.foreach { compressor => // traverse all available compressors
-        val widthMax   = compressor.widthMax min (currentWidth - columnIndex)
-        val maximumEff = compressor.reductionEfficiency(widthMax)
-        if (maximumEff >= bestReductionEfficiency) // skip when ideal efficiency is lower than current best efficiency
-          {
-            val (exactEfficiency, width) = {
-              if (compressor.isFixed) {
-                (getExactReductionEfficiency(compressor, -1, columnIndex), -1) // for GPC, get eff
-              } else {                                                         // for row compressor, try different widths, get the best one with its width
-                // TODO: avoid trying all widths
-                if (widthMax >= compressor.widthMin)
-                  (compressor.widthMin to widthMax).map(w => (getExactReductionEfficiency(compressor, w, columnIndex), w)).maxBy(_._1)
-                else (-1.0, 0) // skip
-              }
-            }
-            if (exactEfficiency >= bestReductionEfficiency && (exactEfficiency >= effBound)) { // update if a better compressor is found
-              bestReductionEfficiency = exactEfficiency
-              bestWidth               = width
-              bestCompressor          = compressor
-            }
-          }
-      }
-    } else {
-      candidates.foreach { compressor =>
-        val widthMax = compressor.widthMax min (currentWidth - columnIndex)
-        if (compressor.isFixed) {
-          val exactEfficiency     = getExactReductionEfficiency(compressor, -1, columnIndex)
-          val exactReductionRatio = getExactReductionRatio(compressor, -1, columnIndex)
-          if (exactEfficiency >= bestReductionEfficiency && exactEfficiency >= effBound) {
-            if (exactEfficiency == bestReductionEfficiency) {
-              if (exactReductionRatio > bestReductionRatio) {
-                bestReductionEfficiency = exactEfficiency
-                bestWidth               = -1
-                bestCompressor          = compressor
-              }
-            } else {
-              bestReductionEfficiency = exactEfficiency
+    candidates.foreach { compressor =>
+      val widthMax = compressor.widthMax min (currentWidth - columnIndex)
+      if (compressor.isFixed) {
+        val exactReductionEfficiency = getExactReductionEfficiency(compressor, considerCarry8, width = -1, columnIndex)
+        val exactReductionRatio      = getExactReductionRatio(compressor, width = -1, columnIndex = columnIndex)
+        if (exactReductionEfficiency >= bestReductionEfficiency && exactReductionEfficiency >= effBound) {
+          if (exactReductionEfficiency == bestReductionEfficiency) {
+            if (exactReductionRatio > bestReductionRatio) {
+              bestReductionEfficiency = exactReductionEfficiency
               bestWidth               = -1
               bestCompressor          = compressor
+              bestReductionRatio      = exactReductionRatio
             }
+          } else {
+            bestReductionEfficiency = exactReductionEfficiency
+            bestWidth               = -1
+            bestCompressor          = compressor
+            bestReductionRatio      = exactReductionRatio
           }
-        } else {
-          if (widthMax >= compressor.widthMin) {
-            var searchWidth = widthMax
-            while (searchWidth >= compressor.widthMin) {
-              val exactEfficiency     = getExactReductionEfficiency(compressor, searchWidth, columnIndex)
-              val exactReductionRatio = getExactReductionRatio(compressor, searchWidth, columnIndex)
-              if (exactEfficiency >= bestReductionEfficiency && exactEfficiency >= effBound) {
-                if (exactEfficiency == bestReductionEfficiency) {
-                  if (exactReductionRatio > bestReductionRatio) {
-                    bestReductionEfficiency = exactEfficiency
-                    bestWidth               = searchWidth
-                    bestCompressor          = compressor
-                  }
-                } else {
-                  bestReductionEfficiency = exactEfficiency
+        }
+      } else {
+        if (widthMax >= compressor.widthMin) {
+          var searchWidth = widthMax
+          while (searchWidth >= compressor.widthMin) {
+            val exactReductionEfficiency = getExactReductionEfficiency(compressor, considerCarry8, width = searchWidth, columnIndex)
+            val exactReductionRatio      = getExactReductionRatio(compressor, searchWidth, columnIndex)
+            if (exactReductionEfficiency >= bestReductionEfficiency && exactReductionEfficiency >= effBound) {
+              if (exactReductionEfficiency == bestReductionEfficiency) {
+                if (exactReductionRatio > bestReductionRatio) {
+                  bestReductionEfficiency = exactReductionEfficiency
                   bestWidth               = searchWidth
                   bestCompressor          = compressor
+                  bestReductionRatio      = exactReductionRatio
                 }
+              } else {
+                bestReductionEfficiency = exactReductionEfficiency
+                bestWidth               = searchWidth
+                bestCompressor          = compressor
+                bestReductionRatio      = exactReductionRatio
               }
-              if ((exactEfficiency + searchThreshold) < effBound)
-                searchWidth = 8 * floor((searchWidth - 1) / 8).toInt
-              else
-                searchWidth -= 1
             }
+            if ((exactReductionEfficiency + searchThreshold) < effBound) {
+              searchWidth = 8 * floor((searchWidth - 1) / 8).toInt
+            } else
+              searchWidth -= 1
           }
         }
       }
     }
+    (bestCompressor, bestWidth, columnIndex, bestReductionEfficiency)
+  }
+
+  def tailStrategy(
+                    compressors: Seq[Compressor],
+                    considerCarry8: Boolean,
+                    tailBound: Double
+                  ) = {
+
+    val effBound                = tailBound
+    var bestCompressor          = compressors.head
+    var bestWidth               = 1
+    var bestReductionEfficiency = bestCompressor.reductionEfficiency(bestWidth, considerCarry8, isPipeline)
+    var bestHeightReduction     = 0
+    val columnIndex             = currentHeights.indexWhere(_ == currentHeights.max)
+
+    val candidates = compressors.tail.filter(_.isFixed).sortBy(compressor => compressor.reductionEfficiency(width = -1, considerCarry8, isPipeline)).reverse
+
+    candidates.foreach { compressor =>
+      val exactReductionEfficiency = getExactReductionEfficiency(compressor, considerCarry8, width = -1, columnIndex)
+      val exactHeightReduction     = getExactHeightReduction(compressor, width = -1, columnIndex)
+      if (exactHeightReduction >= bestHeightReduction && exactReductionEfficiency >= effBound) {
+        if (exactHeightReduction == bestHeightReduction) {
+          if (exactReductionEfficiency > bestReductionEfficiency) {
+            bestReductionEfficiency = exactReductionEfficiency
+            bestCompressor          = compressor
+            bestWidth               = -1
+            bestHeightReduction     = exactHeightReduction
+          }
+        } else {
+          bestReductionEfficiency = exactReductionEfficiency
+          bestCompressor          = compressor
+          bestWidth               = -1
+          bestHeightReduction     = exactHeightReduction
+        }
+      }
+
+    }
+    (bestCompressor, bestWidth, columnIndex, bestReductionEfficiency)
+  }
+
+  /** get the most efficient compressor for current bit heap and do compression with it
+   *
+   * @param compressors
+   *   a list of available compressors, the first one must be a 1 to 1 compressor which won't do compression
+   * @return
+   *   new bit heap generated by the compressor, and the LUT cost
+   */
+  def compressOneTime(
+                       compressors: Seq[Compressor],
+                       considerCarry8: Boolean,
+                       headBound: Double,
+                       tailBound: Double
+                     ): (BitHeap[T], CompressorSolution) = {
+
+    val finalStageBefore = finalStage
+    val shouldPipeline   = isPipeline
+
+    val (bestCompressor, bestWidth, columnIndex, bestReductionEfficiency) = if (finalStageBefore) tailStrategy(compressors, considerCarry8, tailBound) else headStrategy(compressors, considerCarry8, headBound)
 
     val inputTable = bestCompressor
       .inputFormat(bestWidth)                // remove and get bits in each columns that you need
@@ -371,48 +427,54 @@ case class BitHeap[T](bitHeapConfigInfo: BitHeapConfigInfo[T]*) {
         column --= slice // remove them from current heap
         slice
       }
-    val heapIn = BitHeap.getHeapFromTable(Seq(inputTable.asInstanceOf[Seq[ArrayBuffer[Bool]]]), Seq(columnIndex + currentWeightLow), Seq(currentTime))
-    //    logger.info(heapIn.toString)
-    val heapOut  = getHeapFromHeights(Seq(bestCompressor.outputFormat(bestWidth)), Seq(columnIndex + currentWeightLow), Seq(currentTime + 1)).asInstanceOf[BitHeap[T]]
-    val areaCost = bestCompressor.areaCost(bestWidth)
+
+    val heapIn   = BitHeap.getHeapFromTable(Seq(inputTable.asInstanceOf[Seq[ArrayBuffer[Bool]]]), Seq(columnIndex + currentWeightLow), Seq(currentTime))
+    val heapOut  = getHeapFromHeights(Seq(bestCompressor.outputFormat(bestWidth)), Seq(columnIndex + currentWeightLow), Seq(if (shouldPipeline) currentTime + 1 else currentTime)).asInstanceOf[BitHeap[T]]
+    val areaCost = bestCompressor.areaCost(bestWidth, considerCarry8, shouldPipeline)
     val currentCompressorSolution = CompressorSolution(
       bestCompressor.name,
       bestWidth,
       columnIndex,
       Consideration(areaCost, bestReductionEfficiency, heapIn.bitsCount.toDouble / heapOut.bitsCount, heapIn.bitsCount - heapOut.bitsCount, heapIn.height - heapOut.height)
     )
+    if (finalStageBefore) heapOut.lastPipeline           = !lastPipeline
+    if (currentIsEmpty && finalStageBefore) lastPipeline = !lastPipeline
+    if (currentIsEmpty && shouldPipeline && finalStageBefore) this.times.indices.foreach(i => this.times(i) += 1)
     (heapOut, currentCompressorSolution)
   }
 
   /** do compression until all bits are covered and go to next stage
-    *
-    * @return
-    *   new heap for the next stage, and the LUT cost
-    */
+   *
+   * @return
+   *   new heap for the next stage, and the LUT cost
+   */
   def compressOneStage(
-      compressors: Seq[Compressor],
-      finalStage: Boolean,
-      headBound: Double,
-      tailBound: Double,
-      bitRatioTarget: Double
-  ): (BitHeap[T], StageSolution) = {
+                        compressors: Seq[Compressor],
+                        considerCarry8: Boolean           = true,
+                        headBound: Double                 = 1.0,
+                        tailBound: Double                 = 0.0,
+                        bitRatioTarget: Double            = 1.0,
+                        reductionEfficiencyTarget: Double = 1.8
+                      ): (BitHeap[T], StageSolution, String) = {
+    require((!finalStage && lastPipeline) || this.finalStage, s"finalStage: ${this.finalStage}\tlastPipeline: ${this.lastPipeline}")
+    val finalStageBefore = finalStage
+    var shouldPipeline   = isPipeline
+
     val currentBitCountBefore = currentBitCount
     var currentBitCountAfter  = currentBitCountBefore
     val currentHeightBefore   = currentHeight
     var currentHeightAfter    = currentHeightBefore
+    val heightBefore          = height
 
-    val heightBefore = height
-    //    val mark         = currentBitHeap.filter(_.nonEmpty).head.head // for type match
-
-    var stageAreaCost       = 0
+    var stageAreaCost       = 0.0
     val results             = ArrayBuffer[BitHeap[T]]()
     val compressorTypes     = Set[String]()
     val compressorSolutions = ArrayBuffer[CompressorSolution]()
-    // compress until all bits are covered
 
+    // compress until all bits are covered
     while (!currentIsEmpty) {
       val (heap, compressorSolution) = {
-        compressOneTime(compressors, finalStage, headBound, tailBound)
+        compressOneTime(compressors, considerCarry8, headBound, tailBound)
       }
       results += heap
       stageAreaCost += compressorSolution.getAreaCost
@@ -424,25 +486,32 @@ case class BitHeap[T](bitHeapConfigInfo: BitHeapConfigInfo[T]*) {
       .asInstanceOf[Seq[BitHeap[T]]]
       .reduce(_ + _)
       .asInstanceOf[BitHeap[T]] // when T is Bool
+
     this.bitHeaps.remove(currentIndex)
     this.weightLows.remove(currentIndex)
     this.times.remove(currentIndex)
+
     currentBitCountAfter = partialNextStage.bitsCount
     currentHeightAfter   = partialNextStage.height
     val nextStage = this + partialNextStage
 
+    if (nextStage.height <= 2 && nextStage.bitHeaps.length <= 1 && !shouldPipeline) {
+      shouldPipeline = true
+      nextStage.times.indices.foreach(i => nextStage.times(i) += 1)
+    }
+    nextStage.lastPipeline = shouldPipeline
     val stageBitReduction        = currentBitCountBefore - currentBitCountAfter
     val stageReductionRatio      = currentBitCountBefore.toDouble / currentBitCountAfter
     val stageReductionEfficiency = (currentBitCountBefore - currentBitCountAfter).toDouble / stageAreaCost
     val stageHeightReduction     = currentHeightBefore - currentHeightAfter
-    if (verbose >= 1 && stageReductionRatio >= bitRatioTarget)
-      logger.info(
-        s"compressed info :\n\tstage bit reduction: $stageBitReduction, stage reduction efficiency: $stageReductionEfficiency, stage reduction ratio: $stageReductionRatio" +
-          s"\n\tarea cost: $stageAreaCost, height: $currentHeightBefore -> $currentHeightAfter" +
-          s"\n\tcompressors used: ${compressorTypes.mkString(",")}" +
-          s"\n\twhole info :\n\theight: $heightBefore -> ${nextStage.height}, bits remained: ${nextStage.bitsCount}"
-      )
-    if (finalStage && verbose >= 1 && stageReductionRatio >= bitRatioTarget) logger.info(s"\n${nextStage.toString}")
+
+    val stageLog = s"compressed info :\n\tstage bit reduction: $stageBitReduction, stage reduction efficiency: $stageReductionEfficiency, stage reduction ratio: $stageReductionRatio" +
+      s"\n\tarea cost: $stageAreaCost, height: $currentHeightBefore -> $currentHeightAfter" +
+      s"\n\tcompressors used: ${compressorTypes.mkString(",")}" +
+      s"\n\twhole info :\n\theight: $heightBefore -> ${nextStage.height}, bits remained: ${nextStage.bitsCount}"
+
+    if (verbose >= 1 && stageReductionRatio >= bitRatioTarget && stageReductionEfficiency >= reductionEfficiencyTarget) logger.info(stageLog)
+    if (finalStageBefore && shouldPipeline && verbose >= 1 && stageReductionRatio >= bitRatioTarget && stageReductionEfficiency >= reductionEfficiencyTarget) logger.info(s"\n${nextStage.toString}")
     (
       nextStage,
       StageSolution(
@@ -452,35 +521,37 @@ case class BitHeap[T](bitHeapConfigInfo: BitHeapConfigInfo[T]*) {
           s"$currentHeightBefore -> $currentHeightAfter",
           s"$heightBefore -> ${nextStage.height}",
           Seq.tabulate(nextStage.bitHeaps.length)(i => BitHeapConfigInfo(nextStage.bitHeaps(i).map(_.map(_ => 0)), nextStage.weightLows(i), nextStage.times(i))),
-          finalStage
+          finalStageBefore,
+          shouldPipeline,
+          shouldPipeline && finalStageBefore
         )
-      )
+      ),
+      stageLog
     )
   }
 
   /** do compression until there's no more than two lines in the bit heap
-    *
-    * @return
-    *   final bit heap and the key information of the compressor tree (latency, widthOut, etc.)
-    */
+   *
+   * @return
+   *   final bit heap and the key information of the compressor tree (latency, widthOut, etc.)
+   */
   def compressAll(
-      candidates: Seq[Compressor],
-      name: String                 = "compressor tree of temp",
-      solutionsPath: String        = "./src/main/resources/compressorTreeSolutions",
-      useHistorySolutions: Boolean = true
-  ): (BitHeap[T], CompressTreeSolution) = {
+                   candidates: Seq[Compressor],
+                   considerCarry8: Boolean      = true,
+                   name: String                 = "compressor tree of temp",
+                   solutionsPath: String        = solutionsPath,
+                   useHistorySolutions: Boolean = false
+                 ): (BitHeap[T], CompressTreeSolution) = {
     if (verbose >= 1) {
+      if (name != null) logger.info(s"the name of compressor tree is : $name")
       logger.info(
         s"\n----available compressors----"
           + s"\n\t${candidates.map(compressor => compressor.getClass.getSimpleName.init + "\n" + compressor.toString(8)).mkString("\n\t")}"
       )
-    }
-    if (verbose >= 1 && name != null) {
-      logger.info(s"find solutions of compressor tree of $name")
-    }
-    if (verbose >= 1)
       logger.info(s"initial state: bits in total: $bitsCount, height: $height")
-    if (verbose >= 1) logger.info(s"\n$toString")
+      if (finalStage) logger.info(s"initial enter finalStage")
+      logger.info(s"\n$toString")
+    }
 
     implicit val formats: DefaultFormats.type = DefaultFormats
     val parentDir                             = new File(solutionsPath)
@@ -489,7 +560,7 @@ case class BitHeap[T](bitHeapConfigInfo: BitHeapConfigInfo[T]*) {
     if (solutionsFile.exists() && useHistorySolutions) {
       val solutionsReader      = new BufferedReader(new FileReader(solutionsFile))
       val compressTreeSolution = read[CompressTreeSolution](solutionsReader.readLine())
-      if (verbose >= 1) logger.info(s"Find a history solution in path: $solutionsPath/${this.toString.hashCode()}, load this solution.")
+      logger.info(s"Find a history solution in path: $solutionsPath/${this.toString.hashCode()}, load this solution.")
       compressTreeSolution.printLog(srcBitHeap = this.asInstanceOf[BitHeap[Int]])
       (if (compressTreeSolution.getFinalBitHeap != null) compressTreeSolution.getFinalBitHeap.asInstanceOf[BitHeap[T]] else this, compressTreeSolution)
     } else {
@@ -498,44 +569,72 @@ case class BitHeap[T](bitHeapConfigInfo: BitHeapConfigInfo[T]*) {
       var current                 = this
       var latency                 = 0
       var badLatency              = 0
-      var allCost                 = 0
+      var allCost                 = 0.0
       val stageSolutions          = ArrayBuffer[StageSolution]()
-      var headBound               = 1.0
+      var headBound               = 1.5
       var tailBound               = 0.0
       val candidateStageSolutions = ArrayBuffer[StageSolution]()
+      val candidateBitHeaps       = ArrayBuffer[BitHeap[T]]()
+      val candidateStageLogs      = ArrayBuffer[String]()
       while ((current.height > 2 || current.bitHeaps.length > 1) && latency < 100) {
         val currentBefore = current.copy
-        val finalStage    = current.currentHeight <= 6
-        val (heap, stageSolution) =
-          current.compressOneStage(candidates, finalStage, headBound, tailBound, bitRatioTarget = 0.2)
-        if (stageSolution.getReductionRatio > 0.2) {
-          current = heap
+        val (heap, stageSolution, stageLog) =
+          current.compressOneStage(
+            candidates,
+            considerCarry8,
+            headBound,
+            tailBound,
+            bitRatioTarget            = if (currentBefore.finalStage) 0.0 else 0.0,
+            reductionEfficiencyTarget = if (currentBefore.finalStage) 0.0 else 1.9
+          )
+        if (stageSolution.getReductionRatio >= (if (currentBefore.finalStage) 0.0 else 0.0) && stageSolution.getReductionEfficiency >= (if (currentBefore.finalStage) 0.0 else 1.9)) {
+          headBound = 1.5
+          current   = heap
           allCost += stageSolution.getAreaCost
-          latency += 1
+          if (stageSolution.isPipeline) latency += 1
           stageSolutions += stageSolution
-          if (finalStage) badLatency += 1
+          if (currentBefore.finalStage && stageSolution.isPipeline) badLatency += 1
+          if (verbose >= 1 && !currentBefore.finalStage && current.finalStage) logger.info(s"enter finalStage")
         } else {
-          logger.info(s"fail stage ratio: ${stageSolution.getReductionRatio}")
-          if (headBound > 0.2) headBound -= 0.1
-          current = currentBefore
+          candidateStageSolutions += stageSolution
+          candidateBitHeaps += heap
+          candidateStageLogs += stageLog
+          if (headBound > 0.2) {
+            headBound -= 0.1
+            current = currentBefore
+          } else {
+            headBound = 1.5
+            val (finalStageSolution, (finalHeap, stagLog)) = candidateStageSolutions.zip(candidateBitHeaps.zip(candidateStageLogs)).sortBy(_._1.getReductionEfficiency).reverse.head
+            allCost += finalStageSolution.getAreaCost
+            if (finalStageSolution.isPipeline) latency += 1
+            stageSolutions += finalStageSolution
+            if (verbose >= 1) logger.info(stagLog)
+            if (currentBefore.finalStage && finalStageSolution.isPipeline) {
+              badLatency += 1
+              logger.info(finalHeap.toString)
+            }
+            if (verbose >= 1 && !currentBefore.finalStage && current.finalStage) logger.info(s"enter finalStage")
+            candidateStageSolutions.clear()
+            candidateBitHeaps.clear()
+            candidateStageLogs.clear()
+            current = finalHeap
+          }
         }
       }
       val allCompressed = bitsInTotal - current.bitsCount
-      if (verbose >= 1) {
-        logger.info(
-          s"\n----efficiency report of bit heap compressor----" +
-            s"\n\tcost in total: $allCost, compressed in total: $allCompressed" +
-            s"\n\tefficiency in total: ${allCompressed.toDouble / allCost}" +
-            s"\n\tideal widthOut: ${maxValue.bitLength}, actual widthOut: ${current.widths.max}"
-        )
-      }
+      logger.info(
+        s"\n----efficiency report of bit heap compressor----" +
+          s"\n\tcost in total: $allCost, compressed in total: $allCompressed" +
+          s"\n\tefficiency in total: ${allCompressed.toDouble / allCost}" +
+          s"\n\tideal widthOut: ${maxValue.bitLength}, actual widthOut: ${current.widths.max}"
+      )
 
       val compressTreeSolution = CompressTreeSolution(stageSolutions)
       val solutionsWriter      = new BufferedWriter(new FileWriter(solutionsFile))
       solutionsWriter.write(write(compressTreeSolution))
       solutionsWriter.flush()
       solutionsWriter.close()
-      if (verbose >= 1) logger.info(s"Store a solution to path : $solutionsPath/${this.toString.hashCode()}")
+      logger.info(s"Store a solution to path : $solutionsPath/${this.toString.hashCode()}")
 
       (current, compressTreeSolution)
     }
@@ -564,16 +663,16 @@ case class BitHeap[T](bitHeapConfigInfo: BitHeapConfigInfo[T]*) {
     dotDiagram.mkString("\n")
   }
 
-  def copy = BitHeap(bitHeaps.map(_.map(_.map(i => i))), weightLows, times)
+  def copy = BitHeap(this.bitHeaps.map(_.map(_.map(i => i))), this.weightLows, this.times)
 
 }
 
 object BitHeap {
   def getHeapFromTable[T](
-      tables: Seq[Seq[Seq[T]]],
-      weightLows: Seq[Int],
-      times: Seq[Int]
-  ): BitHeap[T] = {
+                           tables: Seq[Seq[Seq[T]]],
+                           weightLows: Seq[Int],
+                           times: Seq[Int]
+                         ): BitHeap[T] = {
     val bitHeapConfigInfos = ArrayBuffer[BitHeapConfigInfo[T]]()
     times.zip(tables).zip(weightLows).foreach { case ((time, table), weightLow) =>
       val tableForHeap = ArrayBuffer.fill(table.length)(ArrayBuffer[T]())
@@ -584,16 +683,16 @@ object BitHeap {
   }
 
   /** build bit matrix from operands and their shifts
-    *
-    * @param infos
-    *   infos record the width and position(shift) info of corresponding operands
-    * @param operands
-    *   an operand is a low to high sequence of bits
-    */
+   *
+   * @param infos
+   *   infos record the width and position(shift) info of corresponding operands
+   * @param operands
+   *   an operand is a low to high sequence of bits
+   */
   def getHeapFromInfos[T](
-      infos: Seq[Seq[OperandInfo]],
-      operands: Seq[Seq[Seq[T]]] = null
-  ): BitHeap[T] = {
+                           infos: Seq[Seq[OperandInfo]],
+                           operands: Seq[Seq[Seq[T]]] = null
+                         ): BitHeap[T] = {
     val bitHeapConfigInfos = ArrayBuffer[BitHeapConfigInfo[T]]()
     val realOperands       = if (operands == null) infos.map(_.map(info => Seq.fill(info.width)(0.asInstanceOf[T]))) else operands
     val sortedInfos        = infos.flatten.zip(realOperands.flatten).groupBy(_._1.time).toSeq.map(_._2).map(info => (info.map(_._1), info.map(_._2)))
@@ -616,10 +715,10 @@ object BitHeap {
   }
 
   def getHeapFromHeights(
-      heights: Seq[Seq[Int]],
-      weightLows: Seq[Int],
-      times: Seq[Int]
-  ): BitHeap[Int] = {
+                          heights: Seq[Seq[Int]],
+                          weightLows: Seq[Int],
+                          times: Seq[Int]
+                        ): BitHeap[Int] = {
     val bitHeapConfigInfos = ArrayBuffer[BitHeapConfigInfo[Int]]()
     times.zip(heights).zip(weightLows).foreach { case ((time, heights), weightLow) =>
       bitHeapConfigInfos += BitHeapConfigInfo(ArrayBuffer(heights: _*).map(i => ArrayBuffer.fill(i)(0)), weightLow, time)
@@ -636,7 +735,7 @@ object BitHeap {
         val start  = heap.indexOf(heap.find(_.nonEmpty).get)
         val width  = heap.drop(start).span(_.nonEmpty)._1.length
         val weight = start + weightLow
-        infos += OperandInfo(width, weight, positive = true, time)
+        infos += OperandInfo(width, weight, positive = true, time = time)
         Range(start, start + width).foreach { idx => heap(idx) -= heap(idx).head }
       }
       infosForHeap += infos
